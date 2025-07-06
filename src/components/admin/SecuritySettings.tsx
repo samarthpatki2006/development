@@ -51,40 +51,27 @@ const SecuritySettings = ({ userProfile }: SecuritySettingsProps) => {
 
   const loadSecuritySettings = async () => {
     try {
-      // Use rpc or direct query to handle the security_settings table
-      const { data, error } = await supabase
-        .rpc('get_security_settings', {
-          user_uuid: userProfile.id,
-          college_uuid: userProfile.college_id
-        });
+      // Use direct table access with type assertion
+      const { data, error } = await (supabase as any)
+        .from('security_settings')
+        .select('*')
+        .eq('user_id', userProfile.id)
+        .eq('college_id', userProfile.college_id)
+        .single();
 
       if (error && error.code !== 'PGRST116') {
         console.error('Error loading security settings:', error);
-        // If RPC doesn't exist, try direct table access with any type
-        const { data: directData, error: directError } = await (supabase as any)
-          .from('security_settings')
-          .select('*')
-          .eq('user_id', userProfile.id)
-          .eq('college_id', userProfile.college_id)
-          .single();
-
-        if (directError && directError.code !== 'PGRST116') {
-          console.error('Error with direct query:', directError);
-        } else if (directData) {
-          setSecuritySettings(directData);
-          setTwoFactorEnabled(directData.two_factor_enabled || false);
-        }
       } else if (data) {
-        setSecuritySettings(data);
+        setSecuritySettings(data as SecuritySetting);
         setTwoFactorEnabled(data.two_factor_enabled || false);
-      }
-
-      // If no data found, create default settings
-      if (!data) {
+      } else {
+        // If no data found, create default settings
         await createDefaultSecuritySettings();
       }
     } catch (error) {
       console.error('Error:', error);
+      // Create default settings on any error
+      await createDefaultSecuritySettings();
     } finally {
       setIsLoading(false);
     }
@@ -102,27 +89,17 @@ const SecuritySettings = ({ userProfile }: SecuritySettingsProps) => {
         password_expires_at: null
       };
 
-      // Try RPC first
-      const { data: rpcData, error: rpcError } = await supabase
-        .rpc('create_security_settings', {
-          settings: defaultSettings
-        });
+      const { data, error } = await (supabase as any)
+        .from('security_settings')
+        .insert(defaultSettings)
+        .select()
+        .single();
 
-      if (rpcError) {
-        // Fallback to direct insert
-        const { data: directData, error: directError } = await (supabase as any)
-          .from('security_settings')
-          .insert(defaultSettings)
-          .select()
-          .single();
-
-        if (directError) {
-          console.error('Error creating default security settings:', directError);
-        } else if (directData) {
-          setSecuritySettings(directData);
-        }
-      } else if (rpcData) {
-        setSecuritySettings(rpcData);
+      if (error) {
+        console.error('Error creating default security settings:', error);
+      } else if (data) {
+        setSecuritySettings(data as SecuritySetting);
+        setTwoFactorEnabled(false);
       }
     } catch (error) {
       console.error('Error creating default settings:', error);
@@ -131,41 +108,39 @@ const SecuritySettings = ({ userProfile }: SecuritySettingsProps) => {
 
   const toggle2FA = async (enabled: boolean) => {
     try {
-      // Try RPC first
-      const { error: rpcError } = await supabase
-        .rpc('update_security_settings', {
-          user_uuid: userProfile.id,
-          college_uuid: userProfile.college_id,
-          two_factor_enabled: enabled
+      const { error } = await (supabase as any)
+        .from('security_settings')
+        .upsert({
+          user_id: userProfile.id,
+          college_id: userProfile.college_id,
+          two_factor_enabled: enabled,
+          updated_at: new Date().toISOString()
         });
 
-      if (rpcError) {
-        // Fallback to direct update
-        const { error: directError } = await (supabase as any)
-          .from('security_settings')
-          .upsert({
-            user_id: userProfile.id,
-            college_id: userProfile.college_id,
-            two_factor_enabled: enabled,
-            updated_at: new Date().toISOString()
-          });
-
-        if (directError) {
-          console.error('Error updating 2FA:', directError);
-          toast({
-            title: "Error",
-            description: "Failed to update two-factor authentication.",
-            variant: "destructive",
-          });
-          return;
-        }
+      if (error) {
+        console.error('Error updating 2FA:', error);
+        toast({
+          title: "Error",
+          description: "Failed to update two-factor authentication.",
+          variant: "destructive",
+        });
+        return;
       }
 
       setTwoFactorEnabled(enabled);
       
-      // Log the security action
+      // Update local state
+      if (securitySettings) {
+        setSecuritySettings({
+          ...securitySettings,
+          two_factor_enabled: enabled,
+          updated_at: new Date().toISOString()
+        });
+      }
+
+      // Try to log the action (only if the RPC exists)
       try {
-        await supabase.rpc('log_admin_action', {
+        await (supabase as any).rpc('log_admin_action', {
           college_uuid: userProfile.college_id,
           admin_uuid: userProfile.id,
           target_uuid: userProfile.id,
@@ -174,7 +149,8 @@ const SecuritySettings = ({ userProfile }: SecuritySettingsProps) => {
           module_param: 'security'
         });
       } catch (logError) {
-        console.error('Error logging action:', logError);
+        // Silently fail if logging RPC doesn't exist
+        console.log('Action logging not available');
       }
 
       toast({
@@ -225,9 +201,9 @@ const SecuritySettings = ({ userProfile }: SecuritySettingsProps) => {
         return;
       }
 
-      // Log the security action
+      // Try to log the action (only if the RPC exists)
       try {
-        await supabase.rpc('log_admin_action', {
+        await (supabase as any).rpc('log_admin_action', {
           college_uuid: userProfile.college_id,
           admin_uuid: userProfile.id,
           target_uuid: userProfile.id,
@@ -236,7 +212,8 @@ const SecuritySettings = ({ userProfile }: SecuritySettingsProps) => {
           module_param: 'security'
         });
       } catch (logError) {
-        console.error('Error logging action:', logError);
+        // Silently fail if logging RPC doesn't exist
+        console.log('Action logging not available');
       }
 
       toast({

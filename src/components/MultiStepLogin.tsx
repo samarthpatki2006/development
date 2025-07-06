@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,6 +8,7 @@ import { cn } from '@/lib/utils';
 import CollegeBranding from './CollegeBranding';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { useNavigate } from 'react-router-dom';
 
 interface CollegeData {
   id: string;
@@ -20,6 +20,7 @@ interface CollegeData {
 }
 
 const MultiStepLogin = () => {
+  const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(1);
   const [collegeCode, setCollegeCode] = useState('');
   const [userCode, setUserCode] = useState('');
@@ -27,6 +28,17 @@ const MultiStepLogin = () => {
   const [collegeData, setCollegeData] = useState<CollegeData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [userExists, setUserExists] = useState(false);
+
+  // Check if user is already authenticated
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        navigate('/admin');
+      }
+    };
+    checkAuth();
+  }, [navigate]);
 
   const validateCollegeCode = async () => {
     setIsLoading(true);
@@ -142,34 +154,80 @@ const MultiStepLogin = () => {
     setIsLoading(true);
     
     try {
-      // For testing purposes, we'll create a simple demo login
-      // In a real application, you would handle actual authentication here
+      // For demo purposes, create a temporary user email for authentication
+      const tempEmail = `${userCode.toLowerCase()}@${collegeData.code.toLowerCase()}.edu`;
       
-      // Simulate login success for testing
+      // Try to sign in with demo credentials
       if (password === 'test123' || password === 'password') {
+        // Create a demo user session using Supabase auth
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email: tempEmail,
+          password: password,
+        });
+
+        if (error) {
+          // If user doesn't exist, create them for demo purposes
+          if (error.message.includes('Invalid login credentials')) {
+            const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+              email: tempEmail,
+              password: password,
+              options: {
+                data: {
+                  college_id: collegeData.id,
+                  user_code: userCode,
+                  user_type: userCode.startsWith('ADM') ? 'admin' : 
+                           userCode.startsWith('FAC') ? 'faculty' : 'student',
+                  first_name: 'Demo',
+                  last_name: 'User'
+                }
+              }
+            });
+
+            if (signUpError) {
+              console.error('Sign up error:', signUpError);
+              toast({
+                title: "Authentication Error",
+                description: "Unable to create demo user session.",
+                variant: "destructive",
+              });
+              return;
+            }
+
+            // Sign in the newly created user
+            const { data: loginData, error: loginError } = await supabase.auth.signInWithPassword({
+              email: tempEmail,
+              password: password,
+            });
+
+            if (loginError) {
+              console.error('Login error:', loginError);
+              toast({
+                title: "Login Failed",
+                description: "Unable to authenticate user.",
+                variant: "destructive",
+              });
+              return;
+            }
+          } else {
+            console.error('Authentication error:', error);
+            toast({
+              title: "Login Failed",
+              description: "Authentication failed. Please try again.",
+              variant: "destructive",
+            });
+            return;
+          }
+        }
+
         toast({
           title: "Login Successful!",
           description: `Welcome to ColCord - ${collegeData.name}`,
         });
-        
-        // Here you would typically:
-        // 1. Store user session
-        // 2. Redirect to dashboard
-        // 3. Set authentication state
-        
-        console.log('Login successful for:', {
-          college: collegeData.name,
-          userCode: userCode,
-          userType: 'Test User'
-        });
-        
-        // For demo purposes, show success message
+
+        // Redirect to admin dashboard
         setTimeout(() => {
-          toast({
-            title: "Demo Login Complete",
-            description: "In a real app, you would now be redirected to the dashboard.",
-          });
-        }, 1500);
+          navigate('/admin');
+        }, 1000);
         
       } else {
         toast({
@@ -179,10 +237,10 @@ const MultiStepLogin = () => {
         });
       }
     } catch (error) {
-      console.error('Error:', error);
+      console.error('Login error:', error);
       toast({
         title: "Error",
-        description: "Something went wrong. Please try again.",
+        description: "Something went wrong during login. Please try again.",
         variant: "destructive",
       });
     } finally {

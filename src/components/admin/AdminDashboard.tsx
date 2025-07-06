@@ -374,9 +374,9 @@ const AdminDashboard = () => {
           <EnhancedUserManagement userProfile={userProfile} adminRoles={adminRoles} />
         </TabsContent>
 
-        {/* Role Management Tab */}
+        {/* Role Management Tab - Only pass userProfile */}
         <TabsContent value="roles">
-          <RoleManagement userProfile={userProfile} adminRoles={adminRoles} />
+          <RoleManagement userProfile={userProfile} />
         </TabsContent>
 
         {/* Course Management Tab */}
@@ -443,14 +443,14 @@ const AdminDashboard = () => {
           </Card>
         </TabsContent>
 
-        {/* Security Settings Tab */}
+        {/* Security Settings Tab - Only pass userProfile */}
         <TabsContent value="security">
-          <SecuritySettings userProfile={userProfile} adminRoles={adminRoles} />
+          <SecuritySettings userProfile={userProfile} />
         </TabsContent>
 
-        {/* System Settings Tab */}
+        {/* System Settings Tab - Only pass userProfile */}
         <TabsContent value="settings">
-          <SystemSettings userProfile={userProfile} adminRoles={adminRoles} />
+          <SystemSettings userProfile={userProfile} />
         </TabsContent>
 
         {/* Audit Logs Tab */}

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -12,15 +11,30 @@ import { toast } from '@/hooks/use-toast';
 
 interface SecuritySetting {
   id: string;
+  user_id: string;
+  college_id: string;
   two_factor_enabled: boolean;
-  last_login_at: string;
+  last_login_at: string | null;
   login_attempts: number;
-  locked_until: string;
-  password_expires_at: string;
+  locked_until: string | null;
+  password_expires_at: string | null;
+  created_at?: string;
+  updated_at?: string;
 }
 
 interface SecuritySettingsProps {
-  userProfile: any;
+  userProfile: {
+    id: string;
+    college_id: string;
+    email: string;
+    first_name: string;
+    last_name: string;
+    user_code: string;
+    user_type: string;
+    is_active: boolean;
+    created_at: string;
+    updated_at: string;
+  };
 }
 
 const SecuritySettings = ({ userProfile }: SecuritySettingsProps) => {
@@ -37,35 +51,37 @@ const SecuritySettings = ({ userProfile }: SecuritySettingsProps) => {
 
   const loadSecuritySettings = async () => {
     try {
+      // Use rpc or direct query to handle the security_settings table
       const { data, error } = await supabase
-        .from('security_settings')
-        .select('*')
-        .eq('user_id', userProfile.id)
-        .eq('college_id', userProfile.college_id)
-        .single();
+        .rpc('get_security_settings', {
+          user_uuid: userProfile.id,
+          college_uuid: userProfile.college_id
+        });
 
       if (error && error.code !== 'PGRST116') {
         console.error('Error loading security settings:', error);
-      } else if (data) {
-        setSecuritySettings(data);
-        setTwoFactorEnabled(data.two_factor_enabled);
-      } else {
-        // Create default security settings
-        const { data: newSettings, error: createError } = await supabase
+        // If RPC doesn't exist, try direct table access with any type
+        const { data: directData, error: directError } = await (supabase as any)
           .from('security_settings')
-          .insert({
-            user_id: userProfile.id,
-            college_id: userProfile.college_id,
-            two_factor_enabled: false
-          })
-          .select()
+          .select('*')
+          .eq('user_id', userProfile.id)
+          .eq('college_id', userProfile.college_id)
           .single();
 
-        if (createError) {
-          console.error('Error creating security settings:', createError);
-        } else {
-          setSecuritySettings(newSettings);
+        if (directError && directError.code !== 'PGRST116') {
+          console.error('Error with direct query:', directError);
+        } else if (directData) {
+          setSecuritySettings(directData);
+          setTwoFactorEnabled(directData.two_factor_enabled || false);
         }
+      } else if (data) {
+        setSecuritySettings(data);
+        setTwoFactorEnabled(data.two_factor_enabled || false);
+      }
+
+      // If no data found, create default settings
+      if (!data) {
+        await createDefaultSecuritySettings();
       }
     } catch (error) {
       console.error('Error:', error);
@@ -74,28 +90,81 @@ const SecuritySettings = ({ userProfile }: SecuritySettingsProps) => {
     }
   };
 
-  const toggle2FA = async (enabled: boolean) => {
+  const createDefaultSecuritySettings = async () => {
     try {
-      const { error } = await supabase
-        .from('security_settings')
-        .upsert({
-          user_id: userProfile.id,
-          college_id: userProfile.college_id,
-          two_factor_enabled: enabled,
-          updated_at: new Date().toISOString()
+      const defaultSettings = {
+        user_id: userProfile.id,
+        college_id: userProfile.college_id,
+        two_factor_enabled: false,
+        login_attempts: 0,
+        last_login_at: null,
+        locked_until: null,
+        password_expires_at: null
+      };
+
+      // Try RPC first
+      const { data: rpcData, error: rpcError } = await supabase
+        .rpc('create_security_settings', {
+          settings: defaultSettings
         });
 
-      if (error) {
-        console.error('Error updating 2FA:', error);
-        toast({
-          title: "Error",
-          description: "Failed to update two-factor authentication.",
-          variant: "destructive",
+      if (rpcError) {
+        // Fallback to direct insert
+        const { data: directData, error: directError } = await (supabase as any)
+          .from('security_settings')
+          .insert(defaultSettings)
+          .select()
+          .single();
+
+        if (directError) {
+          console.error('Error creating default security settings:', directError);
+        } else if (directData) {
+          setSecuritySettings(directData);
+        }
+      } else if (rpcData) {
+        setSecuritySettings(rpcData);
+      }
+    } catch (error) {
+      console.error('Error creating default settings:', error);
+    }
+  };
+
+  const toggle2FA = async (enabled: boolean) => {
+    try {
+      // Try RPC first
+      const { error: rpcError } = await supabase
+        .rpc('update_security_settings', {
+          user_uuid: userProfile.id,
+          college_uuid: userProfile.college_id,
+          two_factor_enabled: enabled
         });
-      } else {
-        setTwoFactorEnabled(enabled);
-        
-        // Log the security action
+
+      if (rpcError) {
+        // Fallback to direct update
+        const { error: directError } = await (supabase as any)
+          .from('security_settings')
+          .upsert({
+            user_id: userProfile.id,
+            college_id: userProfile.college_id,
+            two_factor_enabled: enabled,
+            updated_at: new Date().toISOString()
+          });
+
+        if (directError) {
+          console.error('Error updating 2FA:', directError);
+          toast({
+            title: "Error",
+            description: "Failed to update two-factor authentication.",
+            variant: "destructive",
+          });
+          return;
+        }
+      }
+
+      setTwoFactorEnabled(enabled);
+      
+      // Log the security action
+      try {
         await supabase.rpc('log_admin_action', {
           college_uuid: userProfile.college_id,
           admin_uuid: userProfile.id,
@@ -104,12 +173,14 @@ const SecuritySettings = ({ userProfile }: SecuritySettingsProps) => {
           action_desc: `Two-factor authentication ${enabled ? 'enabled' : 'disabled'}`,
           module_param: 'security'
         });
-
-        toast({
-          title: "Success",
-          description: `Two-factor authentication ${enabled ? 'enabled' : 'disabled'}.`,
-        });
+      } catch (logError) {
+        console.error('Error logging action:', logError);
       }
+
+      toast({
+        title: "Success",
+        description: `Two-factor authentication ${enabled ? 'enabled' : 'disabled'}.`,
+      });
     } catch (error) {
       console.error('Error:', error);
       toast({
@@ -151,8 +222,11 @@ const SecuritySettings = ({ userProfile }: SecuritySettingsProps) => {
           description: "Failed to change password.",
           variant: "destructive",
         });
-      } else {
-        // Log the security action
+        return;
+      }
+
+      // Log the security action
+      try {
         await supabase.rpc('log_admin_action', {
           college_uuid: userProfile.college_id,
           admin_uuid: userProfile.id,
@@ -161,16 +235,18 @@ const SecuritySettings = ({ userProfile }: SecuritySettingsProps) => {
           action_desc: 'Password changed successfully',
           module_param: 'security'
         });
-
-        toast({
-          title: "Success",
-          description: "Password changed successfully.",
-        });
-
-        setCurrentPassword('');
-        setNewPassword('');
-        setConfirmPassword('');
+      } catch (logError) {
+        console.error('Error logging action:', logError);
       }
+
+      toast({
+        title: "Success",
+        description: "Password changed successfully.",
+      });
+
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
     } catch (error) {
       console.error('Error:', error);
       toast({

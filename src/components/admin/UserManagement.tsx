@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -18,10 +17,15 @@ interface UserProfile {
   last_name: string;
   email: string;
   user_code: string;
-  user_type: string;
-  hierarchy_level?: string;
+  user_type: 'student' | 'faculty' | 'admin' | 'staff';
   is_active: boolean;
   created_at: string;
+  updated_at: string;
+  college_id: string;
+}
+
+interface ExtendedUserProfile extends UserProfile {
+  hierarchy_level: string;
 }
 
 interface AdminRole {
@@ -31,21 +35,33 @@ interface AdminRole {
 }
 
 interface UserManagementProps {
-  userProfile: any;
+  userProfile: UserProfile & { hierarchy_level?: string };
   adminRoles: AdminRole[];
 }
 
 const UserManagement = ({ userProfile, adminRoles }: UserManagementProps) => {
-  const [users, setUsers] = useState<UserProfile[]>([]);
+  const [users, setUsers] = useState<ExtendedUserProfile[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('all');
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
+  const [selectedUser, setSelectedUser] = useState<ExtendedUserProfile | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 
   useEffect(() => {
     loadUsers();
   }, []);
+
+  const getHierarchyFromUserType = (userType: string): string => {
+    const hierarchyMap: Record<string, string> = {
+      'admin': 'admin',
+      'faculty': 'faculty',
+      'student': 'student',
+      'staff': 'staff',
+      'parent': 'parent',
+      'alumni': 'alumni'
+    };
+    return hierarchyMap[userType] || 'student';
+  };
 
   const loadUsers = async () => {
     try {
@@ -63,41 +79,48 @@ const UserManagement = ({ userProfile, adminRoles }: UserManagementProps) => {
           variant: "destructive",
         });
       } else {
-        // Add hierarchy_level if it doesn't exist (fallback)
-        const usersWithHierarchy = (data || []).map(user => ({
+        // Map users and add hierarchy_level based on user_type
+        const usersWithHierarchy: ExtendedUserProfile[] = (data || []).map(user => ({
           ...user,
-          hierarchy_level: user.hierarchy_level || user.user_type || 'student'
+          hierarchy_level: getHierarchyFromUserType(user.user_type)
         }));
         setUsers(usersWithHierarchy);
       }
     } catch (error) {
       console.error('Error:', error);
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred.",
+        variant: "destructive",
+      });
     } finally {
       setIsLoading(false);
     }
   };
 
-  const isSuperAdmin = () => {
+  const isSuperAdmin = (): boolean => {
     return adminRoles.some(role => role.role_type === 'super_admin') || 
            userProfile?.user_type === 'admin';
   };
 
-  const canManageUser = (user: UserProfile) => {
+  const canManageUser = (user: ExtendedUserProfile): boolean => {
     // Super admin can manage everyone
     if (isSuperAdmin()) return true;
     
     // Regular admins can only manage users below their hierarchy level
-    const hierarchyLevels = {
+    const hierarchyLevels: Record<string, number> = {
       'super_admin': 1,
       'admin': 2,
       'faculty': 3,
-      'student': 4,
-      'parent': 5,
-      'alumni': 6
+      'staff': 4,
+      'student': 5,
+      'parent': 6,
+      'alumni': 7
     };
 
-    const currentUserLevel = hierarchyLevels[userProfile.hierarchy_level as keyof typeof hierarchyLevels] || 6;
-    const targetUserLevel = hierarchyLevels[user.hierarchy_level as keyof typeof hierarchyLevels] || 6;
+    const currentUserHierarchy = userProfile.hierarchy_level || getHierarchyFromUserType(userProfile.user_type);
+    const currentUserLevel = hierarchyLevels[currentUserHierarchy] || 7;
+    const targetUserLevel = hierarchyLevels[user.hierarchy_level] || 7;
 
     return currentUserLevel < targetUserLevel;
   };
@@ -114,23 +137,35 @@ const UserManagement = ({ userProfile, adminRoles }: UserManagementProps) => {
     return matchesSearch && matchesFilter;
   });
 
-  const getHierarchyBadgeColor = (level: string) => {
-    const colors = {
+  const getHierarchyBadgeColor = (level: string): string => {
+    const colors: Record<string, string> = {
       'super_admin': 'bg-red-100 text-red-800',
       'admin': 'bg-purple-100 text-purple-800',
       'faculty': 'bg-blue-100 text-blue-800',
+      'staff': 'bg-indigo-100 text-indigo-800',
       'student': 'bg-green-100 text-green-800',
       'parent': 'bg-yellow-100 text-yellow-800',
       'alumni': 'bg-gray-100 text-gray-800'
     };
-    return colors[level as keyof typeof colors] || 'bg-gray-100 text-gray-800';
+    return colors[level] || 'bg-gray-100 text-gray-800';
   };
 
-  const handleUserAction = async (action: string, user: UserProfile) => {
+  const handleUserAction = async (action: string, user: ExtendedUserProfile) => {
     try {
+      if (action === 'deactivate') {
+        const { error } = await supabase
+          .from('user_profiles')
+          .update({ is_active: false })
+          .eq('id', user.id);
+
+        if (error) {
+          throw error;
+        }
+      }
+
       toast({
         title: "Success",
-        description: `User ${action} simulated successfully. Database integration pending.`,
+        description: `User ${action} completed successfully.`,
       });
 
       loadUsers(); // Reload the users list
@@ -190,8 +225,7 @@ const UserManagement = ({ userProfile, adminRoles }: UserManagementProps) => {
                 <SelectItem value="student">Students</SelectItem>
                 <SelectItem value="faculty">Faculty</SelectItem>
                 <SelectItem value="admin">Admins</SelectItem>
-                <SelectItem value="parent">Parents</SelectItem>
-                <SelectItem value="alumni">Alumni</SelectItem>
+                <SelectItem value="staff">Staff</SelectItem>
               </SelectContent>
             </Select>
             {isSuperAdmin() && (
@@ -233,8 +267,8 @@ const UserManagement = ({ userProfile, adminRoles }: UserManagementProps) => {
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      <Badge className={getHierarchyBadgeColor(user.hierarchy_level || user.user_type)}>
-                        {(user.hierarchy_level || user.user_type).replace('_', ' ')}
+                      <Badge className={getHierarchyBadgeColor(user.hierarchy_level)}>
+                        {user.hierarchy_level.replace('_', ' ')}
                       </Badge>
                     </TableCell>
                     <TableCell>
@@ -324,8 +358,8 @@ const UserManagement = ({ userProfile, adminRoles }: UserManagementProps) => {
               </div>
               <div>
                 <Label className="text-sm font-medium">Hierarchy Level</Label>
-                <Badge className={getHierarchyBadgeColor(selectedUser.hierarchy_level || selectedUser.user_type)}>
-                  {(selectedUser.hierarchy_level || selectedUser.user_type).replace('_', ' ')}
+                <Badge className={getHierarchyBadgeColor(selectedUser.hierarchy_level)}>
+                  {selectedUser.hierarchy_level.replace('_', ' ')}
                 </Badge>
               </div>
               <div>

@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -15,8 +14,8 @@ interface CollegeData {
   code: string;
   name: string;
   logo: string;
-  primarycolor?: string;
-  secondarycolor?: string;
+  primary_color: string;
+  secondary_color: string;
 }
 
 const MultiStepLogin = () => {

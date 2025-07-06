@@ -9,16 +9,116 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      colleges: {
+        Row: {
+          code: string
+          created_at: string | null
+          id: string
+          logo: string | null
+          name: string
+          primary_color: string | null
+          secondary_color: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          code: string
+          created_at?: string | null
+          id?: string
+          logo?: string | null
+          name: string
+          primary_color?: string | null
+          secondary_color?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          code?: string
+          created_at?: string | null
+          id?: string
+          logo?: string | null
+          name?: string
+          primary_color?: string | null
+          secondary_color?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      user_profiles: {
+        Row: {
+          college_id: string
+          created_at: string | null
+          email: string | null
+          first_name: string | null
+          id: string
+          is_active: boolean | null
+          last_name: string | null
+          updated_at: string | null
+          user_code: string
+          user_type: Database["public"]["Enums"]["user_type"]
+        }
+        Insert: {
+          college_id: string
+          created_at?: string | null
+          email?: string | null
+          first_name?: string | null
+          id: string
+          is_active?: boolean | null
+          last_name?: string | null
+          updated_at?: string | null
+          user_code: string
+          user_type: Database["public"]["Enums"]["user_type"]
+        }
+        Update: {
+          college_id?: string
+          created_at?: string | null
+          email?: string | null
+          first_name?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_name?: string | null
+          updated_at?: string | null
+          user_code?: string
+          user_type?: Database["public"]["Enums"]["user_type"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_profiles_college_id_fkey"
+            columns: ["college_id"]
+            isOneToOne: false
+            referencedRelation: "colleges"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_college_by_code: {
+        Args: { college_code: string }
+        Returns: {
+          id: string
+          code: string
+          name: string
+          logo: string
+          primary_color: string
+          secondary_color: string
+        }[]
+      }
+      validate_college_user: {
+        Args: { college_code: string; user_code: string }
+        Returns: {
+          college_id: string
+          college_name: string
+          college_logo: string
+          primary_color: string
+          secondary_color: string
+          user_exists: boolean
+        }[]
+      }
     }
     Enums: {
-      [_ in never]: never
+      user_type: "student" | "faculty" | "admin" | "parent" | "alumni"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -133,6 +233,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      user_type: ["student", "faculty", "admin", "parent", "alumni"],
+    },
   },
 } as const

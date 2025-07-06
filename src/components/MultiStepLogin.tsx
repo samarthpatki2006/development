@@ -8,13 +8,15 @@ import { ArrowRight, ArrowLeft, Building2, User, KeyRound, Check } from 'lucide-
 import { cn } from '@/lib/utils';
 import CollegeBranding from './CollegeBranding';
 import { toast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 interface CollegeData {
+  id: string;
   code: string;
   name: string;
   logo: string;
-  primaryColor: string;
-  secondaryColor: string;
+  primary_color: string;
+  secondary_color: string;
 }
 
 const MultiStepLogin = () => {
@@ -24,104 +26,167 @@ const MultiStepLogin = () => {
   const [password, setPassword] = useState('');
   const [collegeData, setCollegeData] = useState<CollegeData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-
-  // Mock college data - in real app this would come from backend
-  const mockColleges: Record<string, CollegeData> = {
-    'TAPMI': {
-      code: 'TAPMI',
-      name: 'T.A. Pai Management Institute',
-      logo: '🎓',
-      primaryColor: '#1e40af',
-      secondaryColor: '#3b82f6'
-    },
-    'BITS': {
-      code: 'BITS',
-      name: 'Birla Institute of Technology and Science',
-      logo: '🏛️',
-      primaryColor: '#dc2626',
-      secondaryColor: '#ef4444'
-    },
-    'IIMB': {
-      code: 'IIMB',
-      name: 'Indian Institute of Management Bangalore',
-      logo: '🏫',
-      primaryColor: '#059669',
-      secondaryColor: '#10b981'
-    }
-  };
+  const [userExists, setUserExists] = useState(false);
 
   const validateCollegeCode = async () => {
     setIsLoading(true);
     
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    const college = mockColleges[collegeCode.toUpperCase()];
-    if (college) {
-      setCollegeData(college);
-      setCurrentStep(2);
-      toast({
-        title: "College Found!",
-        description: `Welcome to ${college.name}`,
+    try {
+      const { data, error } = await supabase.rpc('get_college_by_code', {
+        college_code: collegeCode.toUpperCase()
       });
-    } else {
+
+      if (error) {
+        console.error('Error validating college code:', error);
+        toast({
+          title: "Error",
+          description: "Something went wrong. Please try again.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (data && data.length > 0) {
+        const college = data[0];
+        setCollegeData({
+          id: college.id,
+          code: college.code,
+          name: college.name,
+          logo: college.logo || '🎓',
+          primary_color: college.primary_color || '#1e40af',
+          secondary_color: college.secondary_color || '#3b82f6'
+        });
+        setCurrentStep(2);
+        toast({
+          title: "College Found!",
+          description: `Welcome to ${college.name}`,
+        });
+      } else {
+        toast({
+          title: "Invalid College Code",
+          description: "Please check your college code and try again.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Error:', error);
       toast({
-        title: "Invalid College Code",
-        description: "Please check your college code and try again.",
+        title: "Error",
+        description: "Something went wrong. Please try again.",
         variant: "destructive",
       });
+    } finally {
+      setIsLoading(false);
     }
-    setIsLoading(false);
   };
 
   const validateUserCode = async () => {
+    if (!collegeData) return;
+
     setIsLoading(true);
     
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 800));
-    
-    // Mock validation - in real app this would check against college's user database
-    if (userCode.length >= 4) {
-      setCurrentStep(3);
-      toast({
-        title: "User Code Verified",
-        description: "Please enter your password to continue.",
+    try {
+      const { data, error } = await supabase.rpc('validate_college_user', {
+        college_code: collegeData.code,
+        user_code: userCode.toUpperCase()
       });
-    } else {
+
+      if (error) {
+        console.error('Error validating user code:', error);
+        toast({
+          title: "Error",
+          description: "Something went wrong. Please try again.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (data && data.length > 0) {
+        const result = data[0];
+        if (result.user_exists) {
+          setUserExists(true);
+          setCurrentStep(3);
+          toast({
+            title: "User Code Verified",
+            description: "Please enter your password to continue.",
+          });
+        } else {
+          toast({
+            title: "Invalid User Code",
+            description: "User code not found in this college's database.",
+            variant: "destructive",
+          });
+        }
+      } else {
+        toast({
+          title: "Invalid User Code",
+          description: "Please enter a valid user code.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Error:', error);
       toast({
-        title: "Invalid User Code",
-        description: "Please enter a valid user code.",
+        title: "Error",
+        description: "Something went wrong. Please try again.",
         variant: "destructive",
       });
+    } finally {
+      setIsLoading(false);
     }
-    setIsLoading(false);
   };
 
   const handleLogin = async () => {
+    if (!collegeData || !userExists) return;
+
     setIsLoading(true);
     
-    // Simulate authentication
-    await new Promise(resolve => setTimeout(resolve, 1200));
-    
-    if (password.length >= 6) {
-      toast({
-        title: "Login Successful!",
-        description: `Welcome to ColCord - ${collegeData?.name}`,
+    try {
+      // For now, we'll create a temporary email based on user code and college
+      // In a real implementation, you'd have the actual email stored in user_profiles
+      const tempEmail = `${userCode.toLowerCase()}@${collegeData.code.toLowerCase()}.edu`;
+      
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: tempEmail,
+        password: password
       });
-      // Here you would redirect to the main application
-    } else {
+
+      if (error) {
+        console.error('Login error:', error);
+        toast({
+          title: "Login Failed",
+          description: error.message || "Invalid credentials. Please try again.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Login Successful!",
+          description: `Welcome to ColCord - ${collegeData.name}`,
+        });
+        // Here you would redirect to the main application
+        console.log('Login successful:', data);
+      }
+    } catch (error) {
+      console.error('Error:', error);
       toast({
-        title: "Invalid Password",
-        description: "Password must be at least 6 characters long.",
+        title: "Error",
+        description: "Something went wrong. Please try again.",
         variant: "destructive",
       });
+    } finally {
+      setIsLoading(false);
     }
-    setIsLoading(false);
   };
 
   const goBack = () => {
     if (currentStep > 1) {
       setCurrentStep(currentStep - 1);
+      if (currentStep === 2) {
+        setCollegeData(null);
+      }
+      if (currentStep === 3) {
+        setUserExists(false);
+      }
     }
   };
 
@@ -153,7 +218,7 @@ const MultiStepLogin = () => {
                   ? step.completed
                     ? "bg-green-500 border-green-500 text-white"
                     : collegeData
-                      ? `border-[${collegeData.primaryColor}] text-[${collegeData.primaryColor}]`
+                      ? `border-[${collegeData.primary_color}] text-[${collegeData.primary_color}]`
                       : "bg-blue-600 border-blue-600 text-white"
                   : "border-gray-300 text-gray-400"
               )}>

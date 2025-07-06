@@ -1,0 +1,300 @@
+
+import React, { useState } from 'react';
+import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { ArrowRight, ArrowLeft, Building2, User, KeyRound, Check } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import CollegeBranding from './CollegeBranding';
+import { toast } from '@/hooks/use-toast';
+
+interface CollegeData {
+  code: string;
+  name: string;
+  logo: string;
+  primaryColor: string;
+  secondaryColor: string;
+}
+
+const MultiStepLogin = () => {
+  const [currentStep, setCurrentStep] = useState(1);
+  const [collegeCode, setCollegeCode] = useState('');
+  const [userCode, setUserCode] = useState('');
+  const [password, setPassword] = useState('');
+  const [collegeData, setCollegeData] = useState<CollegeData | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Mock college data - in real app this would come from backend
+  const mockColleges: Record<string, CollegeData> = {
+    'TAPMI': {
+      code: 'TAPMI',
+      name: 'T.A. Pai Management Institute',
+      logo: '🎓',
+      primaryColor: '#1e40af',
+      secondaryColor: '#3b82f6'
+    },
+    'BITS': {
+      code: 'BITS',
+      name: 'Birla Institute of Technology and Science',
+      logo: '🏛️',
+      primaryColor: '#dc2626',
+      secondaryColor: '#ef4444'
+    },
+    'IIMB': {
+      code: 'IIMB',
+      name: 'Indian Institute of Management Bangalore',
+      logo: '🏫',
+      primaryColor: '#059669',
+      secondaryColor: '#10b981'
+    }
+  };
+
+  const validateCollegeCode = async () => {
+    setIsLoading(true);
+    
+    // Simulate API call
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    const college = mockColleges[collegeCode.toUpperCase()];
+    if (college) {
+      setCollegeData(college);
+      setCurrentStep(2);
+      toast({
+        title: "College Found!",
+        description: `Welcome to ${college.name}`,
+      });
+    } else {
+      toast({
+        title: "Invalid College Code",
+        description: "Please check your college code and try again.",
+        variant: "destructive",
+      });
+    }
+    setIsLoading(false);
+  };
+
+  const validateUserCode = async () => {
+    setIsLoading(true);
+    
+    // Simulate API call
+    await new Promise(resolve => setTimeout(resolve, 800));
+    
+    // Mock validation - in real app this would check against college's user database
+    if (userCode.length >= 4) {
+      setCurrentStep(3);
+      toast({
+        title: "User Code Verified",
+        description: "Please enter your password to continue.",
+      });
+    } else {
+      toast({
+        title: "Invalid User Code",
+        description: "Please enter a valid user code.",
+        variant: "destructive",
+      });
+    }
+    setIsLoading(false);
+  };
+
+  const handleLogin = async () => {
+    setIsLoading(true);
+    
+    // Simulate authentication
+    await new Promise(resolve => setTimeout(resolve, 1200));
+    
+    if (password.length >= 6) {
+      toast({
+        title: "Login Successful!",
+        description: `Welcome to ColCord - ${collegeData?.name}`,
+      });
+      // Here you would redirect to the main application
+    } else {
+      toast({
+        title: "Invalid Password",
+        description: "Password must be at least 6 characters long.",
+        variant: "destructive",
+      });
+    }
+    setIsLoading(false);
+  };
+
+  const goBack = () => {
+    if (currentStep > 1) {
+      setCurrentStep(currentStep - 1);
+    }
+  };
+
+  const steps = [
+    { number: 1, title: 'College Code', icon: Building2, completed: currentStep > 1 },
+    { number: 2, title: 'User Code', icon: User, completed: currentStep > 2 },
+    { number: 3, title: 'Password', icon: KeyRound, completed: false }
+  ];
+
+  return (
+    <div className="min-h-screen flex items-center justify-center p-4">
+      <div className="w-full max-w-md space-y-6">
+        {/* Logo and Title */}
+        <div className="text-center space-y-2">
+          <div className="mx-auto w-16 h-16 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-2xl flex items-center justify-center text-white text-2xl font-bold shadow-lg">
+            CC
+          </div>
+          <h1 className="text-3xl font-bold text-gray-900">ColCord</h1>
+          <p className="text-gray-600">Connecting Education Communities</p>
+        </div>
+
+        {/* Progress Steps */}
+        <div className="flex justify-between items-center">
+          {steps.map((step, index) => (
+            <div key={step.number} className="flex items-center">
+              <div className={cn(
+                "w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all duration-300",
+                currentStep >= step.number
+                  ? step.completed
+                    ? "bg-green-500 border-green-500 text-white"
+                    : collegeData
+                      ? `border-[${collegeData.primaryColor}] text-[${collegeData.primaryColor}]`
+                      : "bg-blue-600 border-blue-600 text-white"
+                  : "border-gray-300 text-gray-400"
+              )}>
+                {step.completed ? (
+                  <Check className="w-5 h-5" />
+                ) : (
+                  <step.icon className="w-5 h-5" />
+                )}
+              </div>
+              {index < steps.length - 1 && (
+                <div className={cn(
+                  "w-16 h-0.5 mx-3 transition-all duration-300",
+                  currentStep > step.number ? "bg-green-500" : "bg-gray-300"
+                )} />
+              )}
+            </div>
+          ))}
+        </div>
+
+        {/* College Branding */}
+        {collegeData && <CollegeBranding college={collegeData} />}
+
+        {/* Main Card */}
+        <Card className="p-6 shadow-xl border-0 bg-white/90 backdrop-blur-sm">
+          <div className="space-y-6">
+            {/* Step 1: College Code */}
+            {currentStep === 1 && (
+              <div className="space-y-4">
+                <div className="text-center space-y-2">
+                  <Building2 className="w-12 h-12 mx-auto text-blue-600" />
+                  <h2 className="text-xl font-semibold text-gray-900">Enter College Code</h2>
+                  <p className="text-sm text-gray-600">Start by entering your institution's unique code</p>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="collegeCode">College Code</Label>
+                  <Input
+                    id="collegeCode"
+                    type="text"
+                    placeholder="e.g., TAPMI, BITS, IIMB"
+                    value={collegeCode}
+                    onChange={(e) => setCollegeCode(e.target.value.toUpperCase())}
+                    className="text-center text-lg font-mono tracking-wider"
+                  />
+                </div>
+
+                <Button 
+                  className="w-full" 
+                  onClick={validateCollegeCode} 
+                  disabled={!collegeCode || isLoading}
+                >
+                  {isLoading ? "Validating..." : "Continue"}
+                  <ArrowRight className="w-4 h-4 ml-2" />
+                </Button>
+              </div>
+            )}
+
+            {/* Step 2: User Code */}
+            {currentStep === 2 && (
+              <div className="space-y-4">
+                <div className="text-center space-y-2">
+                  <User className="w-12 h-12 mx-auto text-blue-600" />
+                  <h2 className="text-xl font-semibold text-gray-900">Enter User Code</h2>
+                  <p className="text-sm text-gray-600">Your unique identifier at {collegeData?.name}</p>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="userCode">User Code</Label>
+                  <Input
+                    id="userCode"
+                    type="text"
+                    placeholder="e.g., STU0001, ADM_0001"
+                    value={userCode}
+                    onChange={(e) => setUserCode(e.target.value.toUpperCase())}
+                    className="text-center text-lg font-mono tracking-wider"
+                  />
+                </div>
+
+                <div className="flex space-x-3">
+                  <Button variant="outline" onClick={goBack} className="flex-1">
+                    <ArrowLeft className="w-4 h-4 mr-2" />
+                    Back
+                  </Button>
+                  <Button 
+                    className="flex-1" 
+                    onClick={validateUserCode} 
+                    disabled={!userCode || isLoading}
+                  >
+                    {isLoading ? "Validating..." : "Continue"}
+                    <ArrowRight className="w-4 h-4 ml-2" />
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {/* Step 3: Password */}
+            {currentStep === 3 && (
+              <div className="space-y-4">
+                <div className="text-center space-y-2">
+                  <KeyRound className="w-12 h-12 mx-auto text-blue-600" />
+                  <h2 className="text-xl font-semibold text-gray-900">Enter Password</h2>
+                  <p className="text-sm text-gray-600">Complete your secure login</p>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="password">Password</Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    placeholder="Enter your password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                  />
+                </div>
+
+                <div className="flex space-x-3">
+                  <Button variant="outline" onClick={goBack} className="flex-1">
+                    <ArrowLeft className="w-4 h-4 mr-2" />
+                    Back
+                  </Button>
+                  <Button 
+                    className="flex-1" 
+                    onClick={handleLogin} 
+                    disabled={!password || isLoading}
+                  >
+                    {isLoading ? "Signing In..." : "Sign In"}
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+        </Card>
+
+        {/* Footer */}
+        <div className="text-center text-sm text-gray-500">
+          <p>Need help? Contact your institution's IT support</p>
+          <p className="mt-1">© 2024 ColCord - Secure Education Platform</p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default MultiStepLogin;

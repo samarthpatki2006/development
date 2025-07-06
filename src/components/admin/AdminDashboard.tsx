@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -24,11 +23,12 @@ interface UserProfile {
   first_name: string;
   last_name: string;
   email: string;
-  hierarchy_level: string;
   college_id: string;
-  user_type: string;
+  user_type: "student" | "faculty" | "admin" | "staff";
   user_code: string;
   is_active: boolean;
+  created_at: string;
+  updated_at: string;
 }
 
 const AdminDashboard = () => {
@@ -62,16 +62,15 @@ const AdminDashboard = () => {
 
       if (profileError) {
         console.error('Error fetching profile:', profileError);
+        toast({
+          title: "Error",
+          description: "Failed to load user profile.",
+          variant: "destructive",
+        });
         return;
       }
 
-      // Add hierarchy_level if it doesn't exist (fallback)
-      const profileWithHierarchy = {
-        ...profile,
-        hierarchy_level: profile.hierarchy_level || 'student'
-      };
-
-      setUserProfile(profileWithHierarchy);
+      setUserProfile(profile);
 
       // For now, we'll simulate admin roles since the function might not be available yet
       // This will be replaced when the database is fully updated
@@ -122,16 +121,14 @@ const AdminDashboard = () => {
     return roleNames[roleType as keyof typeof roleNames] || roleType;
   };
 
-  const getHierarchyLevel = (level: string) => {
+  const getHierarchyLevel = (userType: "student" | "faculty" | "admin" | "staff") => {
     const levels = {
-      'super_admin': 'Level 1 - Super Admin',
-      'admin': 'Level 2 - Admin',
+      'admin': 'Level 1 - Admin',
+      'staff': 'Level 2 - Staff',
       'faculty': 'Level 3 - Faculty',
-      'student': 'Level 4 - Student',
-      'parent': 'Level 5 - Parent',
-      'alumni': 'Level 6 - Alumni'
+      'student': 'Level 4 - Student'
     };
-    return levels[level as keyof typeof levels] || level;
+    return levels[userType] || userType;
   };
 
   if (isLoading) {
@@ -183,7 +180,7 @@ const AdminDashboard = () => {
             </div>
             <div className="flex items-center space-x-2">
               <Badge variant="outline" className="text-xs">
-                {getHierarchyLevel(userProfile.hierarchy_level)}
+                {getHierarchyLevel(userProfile.user_type)}
               </Badge>
               {adminRoles.length > 0 ? adminRoles.map((role, index) => (
                 <Badge key={index} variant="default" className="text-xs">
@@ -284,12 +281,14 @@ const AdminOverview = ({ userProfile, adminRoles }: { userProfile: UserProfile; 
               <Badge variant="outline" className="text-xs capitalize">{userProfile.user_type}</Badge>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-sm">Hierarchy Level</span>
-              <Badge variant="outline" className="text-xs">{userProfile.hierarchy_level}</Badge>
+              <span className="text-sm">User Code</span>
+              <Badge variant="outline" className="text-xs">{userProfile.user_code}</Badge>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-sm">Status</span>
-              <Badge variant="default" className="text-xs">Active</Badge>
+              <Badge variant={userProfile.is_active ? "default" : "destructive"} className="text-xs">
+                {userProfile.is_active ? "Active" : "Inactive"}
+              </Badge>
             </div>
           </div>
         </CardContent>

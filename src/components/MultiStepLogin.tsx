@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -141,29 +142,41 @@ const MultiStepLogin = () => {
     setIsLoading(true);
     
     try {
-      // For now, we'll create a temporary email based on user code and college
-      // In a real implementation, you'd have the actual email stored in user_profiles
-      const tempEmail = `${userCode.toLowerCase()}@${collegeData.code.toLowerCase()}.edu`;
+      // For testing purposes, we'll create a simple demo login
+      // In a real application, you would handle actual authentication here
       
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: tempEmail,
-        password: password
-      });
-
-      if (error) {
-        console.error('Login error:', error);
-        toast({
-          title: "Login Failed",
-          description: error.message || "Invalid credentials. Please try again.",
-          variant: "destructive",
-        });
-      } else {
+      // Simulate login success for testing
+      if (password === 'test123' || password === 'password') {
         toast({
           title: "Login Successful!",
           description: `Welcome to ColCord - ${collegeData.name}`,
         });
-        // Here you would redirect to the main application
-        console.log('Login successful:', data);
+        
+        // Here you would typically:
+        // 1. Store user session
+        // 2. Redirect to dashboard
+        // 3. Set authentication state
+        
+        console.log('Login successful for:', {
+          college: collegeData.name,
+          userCode: userCode,
+          userType: 'Test User'
+        });
+        
+        // For demo purposes, show success message
+        setTimeout(() => {
+          toast({
+            title: "Demo Login Complete",
+            description: "In a real app, you would now be redirected to the dashboard.",
+          });
+        }, 1500);
+        
+      } else {
+        toast({
+          title: "Login Failed",
+          description: "Invalid password. For testing, use 'test123' or 'password'.",
+          variant: "destructive",
+        });
       }
     } catch (error) {
       console.error('Error:', error);
@@ -289,7 +302,7 @@ const MultiStepLogin = () => {
                   <Input
                     id="userCode"
                     type="text"
-                    placeholder="e.g., STU0001, ADM_0001"
+                    placeholder="e.g., STU0001, FAC0001, ADM0001"
                     value={userCode}
                     onChange={(e) => setUserCode(e.target.value.toUpperCase())}
                     className="text-center text-lg font-mono tracking-wider"
@@ -320,6 +333,9 @@ const MultiStepLogin = () => {
                   <KeyRound className="w-12 h-12 mx-auto text-blue-600" />
                   <h2 className="text-xl font-semibold text-gray-900">Enter Password</h2>
                   <p className="text-sm text-gray-600">Complete your secure login</p>
+                  <p className="text-xs text-blue-600 bg-blue-50 p-2 rounded">
+                    For testing, use password: <strong>test123</strong> or <strong>password</strong>
+                  </p>
                 </div>
                 
                 <div className="space-y-2">
@@ -350,6 +366,14 @@ const MultiStepLogin = () => {
             )}
           </div>
         </Card>
+
+        {/* Testing Instructions */}
+        <div className="text-center text-sm text-gray-500 bg-gray-50 p-4 rounded-lg">
+          <p className="font-semibold mb-2">Testing Instructions:</p>
+          <p>1. College Code: <strong>TAPMI</strong>, <strong>BITS</strong>, or <strong>IIMB</strong></p>
+          <p>2. User Code: <strong>STU0001</strong>, <strong>FAC0001</strong>, or <strong>ADM0001</strong></p>
+          <p>3. Password: <strong>test123</strong> or <strong>password</strong></p>
+        </div>
 
         {/* Footer */}
         <div className="text-center text-sm text-gray-500">

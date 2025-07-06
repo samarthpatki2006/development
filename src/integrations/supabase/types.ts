@@ -53,7 +53,7 @@ export type Database = {
           last_name: string | null
           updated_at: string | null
           user_code: string
-          user_type: Database["public"]["Enums"]["user_type"]
+          user_type: Database["public"]["Enums"]["user_type_enum"]
         }
         Insert: {
           college_id: string
@@ -65,7 +65,7 @@ export type Database = {
           last_name?: string | null
           updated_at?: string | null
           user_code: string
-          user_type: Database["public"]["Enums"]["user_type"]
+          user_type: Database["public"]["Enums"]["user_type_enum"]
         }
         Update: {
           college_id?: string
@@ -77,7 +77,7 @@ export type Database = {
           last_name?: string | null
           updated_at?: string | null
           user_code?: string
-          user_type?: Database["public"]["Enums"]["user_type"]
+          user_type?: Database["public"]["Enums"]["user_type_enum"]
         }
         Relationships: [
           {
@@ -119,6 +119,7 @@ export type Database = {
     }
     Enums: {
       user_type: "student" | "faculty" | "admin" | "parent" | "alumni"
+      user_type_enum: "student" | "faculty" | "admin" | "staff"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -235,6 +236,7 @@ export const Constants = {
   public: {
     Enums: {
       user_type: ["student", "faculty", "admin", "parent", "alumni"],
+      user_type_enum: ["student", "faculty", "admin", "staff"],
     },
   },
 } as const

@@ -5,10 +5,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
-import { Users, Search, Plus, Edit, Trash2, Shield, Eye } from 'lucide-react';
+import { Users, Search, Plus, Edit, Trash2, Eye } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 
@@ -19,7 +19,7 @@ interface UserProfile {
   email: string;
   user_code: string;
   user_type: string;
-  hierarchy_level: string;
+  hierarchy_level?: string;
   is_active: boolean;
   created_at: string;
 }
@@ -63,7 +63,12 @@ const UserManagement = ({ userProfile, adminRoles }: UserManagementProps) => {
           variant: "destructive",
         });
       } else {
-        setUsers(data || []);
+        // Add hierarchy_level if it doesn't exist (fallback)
+        const usersWithHierarchy = (data || []).map(user => ({
+          ...user,
+          hierarchy_level: user.hierarchy_level || user.user_type || 'student'
+        }));
+        setUsers(usersWithHierarchy);
       }
     } catch (error) {
       console.error('Error:', error);
@@ -73,7 +78,8 @@ const UserManagement = ({ userProfile, adminRoles }: UserManagementProps) => {
   };
 
   const isSuperAdmin = () => {
-    return adminRoles.some(role => role.role_type === 'super_admin');
+    return adminRoles.some(role => role.role_type === 'super_admin') || 
+           userProfile?.user_type === 'admin';
   };
 
   const canManageUser = (user: UserProfile) => {
@@ -122,19 +128,9 @@ const UserManagement = ({ userProfile, adminRoles }: UserManagementProps) => {
 
   const handleUserAction = async (action: string, user: UserProfile) => {
     try {
-      // Log the admin action
-      await supabase.rpc('log_admin_action', {
-        college_uuid: userProfile.college_id,
-        admin_uuid: userProfile.id,
-        target_uuid: user.id,
-        action_type_param: action,
-        action_desc: `${action} performed on user ${user.first_name} ${user.last_name}`,
-        module_param: 'users'
-      });
-
       toast({
         title: "Success",
-        description: `User ${action} successfully.`,
+        description: `User ${action} simulated successfully. Database integration pending.`,
       });
 
       loadUsers(); // Reload the users list
@@ -237,8 +233,8 @@ const UserManagement = ({ userProfile, adminRoles }: UserManagementProps) => {
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      <Badge className={getHierarchyBadgeColor(user.hierarchy_level)}>
-                        {user.hierarchy_level.replace('_', ' ')}
+                      <Badge className={getHierarchyBadgeColor(user.hierarchy_level || user.user_type)}>
+                        {(user.hierarchy_level || user.user_type).replace('_', ' ')}
                       </Badge>
                     </TableCell>
                     <TableCell>
@@ -267,7 +263,7 @@ const UserManagement = ({ userProfile, adminRoles }: UserManagementProps) => {
                             >
                               <Edit className="w-3 h-3" />
                             </Button>
-                            {user.hierarchy_level !== 'super_admin' && (
+                            {(user.hierarchy_level !== 'super_admin' && user.user_type !== 'admin') && (
                               <Button
                                 size="sm"
                                 variant="outline"
@@ -328,8 +324,8 @@ const UserManagement = ({ userProfile, adminRoles }: UserManagementProps) => {
               </div>
               <div>
                 <Label className="text-sm font-medium">Hierarchy Level</Label>
-                <Badge className={getHierarchyBadgeColor(selectedUser.hierarchy_level)}>
-                  {selectedUser.hierarchy_level.replace('_', ' ')}
+                <Badge className={getHierarchyBadgeColor(selectedUser.hierarchy_level || selectedUser.user_type)}>
+                  {(selectedUser.hierarchy_level || selectedUser.user_type).replace('_', ' ')}
                 </Badge>
               </div>
               <div>

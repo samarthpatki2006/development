@@ -15,8 +15,8 @@ interface CollegeData {
   code: string;
   name: string;
   logo: string;
-  primary_color: string;
-  secondary_color: string;
+  primary_color?: string;
+  secondary_color?: string;
 }
 
 const MultiStepLogin = () => {

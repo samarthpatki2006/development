@@ -867,6 +867,48 @@ export type Database = {
           },
         ]
       }
+      event_registrations: {
+        Row: {
+          additional_info: Json | null
+          event_id: string
+          id: string
+          registration_date: string | null
+          status: string | null
+          user_id: string
+        }
+        Insert: {
+          additional_info?: Json | null
+          event_id: string
+          id?: string
+          registration_date?: string | null
+          status?: string | null
+          user_id: string
+        }
+        Update: {
+          additional_info?: Json | null
+          event_id?: string
+          id?: string
+          registration_date?: string | null
+          status?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_registrations_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_registrations_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       events: {
         Row: {
           college_id: string
@@ -1104,6 +1146,54 @@ export type Database = {
           },
           {
             foreignKeyName: "fee_payments_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fee_reminders: {
+        Row: {
+          created_at: string | null
+          due_amount: number
+          due_date: string
+          fee_structure_id: string
+          id: string
+          reminder_sent: boolean | null
+          status: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          due_amount: number
+          due_date: string
+          fee_structure_id: string
+          id?: string
+          reminder_sent?: boolean | null
+          status?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          due_amount?: number
+          due_date?: string
+          fee_structure_id?: string
+          id?: string
+          reminder_sent?: boolean | null
+          status?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fee_reminders_fee_structure_id_fkey"
+            columns: ["fee_structure_id"]
+            isOneToOne: false
+            referencedRelation: "fee_structures"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fee_reminders_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "user_profiles"
@@ -1434,6 +1524,80 @@ export type Database = {
           },
         ]
       }
+      parent_feedback: {
+        Row: {
+          content: string
+          course_id: string | null
+          created_at: string | null
+          feedback_type: string
+          id: string
+          parent_id: string
+          responded_at: string | null
+          responded_by: string | null
+          response: string | null
+          status: string | null
+          student_id: string
+          title: string
+        }
+        Insert: {
+          content: string
+          course_id?: string | null
+          created_at?: string | null
+          feedback_type: string
+          id?: string
+          parent_id: string
+          responded_at?: string | null
+          responded_by?: string | null
+          response?: string | null
+          status?: string | null
+          student_id: string
+          title: string
+        }
+        Update: {
+          content?: string
+          course_id?: string | null
+          created_at?: string | null
+          feedback_type?: string
+          id?: string
+          parent_id?: string
+          responded_at?: string | null
+          responded_by?: string | null
+          response?: string | null
+          status?: string | null
+          student_id?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "parent_feedback_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "parent_feedback_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "parent_feedback_responded_by_fkey"
+            columns: ["responded_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "parent_feedback_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       parent_meetings: {
         Row: {
           agenda: string | null
@@ -1492,6 +1656,99 @@ export type Database = {
           {
             foreignKeyName: "parent_meetings_teacher_id_fkey"
             columns: ["teacher_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      parent_notifications: {
+        Row: {
+          created_at: string | null
+          expires_at: string | null
+          id: string
+          is_read: boolean | null
+          message: string
+          notification_type: string
+          parent_id: string
+          student_id: string
+          title: string
+        }
+        Insert: {
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          is_read?: boolean | null
+          message: string
+          notification_type: string
+          parent_id: string
+          student_id: string
+          title: string
+        }
+        Update: {
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          is_read?: boolean | null
+          message?: string
+          notification_type?: string
+          parent_id?: string
+          student_id?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "parent_notifications_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "parent_notifications_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      parent_student_links: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_primary_contact: boolean | null
+          parent_id: string
+          relationship_type: string
+          student_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_primary_contact?: boolean | null
+          parent_id: string
+          relationship_type: string
+          student_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_primary_contact?: boolean | null
+          parent_id?: string
+          relationship_type?: string
+          student_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "parent_student_links_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "parent_student_links_student_id_fkey"
+            columns: ["student_id"]
             isOneToOne: false
             referencedRelation: "user_profiles"
             referencedColumns: ["id"]
@@ -1951,6 +2208,26 @@ export type Database = {
           logo: string
           primary_color: string
           secondary_color: string
+        }[]
+      }
+      get_parent_children: {
+        Args: { parent_uuid: string }
+        Returns: {
+          student_id: string
+          student_name: string
+          user_code: string
+          relationship_type: string
+        }[]
+      }
+      get_student_academic_summary: {
+        Args: { student_uuid: string; parent_uuid: string }
+        Returns: {
+          course_name: string
+          instructor_name: string
+          current_grade: string
+          attendance_percentage: number
+          total_assignments: number
+          submitted_assignments: number
         }[]
       }
       get_user_admin_roles: {

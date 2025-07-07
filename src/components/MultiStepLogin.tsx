@@ -166,6 +166,8 @@ const MultiStepLogin = () => {
         window.location.href = '/student';
       } else if (loginResult.user_type === 'faculty') {
         window.location.href = '/teacher';
+      } else if (loginResult.user_type === 'parent') {
+        window.location.href = '/parent';
       } else {
         // For other user types, redirect to appropriate portal
         window.location.href = '/student';

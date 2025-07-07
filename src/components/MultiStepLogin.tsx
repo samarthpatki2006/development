@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -163,8 +164,10 @@ const MultiStepLogin = () => {
         window.location.href = '/admin';
       } else if (loginResult.user_type === 'student') {
         window.location.href = '/student';
+      } else if (loginResult.user_type === 'faculty') {
+        window.location.href = '/teacher';
       } else {
-        // For faculty and other user types, redirect to student portal for now
+        // For other user types, redirect to appropriate portal
         window.location.href = '/student';
       }
 

@@ -14,6 +14,67 @@ export type Database = {
   }
   public: {
     Tables: {
+      absence_requests: {
+        Row: {
+          absence_date: string
+          course_id: string
+          id: string
+          reason: string
+          review_comments: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string | null
+          student_id: string
+          submitted_at: string | null
+        }
+        Insert: {
+          absence_date: string
+          course_id: string
+          id?: string
+          reason: string
+          review_comments?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string | null
+          student_id: string
+          submitted_at?: string | null
+        }
+        Update: {
+          absence_date?: string
+          course_id?: string
+          id?: string
+          reason?: string
+          review_comments?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string | null
+          student_id?: string
+          submitted_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "absence_requests_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "absence_requests_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "absence_requests_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       admin_roles: {
         Row: {
           admin_role_type: Database["public"]["Enums"]["admin_role_type"]
@@ -1373,6 +1434,70 @@ export type Database = {
           },
         ]
       }
+      parent_meetings: {
+        Row: {
+          agenda: string | null
+          created_at: string | null
+          id: string
+          meeting_date: string
+          meeting_type: string | null
+          notes: string | null
+          parent_id: string | null
+          status: string | null
+          student_id: string
+          teacher_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          agenda?: string | null
+          created_at?: string | null
+          id?: string
+          meeting_date: string
+          meeting_type?: string | null
+          notes?: string | null
+          parent_id?: string | null
+          status?: string | null
+          student_id: string
+          teacher_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          agenda?: string | null
+          created_at?: string | null
+          id?: string
+          meeting_date?: string
+          meeting_type?: string | null
+          notes?: string | null
+          parent_id?: string | null
+          status?: string | null
+          student_id?: string
+          teacher_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "parent_meetings_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "parent_meetings_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "parent_meetings_teacher_id_fkey"
+            columns: ["teacher_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       security_settings: {
         Row: {
           backup_codes: string[] | null
@@ -1427,6 +1552,73 @@ export type Database = {
           {
             foreignKeyName: "security_settings_user_id_fkey"
             columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      student_progress_reports: {
+        Row: {
+          areas_for_improvement: string | null
+          attendance_percentage: number | null
+          behavioral_notes: string | null
+          course_id: string
+          generated_at: string | null
+          grade_summary: Json | null
+          id: string
+          report_period: string
+          shared_with_parents: boolean | null
+          strengths: string | null
+          student_id: string
+          teacher_id: string
+        }
+        Insert: {
+          areas_for_improvement?: string | null
+          attendance_percentage?: number | null
+          behavioral_notes?: string | null
+          course_id: string
+          generated_at?: string | null
+          grade_summary?: Json | null
+          id?: string
+          report_period: string
+          shared_with_parents?: boolean | null
+          strengths?: string | null
+          student_id: string
+          teacher_id: string
+        }
+        Update: {
+          areas_for_improvement?: string | null
+          attendance_percentage?: number | null
+          behavioral_notes?: string | null
+          course_id?: string
+          generated_at?: string | null
+          grade_summary?: Json | null
+          id?: string
+          report_period?: string
+          shared_with_parents?: boolean | null
+          strengths?: string | null
+          student_id?: string
+          teacher_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_progress_reports_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_progress_reports_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_progress_reports_teacher_id_fkey"
+            columns: ["teacher_id"]
             isOneToOne: false
             referencedRelation: "user_profiles"
             referencedColumns: ["id"]
@@ -1548,6 +1740,67 @@ export type Database = {
           {
             foreignKeyName: "system_settings_updated_by_fkey"
             columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      teacher_messages: {
+        Row: {
+          content: string
+          course_id: string | null
+          id: string
+          is_read: boolean | null
+          message_type: string | null
+          read_at: string | null
+          recipient_id: string
+          sender_id: string
+          sent_at: string | null
+          subject: string
+        }
+        Insert: {
+          content: string
+          course_id?: string | null
+          id?: string
+          is_read?: boolean | null
+          message_type?: string | null
+          read_at?: string | null
+          recipient_id: string
+          sender_id: string
+          sent_at?: string | null
+          subject: string
+        }
+        Update: {
+          content?: string
+          course_id?: string | null
+          id?: string
+          is_read?: boolean | null
+          message_type?: string | null
+          read_at?: string | null
+          recipient_id?: string
+          sender_id?: string
+          sent_at?: string | null
+          subject?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "teacher_messages_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "teacher_messages_recipient_id_fkey"
+            columns: ["recipient_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "teacher_messages_sender_id_fkey"
+            columns: ["sender_id"]
             isOneToOne: false
             referencedRelation: "user_profiles"
             referencedColumns: ["id"]

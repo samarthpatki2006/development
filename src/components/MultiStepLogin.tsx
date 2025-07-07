@@ -31,51 +31,50 @@ const MultiStepLogin = () => {
   const [userData, setUserData] = useState<any>(null);
   const [sessionData, setSessionData] = useState<any>(null);
 
-  // Check if user is already logged in (using state instead of localStorage)
+  // Check if user is already logged in
   useEffect(() => {
-  // Check for existing session on component mount
-  const checkExistingSession = () => {
-    try {
-      // First check if we have session data in state
-      if (sessionData && sessionData.login_time) {
-        navigate('/admin');
-        return;
-      }
+    const checkExistingSession = () => {
+      try {
+        // First check if we have session data in state
+        if (sessionData && sessionData.login_time) {
+          navigate('/admin');
+          return;
+        }
 
-      // If no session data in state, try to restore from localStorage
-      if (typeof Storage !== 'undefined') {
-        const storedSession = localStorage.getItem('colcord_session');
-        if (storedSession) {
-          const parsedSession = JSON.parse(storedSession);
-          
-          // Validate session (you might want to add expiration check here)
-          if (parsedSession.login_time && parsedSession.user_id) {
-            setSessionData(parsedSession);
-            navigate('/admin');
-            return;
+        // If no session data in state, try to restore from localStorage
+        if (typeof Storage !== 'undefined') {
+          const storedSession = localStorage.getItem('colcord_session');
+          if (storedSession) {
+            const parsedSession = JSON.parse(storedSession);
+            
+            // Validate session (you might want to add expiration check here)
+            if (parsedSession.login_time && parsedSession.user_id) {
+              setSessionData(parsedSession);
+              navigate('/admin');
+              return;
+            }
           }
         }
+      } catch (error) {
+        console.error('Error checking existing session:', error);
+        // Clear invalid session data
+        try {
+          localStorage.removeItem('colcord_session');
+        } catch (e) {
+          console.log('localStorage not available');
+        }
       }
-    } catch (error) {
-      console.error('Error checking existing session:', error);
-      // Clear invalid session data
-      try {
-        localStorage.removeItem('colcord_session');
-      } catch (e) {
-        console.log('localStorage not available');
-      }
+    };
+
+    checkExistingSession();
+  }, []); // Empty dependency array - only run on mount
+
+  // Separate useEffect for session changes
+  useEffect(() => {
+    if (sessionData && sessionData.login_time) {
+      navigate('/admin');
     }
-  };
-
-  checkExistingSession();
-}, []); // Empty dependency array - only run on mount
-
-// Separate useEffect for session changes
-useEffect(() => {
-  if (sessionData && sessionData.login_time) {
-    navigate('/admin');
-  }
-}, [sessionData, navigate]);
+  }, [sessionData, navigate]);
 
   const validateCollegeCode = async () => {
     setIsLoading(true);
@@ -199,11 +198,12 @@ useEffect(() => {
         college_code: collegeData.code
       });
 
-      // First, let's try to find the user by user_code only
+      // Search for user by user_code and college_id
       const { data: userProfileData, error: userProfileError } = await supabase
         .from('user_profiles')
         .select('*')
-        .eq('user_code', userCode.toUpperCase());
+        .eq('user_code', userCode.toUpperCase())
+        .eq('college_id', collegeData.id);
 
       console.log('User profile query result:', { userProfileData, userProfileError });
 
@@ -218,22 +218,7 @@ useEffect(() => {
       }
 
       if (userProfileData && userProfileData.length > 0) {
-        // Check if any of the returned users belong to the correct college
-        const userFromCollege = userProfileData.find(user => {
-          // Check if college_id matches or if college_code matches
-          return user.college_id === collegeData.id || 
-                 user.college_code === collegeData.code;
-        });
-
-        if (!userFromCollege) {
-          console.log('User found but not in the specified college');
-          toast({
-            title: "Access Denied",
-            description: "User not found in this college's database.",
-            variant: "destructive",
-          });
-          return;
-        }
+        const userFromCollege = userProfileData[0]; // Take the first matching user
 
         console.log('User found in college:', userFromCollege);
         console.log('Available columns in user_profiles:', Object.keys(userFromCollege));
@@ -290,7 +275,7 @@ useEffect(() => {
           session_id: `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
         };
 
-        // Store session data in state instead of localStorage
+        // Store session data in state
         setSessionData(newSessionData);
 
         // Also try to store in localStorage if available (for persistence)
@@ -314,10 +299,10 @@ useEffect(() => {
         }, 1500);
         
       } else {
-        console.log('No user found with user_code:', userCode.toUpperCase());
+        console.log('No user found with user_code:', userCode.toUpperCase(), 'in college:', collegeData.id);
         toast({
           title: "Login Failed",
-          description: "User not found. Please check your user code.",
+          description: "User not found in this college. Please check your user code.",
           variant: "destructive",
         });
       }

@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { BookOpen, Plus, Edit, Users, Calendar, Search } from 'lucide-react';
+import { BookOpen, Plus, Edit, Users, Calendar, Search, AlertCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 
@@ -44,7 +44,7 @@ const CourseManagement = ({ userProfile }: { userProfile: UserProfile }) => {
   const [filterSemester, setFilterSemester] = useState('all');
   const [isLoading, setIsLoading] = useState(true);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [instructors, setInstructors] = useState<any[]>([]);
 
   const [courseForm, setCourseForm] = useState({
@@ -61,44 +61,35 @@ const CourseManagement = ({ userProfile }: { userProfile: UserProfile }) => {
   useEffect(() => {
     loadCourses();
     loadInstructors();
-  }, []);
+  }, [userProfile]);
 
   const loadCourses = async () => {
     try {
-      // Simulated data for now - will be replaced with actual Supabase query
-      const mockCourses: Course[] = [
-        {
-          id: '1',
-          course_code: 'CS101',
-          course_name: 'Introduction to Computer Science',
-          description: 'Basic concepts of programming and computer science',
-          credits: 4,
-          semester: 'Fall',
-          academic_year: '2024-25',
-          instructor_id: '1',
-          max_students: 40,
-          is_active: true,
-          created_at: new Date().toISOString(),
-          instructor: { first_name: 'John', last_name: 'Doe' },
-          enrollment_count: 35
-        },
-        {
-          id: '2',
-          course_code: 'MATH201',
-          course_name: 'Calculus II',
-          description: 'Advanced calculus concepts',
-          credits: 3,
-          semester: 'Spring',
-          academic_year: '2024-25',
-          instructor_id: '2',
-          max_students: 30,
-          is_active: true,
-          created_at: new Date().toISOString(),
-          instructor: { first_name: 'Jane', last_name: 'Smith' },
-          enrollment_count: 28
-        }
-      ];
-      setCourses(mockCourses);
+      if (!userProfile?.college_id) {
+        setIsLoading(false);
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from('courses')
+        .select(`
+          *,
+          instructor:user_profiles(first_name, last_name)
+        `)
+        .eq('college_id', userProfile.college_id)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error loading courses:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load courses.",
+          variant: "destructive",
+        });
+        setCourses([]);
+      } else {
+        setCourses(data || []);
+      }
     } catch (error) {
       console.error('Error loading courses:', error);
       toast({
@@ -106,6 +97,7 @@ const CourseManagement = ({ userProfile }: { userProfile: UserProfile }) => {
         description: "Failed to load courses.",
         variant: "destructive",
       });
+      setCourses([]);
     } finally {
       setIsLoading(false);
     }
@@ -113,45 +105,75 @@ const CourseManagement = ({ userProfile }: { userProfile: UserProfile }) => {
 
   const loadInstructors = async () => {
     try {
-      // Mock instructors data
-      setInstructors([
-        { id: '1', first_name: 'John', last_name: 'Doe' },
-        { id: '2', first_name: 'Jane', last_name: 'Smith' }
-      ]);
+      if (!userProfile?.college_id) return;
+
+      const { data, error } = await supabase
+        .from('user_profiles')
+        .select('id, first_name, last_name')
+        .eq('college_id', userProfile.college_id)
+        .in('user_type', ['faculty', 'admin'])
+        .eq('is_active', true);
+
+      if (error) {
+        console.error('Error loading instructors:', error);
+      } else {
+        setInstructors(data || []);
+      }
     } catch (error) {
       console.error('Error loading instructors:', error);
     }
   };
 
   const handleAddCourse = async () => {
-    try {
-      // Simulate course creation
-      const newCourse: Course = {
-        id: Date.now().toString(),
-        ...courseForm,
-        is_active: true,
-        created_at: new Date().toISOString(),
-        instructor: instructors.find(i => i.id === courseForm.instructor_id),
-        enrollment_count: 0
-      };
-
-      setCourses([newCourse, ...courses]);
-      setIsAddDialogOpen(false);
-      setCourseForm({
-        course_code: '',
-        course_name: '',
-        description: '',
-        credits: 3,
-        semester: '',
-        academic_year: '2024-25',
-        instructor_id: '',
-        max_students: 50
-      });
-
+    if (!courseForm.course_code || !courseForm.course_name) {
       toast({
-        title: "Success",
-        description: "Course created successfully.",
+        title: "Validation Error",
+        description: "Please fill in course code and name.",
+        variant: "destructive",
       });
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const { data, error } = await supabase
+        .from('courses')
+        .insert([{
+          ...courseForm,
+          college_id: userProfile.college_id
+        }])
+        .select(`
+          *,
+          instructor:user_profiles(first_name, last_name)
+        `)
+        .single();
+
+      if (error) {
+        console.error('Error creating course:', error);
+        toast({
+          title: "Error",
+          description: "Failed to create course.",
+          variant: "destructive",
+        });
+      } else {
+        setCourses([data, ...courses]);
+        setIsAddDialogOpen(false);
+        setCourseForm({
+          course_code: '',
+          course_name: '',
+          description: '',
+          credits: 3,
+          semester: '',
+          academic_year: '2024-25',
+          instructor_id: '',
+          max_students: 50
+        });
+
+        toast({
+          title: "Success",
+          description: "Course created successfully.",
+        });
+      }
     } catch (error) {
       console.error('Error creating course:', error);
       toast({
@@ -159,6 +181,8 @@ const CourseManagement = ({ userProfile }: { userProfile: UserProfile }) => {
         description: "Failed to create course.",
         variant: "destructive",
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -166,7 +190,7 @@ const CourseManagement = ({ userProfile }: { userProfile: UserProfile }) => {
     const matchesSearch = 
       course.course_code.toLowerCase().includes(searchTerm.toLowerCase()) ||
       course.course_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (course.instructor?.first_name + ' ' + course.instructor?.last_name).toLowerCase().includes(searchTerm.toLowerCase());
+      (course.instructor && `${course.instructor.first_name} ${course.instructor.last_name}`.toLowerCase().includes(searchTerm.toLowerCase()));
 
     const matchesSemester = filterSemester === 'all' || course.semester === filterSemester;
 
@@ -216,7 +240,7 @@ const CourseManagement = ({ userProfile }: { userProfile: UserProfile }) => {
                 </DialogHeader>
                 <div className="grid grid-cols-2 gap-4 py-4">
                   <div>
-                    <Label htmlFor="course_code">Course Code</Label>
+                    <Label htmlFor="course_code">Course Code *</Label>
                     <Input
                       id="course_code"
                       value={courseForm.course_code}
@@ -230,11 +254,11 @@ const CourseManagement = ({ userProfile }: { userProfile: UserProfile }) => {
                       id="credits"
                       type="number"
                       value={courseForm.credits}
-                      onChange={(e) => setCourseForm({...courseForm, credits: parseInt(e.target.value)})}
+                      onChange={(e) => setCourseForm({...courseForm, credits: parseInt(e.target.value) || 0})}
                     />
                   </div>
                   <div className="col-span-2">
-                    <Label htmlFor="course_name">Course Name</Label>
+                    <Label htmlFor="course_name">Course Name *</Label>
                     <Input
                       id="course_name"
                       value={courseForm.course_name}
@@ -285,16 +309,16 @@ const CourseManagement = ({ userProfile }: { userProfile: UserProfile }) => {
                       id="max_students"
                       type="number"
                       value={courseForm.max_students}
-                      onChange={(e) => setCourseForm({...courseForm, max_students: parseInt(e.target.value)})}
+                      onChange={(e) => setCourseForm({...courseForm, max_students: parseInt(e.target.value) || 0})}
                     />
                   </div>
                 </div>
                 <div className="flex justify-end space-x-2">
-                  <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
+                  <Button variant="outline" onClick={() => setIsAddDialogOpen(false)} disabled={isSubmitting}>
                     Cancel
                   </Button>
-                  <Button onClick={handleAddCourse}>
-                    Create Course
+                  <Button onClick={handleAddCourse} disabled={isSubmitting}>
+                    {isSubmitting ? 'Creating...' : 'Create Course'}
                   </Button>
                 </div>
               </DialogContent>
@@ -327,70 +351,79 @@ const CourseManagement = ({ userProfile }: { userProfile: UserProfile }) => {
           </div>
 
           {/* Courses Table */}
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Course</TableHead>
-                  <TableHead>Instructor</TableHead>
-                  <TableHead>Semester</TableHead>
-                  <TableHead>Enrollment</TableHead>
-                  <TableHead>Credits</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredCourses.map((course) => (
-                  <TableRow key={course.id}>
-                    <TableCell>
-                      <div>
-                        <div className="font-medium">{course.course_code}</div>
-                        <div className="text-sm text-gray-500">{course.course_name}</div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      {course.instructor ? 
-                        `${course.instructor.first_name} ${course.instructor.last_name}` 
-                        : 'Not Assigned'
-                      }
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline">
-                        {course.semester} {course.academic_year}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center space-x-2">
-                        <Users className="w-4 h-4 text-gray-400" />
-                        <span>{course.enrollment_count}/{course.max_students}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell>{course.credits}</TableCell>
-                    <TableCell>
-                      <Badge variant={course.is_active ? "default" : "secondary"}>
-                        {course.is_active ? "Active" : "Inactive"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center space-x-2">
-                        <Button size="sm" variant="outline">
-                          <Edit className="w-3 h-3" />
-                        </Button>
-                        <Button size="sm" variant="outline">
-                          <Users className="w-3 h-3" />
-                        </Button>
-                      </div>
-                    </TableCell>
+          {filteredCourses.length > 0 ? (
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Course</TableHead>
+                    <TableHead>Instructor</TableHead>
+                    <TableHead>Semester</TableHead>
+                    <TableHead>Credits</TableHead>
+                    <TableHead>Max Students</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Actions</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-
-          {filteredCourses.length === 0 && (
-            <div className="text-center py-8 text-gray-500">
-              No courses found matching your criteria.
+                </TableHeader>
+                <TableBody>
+                  {filteredCourses.map((course) => (
+                    <TableRow key={course.id}>
+                      <TableCell>
+                        <div>
+                          <div className="font-medium">{course.course_code}</div>
+                          <div className="text-sm text-gray-500">{course.course_name}</div>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        {course.instructor ? 
+                          `${course.instructor.first_name} ${course.instructor.last_name}` 
+                          : 'Not Assigned'
+                        }
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline">
+                          {course.semester} {course.academic_year}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>{course.credits}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center space-x-2">
+                          <Users className="w-4 h-4 text-gray-400" />
+                          <span>{course.max_students}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={course.is_active ? "default" : "secondary"}>
+                          {course.is_active ? "Active" : "Inactive"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center space-x-2">
+                          <Button size="sm" variant="outline">
+                            <Edit className="w-3 h-3" />
+                          </Button>
+                          <Button size="sm" variant="outline">
+                            <Users className="w-3 h-3" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          ) : (
+            <div className="text-center py-12 text-gray-500">
+              <AlertCircle className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+              <h3 className="text-lg font-medium mb-2">No Courses Found</h3>
+              <p>No courses found matching your criteria. Create your first course to get started.</p>
+              <Button 
+                className="mt-4" 
+                onClick={() => setIsAddDialogOpen(true)}
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Create First Course
+              </Button>
             </div>
           )}
         </CardContent>

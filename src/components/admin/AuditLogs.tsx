@@ -6,8 +6,9 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Activity, Search, Download } from 'lucide-react';
+import { Activity, Search, Download, AlertCircle } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 interface AuditLog {
   id: string;
@@ -43,43 +44,51 @@ const AuditLogs = ({ userProfile, adminRoles }: AuditLogsProps) => {
 
   useEffect(() => {
     loadAuditLogs();
-  }, []);
+  }, [userProfile]);
 
   const loadAuditLogs = async () => {
     try {
-      // For now, we'll show mock data since the audit_logs table might not be accessible yet
-      const mockLogs: AuditLog[] = [
-        {
-          id: '1',
-          action_type: 'login',
-          action_description: 'User logged into admin dashboard',
-          module: 'system',
-          created_at: new Date().toISOString(),
-          admin_user_id: userProfile.id,
-          target_user_id: '',
-          admin_user: {
-            first_name: userProfile.first_name,
-            last_name: userProfile.last_name,
-            email: userProfile.email
-          }
-        },
-        {
-          id: '2',
-          action_type: 'create',
-          action_description: 'Admin dashboard accessed',
-          module: 'users',
-          created_at: new Date(Date.now() - 3600000).toISOString(),
-          admin_user_id: userProfile.id,
-          target_user_id: '',
-          admin_user: {
-            first_name: userProfile.first_name,
-            last_name: userProfile.last_name,
-            email: userProfile.email
-          }
-        }
-      ];
+      if (!userProfile?.college_id) {
+        setIsLoading(false);
+        return;
+      }
 
-      setAuditLogs(mockLogs);
+      const { data: logsData, error } = await supabase
+        .from('audit_logs')
+        .select(`
+          id,
+          action_type,
+          action_description,
+          module,
+          created_at,
+          admin_user_id,
+          target_user_id
+        `)
+        .eq('college_id', userProfile.college_id)
+        .order('created_at', { ascending: false })
+        .limit(50);
+
+      if (error) {
+        console.error('Error loading audit logs:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load audit logs.",
+          variant: "destructive",
+        });
+        setAuditLogs([]);
+      } else {
+        // Transform the data to match our interface
+        const transformedLogs = logsData?.map(log => ({
+          ...log,
+          admin_user: {
+            first_name: userProfile.first_name,
+            last_name: userProfile.last_name,
+            email: userProfile.email
+          }
+        })) || [];
+        
+        setAuditLogs(transformedLogs);
+      }
     } catch (error) {
       console.error('Error loading audit logs:', error);
       toast({
@@ -87,6 +96,7 @@ const AuditLogs = ({ userProfile, adminRoles }: AuditLogsProps) => {
         description: "Failed to load audit logs.",
         variant: "destructive",
       });
+      setAuditLogs([]);
     } finally {
       setIsLoading(false);
     }
@@ -99,7 +109,7 @@ const AuditLogs = ({ userProfile, adminRoles }: AuditLogsProps) => {
 
   const filteredLogs = auditLogs.filter(log => {
     const matchesSearch = 
-      log.action_description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      log.action_description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       log.admin_user.first_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       log.admin_user.last_name.toLowerCase().includes(searchTerm.toLowerCase());
 
@@ -136,15 +146,24 @@ const AuditLogs = ({ userProfile, adminRoles }: AuditLogsProps) => {
 
   const exportLogs = async () => {
     try {
+      if (filteredLogs.length === 0) {
+        toast({
+          title: "No Data",
+          description: "No audit logs to export.",
+          variant: "destructive",
+        });
+        return;
+      }
+
       const csvContent = [
         'Date,Admin User,Action,Module,Description,Target User',
         ...filteredLogs.map(log => [
           new Date(log.created_at).toLocaleString(),
           `${log.admin_user.first_name} ${log.admin_user.last_name}`,
           log.action_type,
-          log.module,
-          log.action_description,
-          log.target_user ? `${log.target_user.first_name} ${log.target_user.last_name}` : ''
+          log.module || 'N/A',
+          log.action_description || 'N/A',
+          log.target_user ? `${log.target_user.first_name} ${log.target_user.last_name}` : 'N/A'
         ].join(','))
       ].join('\n');
 
@@ -200,7 +219,7 @@ const AuditLogs = ({ userProfile, adminRoles }: AuditLogsProps) => {
                 {isSuperAdmin() ? ' Full access to all logs.' : ' Access limited to your actions and relevant logs.'}
               </CardDescription>
             </div>
-            <Button onClick={exportLogs} variant="outline">
+            <Button onClick={exportLogs} variant="outline" disabled={filteredLogs.length === 0}>
               <Download className="w-4 h-4 mr-2" />
               Export
             </Button>
@@ -249,66 +268,55 @@ const AuditLogs = ({ userProfile, adminRoles }: AuditLogsProps) => {
           </div>
 
           {/* Audit Logs Table */}
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Date & Time</TableHead>
-                  <TableHead>Admin User</TableHead>
-                  <TableHead>Action</TableHead>
-                  <TableHead>Module</TableHead>
-                  <TableHead>Description</TableHead>
-                  <TableHead>Target</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredLogs.map((log) => (
-                  <TableRow key={log.id}>
-                    <TableCell className="text-sm">
-                      {new Date(log.created_at).toLocaleString()}
-                    </TableCell>
-                    <TableCell>
-                      <div>
-                        <div className="font-medium text-sm">
-                          {log.admin_user.first_name} {log.admin_user.last_name}
-                        </div>
-                        <div className="text-xs text-gray-500">{log.admin_user.email}</div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge className={getActionBadgeColor(log.action_type)}>
-                        {log.action_type.replace('_', ' ')}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Badge className={getModuleBadgeColor(log.module)}>
-                        {log.module}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-sm max-w-md">
-                      <div className="truncate">{log.action_description}</div>
-                    </TableCell>
-                    <TableCell className="text-sm">
-                      {log.target_user ? (
-                        <div>
-                          <div className="font-medium">
-                            {log.target_user.first_name} {log.target_user.last_name}
-                          </div>
-                          <div className="text-xs text-gray-500">{log.target_user.email}</div>
-                        </div>
-                      ) : (
-                        <span className="text-gray-400">—</span>
-                      )}
-                    </TableCell>
+          {filteredLogs.length > 0 ? (
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Date & Time</TableHead>
+                    <TableHead>Admin User</TableHead>
+                    <TableHead>Action</TableHead>
+                    <TableHead>Module</TableHead>
+                    <TableHead>Description</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-
-          {filteredLogs.length === 0 && (
-            <div className="text-center py-8 text-gray-500">
-              No audit logs found matching your criteria.
+                </TableHeader>
+                <TableBody>
+                  {filteredLogs.map((log) => (
+                    <TableRow key={log.id}>
+                      <TableCell className="text-sm">
+                        {new Date(log.created_at).toLocaleString()}
+                      </TableCell>
+                      <TableCell>
+                        <div>
+                          <div className="font-medium text-sm">
+                            {log.admin_user.first_name} {log.admin_user.last_name}
+                          </div>
+                          <div className="text-xs text-gray-500">{log.admin_user.email}</div>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge className={getActionBadgeColor(log.action_type)}>
+                          {log.action_type.replace('_', ' ')}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge className={getModuleBadgeColor(log.module || 'system')}>
+                          {log.module || 'system'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-sm max-w-md">
+                        <div className="truncate">{log.action_description || 'No description'}</div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          ) : (
+            <div className="text-center py-12 text-gray-500">
+              <AlertCircle className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+              <h3 className="text-lg font-medium mb-2">No Audit Logs Found</h3>
+              <p>No audit logs found matching your criteria or no logs have been recorded yet.</p>
             </div>
           )}
         </CardContent>

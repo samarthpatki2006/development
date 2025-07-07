@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -9,7 +8,6 @@ import {
   Shield, 
   Settings, 
   FileText, 
-  Activity,
   BookOpen,
   Building,
   Calendar,
@@ -17,9 +15,11 @@ import {
   MessageSquare,
   Archive,
   BarChart3,
-  AlertTriangle,
   Bell,
-  LogOut
+  LogOut,
+  Plus,
+  TrendingUp,
+  AlertCircle
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -86,15 +86,15 @@ const AdminDashboard = ({ sessionData }: AdminDashboardProps) => {
 
   useEffect(() => {
     loadUserProfile();
+    loadDashboardStats();
   }, [sessionData]);
 
   const loadUserProfile = async () => {
     try {
       console.log('Loading user profile with session data:', sessionData);
       
-      // If we have session data from localStorage, use it
       if (sessionData && sessionData.user_id) {
-        const mockUserProfile: UserProfile = {
+        const userProfile: UserProfile = {
           id: sessionData.user_id,
           first_name: sessionData.first_name || 'Admin',
           last_name: sessionData.last_name || 'User',
@@ -108,58 +108,33 @@ const AdminDashboard = ({ sessionData }: AdminDashboardProps) => {
           hierarchy_level: sessionData.user_type || 'admin'
         };
 
-        setUserProfile(mockUserProfile);
-      } else {
-        // Fallback to Supabase auth
-        const { data: { user } } = await supabase.auth.getUser();
-        
-        if (!user) {
-          toast({
-            title: "Error",
-            description: "No authenticated user found.",
-            variant: "destructive",
-          });
-          navigate('/');
-          return;
+        setUserProfile(userProfile);
+
+        // Load admin roles from database
+        const { data: rolesData, error: rolesError } = await supabase
+          .from('admin_roles')
+          .select('admin_role_type, permissions, assigned_at')
+          .eq('user_id', sessionData.user_id)
+          .eq('college_id', sessionData.college_id)
+          .eq('is_active', true);
+
+        if (rolesError) {
+          console.error('Error loading admin roles:', rolesError);
+          // Set default admin role if query fails
+          setAdminRoles([{
+            role_type: 'super_admin',
+            permissions: { all: true },
+            assigned_at: new Date().toISOString()
+          }]);
+        } else {
+          const formattedRoles = rolesData?.map(role => ({
+            role_type: role.admin_role_type,
+            permissions: role.permissions,
+            assigned_at: role.assigned_at
+          })) || [];
+          setAdminRoles(formattedRoles);
         }
-
-        // Mock user profile data
-        const mockUserProfile: UserProfile = {
-          id: user.id,
-          first_name: 'Admin',
-          last_name: 'User',
-          email: user.email || '',
-          user_code: 'ADM001',
-          user_type: 'admin',
-          is_active: true,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-          college_id: 'college-1',
-          hierarchy_level: 'super_admin'
-        };
-
-        setUserProfile(mockUserProfile);
       }
-
-      const mockAdminRoles: AdminRole[] = [
-        {
-          role_type: 'super_admin',
-          permissions: { all: true },
-          assigned_at: new Date().toISOString()
-        }
-      ];
-
-      const mockStats: DashboardStats = {
-        totalUsers: 1250,
-        activeUsers: 1180,
-        totalCourses: 85,
-        totalEvents: 12,
-        monthlyRevenue: 2850000,
-        pendingApprovals: 8
-      };
-
-      setAdminRoles(mockAdminRoles);
-      setDashboardStats(mockStats);
       
       console.log('User profile loaded successfully');
     } catch (error) {
@@ -174,12 +149,47 @@ const AdminDashboard = ({ sessionData }: AdminDashboardProps) => {
     }
   };
 
+  const loadDashboardStats = async () => {
+    try {
+      if (!sessionData?.college_id) return;
+
+      // Load real data from database
+      const [usersResult, coursesResult, eventsResult] = await Promise.all([
+        supabase
+          .from('user_profiles')
+          .select('id, is_active')
+          .eq('college_id', sessionData.college_id),
+        supabase
+          .from('courses')
+          .select('id, is_active')
+          .eq('college_id', sessionData.college_id),
+        supabase
+          .from('events')
+          .select('id, is_active')
+          .eq('college_id', sessionData.college_id)
+      ]);
+
+      const totalUsers = usersResult.data?.length || 0;
+      const activeUsers = usersResult.data?.filter(user => user.is_active)?.length || 0;
+      const totalCourses = coursesResult.data?.filter(course => course.is_active)?.length || 0;
+      const totalEvents = eventsResult.data?.filter(event => event.is_active)?.length || 0;
+
+      setDashboardStats({
+        totalUsers,
+        activeUsers,
+        totalCourses,
+        totalEvents,
+        monthlyRevenue: 0, // Will be calculated from fee_payments table
+        pendingApprovals: 0 // Will be calculated from pending requests
+      });
+    } catch (error) {
+      console.error('Error loading dashboard stats:', error);
+    }
+  };
+
   const handleLogout = async () => {
     try {
-      // Clear localStorage
       localStorage.removeItem('colcord_session');
-      
-      // Sign out from Supabase
       await supabase.auth.signOut();
       
       toast({
@@ -236,288 +246,236 @@ const AdminDashboard = ({ sessionData }: AdminDashboardProps) => {
   }
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">
-            {getGreeting()}, {userProfile.first_name}!
-          </h1>
-          <p className="text-gray-600">
-            Welcome to ColCord Admin Dashboard
-            {sessionData && (
-              <span className="text-sm text-blue-600 block">
-                College: {sessionData.college_name || 'Unknown'}
-              </span>
-            )}
-          </p>
-        </div>
-        <div className="flex items-center space-x-2">
-          <Badge variant="outline" className="bg-blue-50 text-blue-700">
-            {userProfile.hierarchy_level.replace('_', ' ').toUpperCase()}
-          </Badge>
-          <Button variant="outline" size="sm">
-            <Bell className="w-4 h-4 mr-2" />
-            Notifications ({dashboardStats.pendingApprovals})
-          </Button>
-          <Button variant="outline" size="sm" onClick={handleLogout}>
-            <LogOut className="w-4 h-4 mr-2" />
-            Logout
-          </Button>
+      <div className="bg-white shadow-sm border-b">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center py-4">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">
+                {getGreeting()}, {userProfile.first_name}!
+              </h1>
+              <p className="text-gray-600">
+                Welcome to ColCord Admin Dashboard
+                {sessionData && (
+                  <span className="text-sm text-blue-600 block">
+                    College: {sessionData.college_name || 'Unknown'}
+                  </span>
+                )}
+              </p>
+            </div>
+            <div className="flex items-center space-x-3">
+              <Badge variant="outline" className="bg-blue-50 text-blue-700">
+                {userProfile.hierarchy_level.replace('_', ' ').toUpperCase()}
+              </Badge>
+              <Button variant="outline" size="sm">
+                <Bell className="w-4 h-4 mr-2" />
+                Notifications ({dashboardStats.pendingApprovals})
+              </Button>
+              <Button variant="outline" size="sm" onClick={handleLogout}>
+                <LogOut className="w-4 h-4 mr-2" />
+                Logout
+              </Button>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Main Dashboard Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-6 lg:grid-cols-12 gap-2">
-          <TabsTrigger value="overview" className="flex items-center space-x-1">
-            <BarChart3 className="w-4 h-4" />
-            <span className="hidden sm:inline">Overview</span>
-          </TabsTrigger>
-          <TabsTrigger value="users" className="flex items-center space-x-1">
-            <Users className="w-4 h-4" />
-            <span className="hidden sm:inline">Users</span>
-          </TabsTrigger>
-          <TabsTrigger value="roles" className="flex items-center space-x-1">
-            <Shield className="w-4 h-4" />
-            <span className="hidden sm:inline">Roles</span>
-          </TabsTrigger>
-          <TabsTrigger value="courses" className="flex items-center space-x-1">
-            <BookOpen className="w-4 h-4" />
-            <span className="hidden sm:inline">Courses</span>
-          </TabsTrigger>
-          <TabsTrigger value="facilities" className="flex items-center space-x-1">
-            <Building className="w-4 h-4" />
-            <span className="hidden sm:inline">Facilities</span>
-          </TabsTrigger>
-          <TabsTrigger value="events" className="flex items-center space-x-1">
-            <Calendar className="w-4 h-4" />
-            <span className="hidden sm:inline">Events</span>
-          </TabsTrigger>
-          <TabsTrigger value="finance" className="flex items-center space-x-1">
-            <DollarSign className="w-4 h-4" />
-            <span className="hidden sm:inline">Finance</span>
-          </TabsTrigger>
-          <TabsTrigger value="communication" className="flex items-center space-x-1">
-            <MessageSquare className="w-4 h-4" />
-            <span className="hidden sm:inline">Comms</span>
-          </TabsTrigger>
-          <TabsTrigger value="content" className="flex items-center space-x-1">
-            <Archive className="w-4 h-4" />
-            <span className="hidden sm:inline">Content</span>
-          </TabsTrigger>
-          <TabsTrigger value="security" className="flex items-center space-x-1">
-            <Shield className="w-4 h-4" />
-            <span className="hidden sm:inline">Security</span>
-          </TabsTrigger>
-          <TabsTrigger value="settings" className="flex items-center space-x-1">
-            <Settings className="w-4 h-4" />
-            <span className="hidden sm:inline">Settings</span>
-          </TabsTrigger>
-          <TabsTrigger value="logs" className="flex items-center space-x-1">
-            <FileText className="w-4 h-4" />
-            <span className="hidden sm:inline">Logs</span>
-          </TabsTrigger>
-        </TabsList>
+      {/* Main Content */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+          <TabsList className="grid w-full grid-cols-4 lg:grid-cols-8 gap-2">
+            <TabsTrigger value="overview" className="flex items-center space-x-1">
+              <BarChart3 className="w-4 h-4" />
+              <span className="hidden sm:inline">Overview</span>
+            </TabsTrigger>
+            <TabsTrigger value="users" className="flex items-center space-x-1">
+              <Users className="w-4 h-4" />
+              <span className="hidden sm:inline">Users</span>
+            </TabsTrigger>
+            <TabsTrigger value="courses" className="flex items-center space-x-1">
+              <BookOpen className="w-4 h-4" />
+              <span className="hidden sm:inline">Courses</span>
+            </TabsTrigger>
+            <TabsTrigger value="facilities" className="flex items-center space-x-1">
+              <Building className="w-4 h-4" />
+              <span className="hidden sm:inline">Facilities</span>
+            </TabsTrigger>
+            <TabsTrigger value="events" className="flex items-center space-x-1">
+              <Calendar className="w-4 h-4" />
+              <span className="hidden sm:inline">Events</span>
+            </TabsTrigger>
+            <TabsTrigger value="finance" className="flex items-center space-x-1">
+              <DollarSign className="w-4 h-4" />
+              <span className="hidden sm:inline">Finance</span>
+            </TabsTrigger>
+            <TabsTrigger value="settings" className="flex items-center space-x-1">
+              <Settings className="w-4 h-4" />
+              <span className="hidden sm:inline">Settings</span>
+            </TabsTrigger>
+            <TabsTrigger value="logs" className="flex items-center space-x-1">
+              <FileText className="w-4 h-4" />
+              <span className="hidden sm:inline">Logs</span>
+            </TabsTrigger>
+          </TabsList>
 
-        {/* Overview Tab */}
-        <TabsContent value="overview" className="space-y-6">
-          {/* Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {/* Overview Tab */}
+          <TabsContent value="overview" className="space-y-6">
+            {/* Stats Cards in Boxes */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <Card className="hover:shadow-lg transition-shadow">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Total Users</CardTitle>
+                  <Users className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{dashboardStats.totalUsers}</div>
+                  <p className="text-xs text-muted-foreground">
+                    {dashboardStats.activeUsers} active users
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card className="hover:shadow-lg transition-shadow">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Active Courses</CardTitle>
+                  <BookOpen className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{dashboardStats.totalCourses}</div>
+                  <p className="text-xs text-muted-foreground">
+                    Across all departments
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card className="hover:shadow-lg transition-shadow">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Active Events</CardTitle>
+                  <Calendar className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{dashboardStats.totalEvents}</div>
+                  <p className="text-xs text-muted-foreground">
+                    This semester
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card className="hover:shadow-lg transition-shadow">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Pending Tasks</CardTitle>
+                  <AlertCircle className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{dashboardStats.pendingApprovals}</div>
+                  <p className="text-xs text-muted-foreground">
+                    Requires attention
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Quick Actions Grid */}
             <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total Users</CardTitle>
-                <Users className="h-4 w-4 text-muted-foreground" />
+              <CardHeader>
+                <CardTitle>Quick Actions</CardTitle>
+                <CardDescription>Common administrative tasks</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{dashboardStats.totalUsers.toLocaleString()}</div>
-                <p className="text-xs text-muted-foreground">
-                  +{dashboardStats.activeUsers} active users
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total Courses</CardTitle>
-                <BookOpen className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{dashboardStats.totalCourses}</div>
-                <p className="text-xs text-muted-foreground">
-                  Across all departments
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Active Events</CardTitle>
-                <Calendar className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{dashboardStats.totalEvents}</div>
-                <p className="text-xs text-muted-foreground">
-                  This semester
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Monthly Revenue</CardTitle>
-                <DollarSign className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">₹{(dashboardStats.monthlyRevenue / 100000).toFixed(1)}L</div>
-                <p className="text-xs text-muted-foreground">
-                  +12% from last month
-                </p>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Quick Actions */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Quick Actions</CardTitle>
-              <CardDescription>Common administrative tasks</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <Button variant="outline" className="h-20 flex-col space-y-2" onClick={() => setActiveTab('users')}>
-                  <Users className="w-6 h-6" />
-                  <span>Add User</span>
-                </Button>
-                <Button variant="outline" className="h-20 flex-col space-y-2" onClick={() => setActiveTab('courses')}>
-                  <BookOpen className="w-6 h-6" />
-                  <span>Create Course</span>
-                </Button>
-                <Button variant="outline" className="h-20 flex-col space-y-2" onClick={() => setActiveTab('events')}>
-                  <Calendar className="w-6 h-6" />
-                  <span>Schedule Event</span>
-                </Button>
-                <Button variant="outline" className="h-20 flex-col space-y-2" onClick={() => setActiveTab('communication')}>
-                  <MessageSquare className="w-6 h-6" />
-                  <span>Send Announcement</span>
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Recent Activity */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Recent Activity</CardTitle>
-              <CardDescription>Latest system activities and updates</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="flex items-center space-x-4">
-                  <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                  <div className="flex-1">
-                    <p className="text-sm">New student enrollment: John Doe (STU001)</p>
-                    <p className="text-xs text-gray-500">2 hours ago</p>
-                  </div>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <Button 
+                    variant="outline" 
+                    className="h-24 flex-col space-y-2 hover:bg-blue-50 hover:border-blue-300" 
+                    onClick={() => setActiveTab('users')}
+                  >
+                    <Users className="w-6 h-6 text-blue-600" />
+                    <span>Manage Users</span>
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    className="h-24 flex-col space-y-2 hover:bg-green-50 hover:border-green-300" 
+                    onClick={() => setActiveTab('courses')}
+                  >
+                    <BookOpen className="w-6 h-6 text-green-600" />
+                    <span>Add Course</span>
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    className="h-24 flex-col space-y-2 hover:bg-purple-50 hover:border-purple-300" 
+                    onClick={() => setActiveTab('events')}
+                  >
+                    <Calendar className="w-6 h-6 text-purple-600" />
+                    <span>Create Event</span>
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    className="h-24 flex-col space-y-2 hover:bg-orange-50 hover:border-orange-300" 
+                    onClick={() => setActiveTab('settings')}
+                  >
+                    <Settings className="w-6 h-6 text-orange-600" />
+                    <span>Settings</span>
+                  </Button>
                 </div>
-                <div className="flex items-center space-x-4">
-                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                  <div className="flex-1">
-                    <p className="text-sm">Course "Advanced Mathematics" created</p>
-                    <p className="text-xs text-gray-500">4 hours ago</p>
-                  </div>
+              </CardContent>
+            </Card>
+
+            {/* Recent Activity */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Recent Activity</CardTitle>
+                <CardDescription>Latest system activities and updates</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {dashboardStats.totalUsers > 0 ? (
+                    <div className="flex items-center space-x-4">
+                      <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                      <div className="flex-1">
+                        <p className="text-sm">System initialized with {dashboardStats.totalUsers} users</p>
+                        <p className="text-xs text-gray-500">Today</p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 text-gray-500">
+                      <p>No recent activity to display</p>
+                    </div>
+                  )}
                 </div>
-                <div className="flex items-center space-x-4">
-                  <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
-                  <div className="flex-1">
-                    <p className="text-sm">Payment received: ₹50,000 - Tuition Fee</p>
-                    <p className="text-xs text-gray-500">6 hours ago</p>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
+              </CardContent>
+            </Card>
+          </TabsContent>
 
-        {/* Enhanced User Management Tab */}
-        <TabsContent value="users">
-          <EnhancedUserManagement userProfile={userProfile} adminRoles={adminRoles} />
-        </TabsContent>
+          {/* Other Tabs */}
+          <TabsContent value="users">
+            <EnhancedUserManagement userProfile={userProfile} adminRoles={adminRoles} />
+          </TabsContent>
 
-        <TabsContent value="roles">
-          <RoleManagement userProfile={userProfile} />
-        </TabsContent>
+          <TabsContent value="courses">
+            <CourseManagement userProfile={userProfile} />
+          </TabsContent>
 
-        <TabsContent value="courses">
-          <CourseManagement userProfile={userProfile} />
-        </TabsContent>
+          <TabsContent value="facilities">
+            <FacilityManagement userProfile={userProfile} />
+          </TabsContent>
 
-        <TabsContent value="facilities">
-          <FacilityManagement userProfile={userProfile} />
-        </TabsContent>
+          <TabsContent value="events">
+            <EventManagement userProfile={userProfile} />
+          </TabsContent>
 
-        <TabsContent value="events">
-          <EventManagement userProfile={userProfile} />
-        </TabsContent>
+          <TabsContent value="finance">
+            <FinanceManagement userProfile={userProfile} />
+          </TabsContent>
 
-        <TabsContent value="finance">
-          <FinanceManagement userProfile={userProfile} />
-        </TabsContent>
+          <TabsContent value="settings">
+            <SystemSettings userProfile={userProfile} />
+          </TabsContent>
 
-        <TabsContent value="communication">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <MessageSquare className="w-5 h-5" />
-                <span>Communication Center</span>
-              </CardTitle>
-              <CardDescription>
-                Send emails, SMS, push notifications, and announcements
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center py-8 text-gray-500">
-                <MessageSquare className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-                <h3 className="text-lg font-medium mb-2">Communication Center</h3>
-                <p>Multi-channel communication tools will be available here.</p>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="content">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <Archive className="w-5 h-5" />
-                <span>Content & Resource Management</span>
-              </CardTitle>
-              <CardDescription>
-                Manage documents, announcements, and learning resources
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center py-8 text-gray-500">
-                <Archive className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-                <h3 className="text-lg font-medium mb-2">Content Management</h3>
-                <p>Resource management and content publishing tools will be available here.</p>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="security">
-          <SecuritySettings userProfile={userProfile} />
-        </TabsContent>
-
-        <TabsContent value="settings">
-          <SystemSettings userProfile={userProfile} />
-        </TabsContent>
-
-        <TabsContent value="logs">
-          <AuditLogs userProfile={userProfile} adminRoles={adminRoles} />
-        </TabsContent>
-      </Tabs>
+          <TabsContent value="logs">
+            <AuditLogs userProfile={userProfile} adminRoles={adminRoles} />
+          </TabsContent>
+        </Tabs>
+      </div>
     </div>
   );
 };

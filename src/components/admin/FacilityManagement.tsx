@@ -8,8 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Building, Plus, Edit, MapPin, Users, Calendar, Search, Wrench } from 'lucide-react';
+import { Building, Plus, Edit, MapPin, Users, Calendar, Search, Wrench, AlertCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 
@@ -37,7 +36,7 @@ const FacilityManagement = ({ userProfile }: { userProfile: UserProfile }) => {
   const [filterType, setFilterType] = useState('all');
   const [isLoading, setIsLoading] = useState(true);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const [selectedFacility, setSelectedFacility] = useState<Facility | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [facilityForm, setFacilityForm] = useState({
     facility_name: '',
@@ -50,47 +49,32 @@ const FacilityManagement = ({ userProfile }: { userProfile: UserProfile }) => {
 
   useEffect(() => {
     loadFacilities();
-  }, []);
+  }, [userProfile]);
 
   const loadFacilities = async () => {
     try {
-      // Mock facilities data
-      const mockFacilities: Facility[] = [
-        {
-          id: '1',
-          facility_name: 'Main Auditorium',
-          facility_type: 'auditorium',
-          capacity: 500,
-          location: 'Building A, Ground Floor',
-          amenities: { 'projector': true, 'sound_system': true, 'ac': true },
-          is_available: true,
-          maintenance_schedule: {},
-          created_at: new Date().toISOString()
-        },
-        {
-          id: '2',
-          facility_name: 'Computer Lab 1',
-          facility_type: 'lab',
-          capacity: 40,
-          location: 'Building B, 2nd Floor',
-          amenities: { 'computers': 40, 'projector': true, 'whiteboard': true },
-          is_available: true,
-          maintenance_schedule: {},
-          created_at: new Date().toISOString()
-        },
-        {
-          id: '3',
-          facility_name: 'Library Reading Hall',
-          facility_type: 'library',
-          capacity: 200,
-          location: 'Central Library, 1st Floor',
-          amenities: { 'wifi': true, 'study_desks': 200, 'quiet_zone': true },
-          is_available: false,
-          maintenance_schedule: { 'next_maintenance': '2024-08-15' },
-          created_at: new Date().toISOString()
-        }
-      ];
-      setFacilities(mockFacilities);
+      if (!userProfile?.college_id) {
+        setIsLoading(false);
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from('facilities')
+        .select('*')
+        .eq('college_id', userProfile.college_id)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error loading facilities:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load facilities.",
+          variant: "destructive",
+        });
+        setFacilities([]);
+      } else {
+        setFacilities(data || []);
+      }
     } catch (error) {
       console.error('Error loading facilities:', error);
       toast({
@@ -98,35 +82,57 @@ const FacilityManagement = ({ userProfile }: { userProfile: UserProfile }) => {
         description: "Failed to load facilities.",
         variant: "destructive",
       });
+      setFacilities([]);
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleAddFacility = async () => {
-    try {
-      const newFacility: Facility = {
-        id: Date.now().toString(),
-        ...facilityForm,
-        maintenance_schedule: {},
-        created_at: new Date().toISOString()
-      };
-
-      setFacilities([newFacility, ...facilities]);
-      setIsAddDialogOpen(false);
-      setFacilityForm({
-        facility_name: '',
-        facility_type: '',
-        capacity: 0,
-        location: '',
-        amenities: {},
-        is_available: true
-      });
-
+    if (!facilityForm.facility_name || !facilityForm.facility_type) {
       toast({
-        title: "Success",
-        description: "Facility added successfully.",
+        title: "Validation Error",
+        description: "Please fill in facility name and type.",
+        variant: "destructive",
       });
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const { data, error } = await supabase
+        .from('facilities')
+        .insert([{
+          ...facilityForm,
+          college_id: userProfile.college_id
+        }])
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error adding facility:', error);
+        toast({
+          title: "Error",
+          description: "Failed to add facility.",
+          variant: "destructive",
+        });
+      } else {
+        setFacilities([data, ...facilities]);
+        setIsAddDialogOpen(false);
+        setFacilityForm({
+          facility_name: '',
+          facility_type: '',
+          capacity: 0,
+          location: '',
+          amenities: {},
+          is_available: true
+        });
+
+        toast({
+          title: "Success",
+          description: "Facility added successfully.",
+        });
+      }
     } catch (error) {
       console.error('Error adding facility:', error);
       toast({
@@ -134,13 +140,15 @@ const FacilityManagement = ({ userProfile }: { userProfile: UserProfile }) => {
         description: "Failed to add facility.",
         variant: "destructive",
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const filteredFacilities = facilities.filter(facility => {
     const matchesSearch = 
       facility.facility_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      facility.location.toLowerCase().includes(searchTerm.toLowerCase());
+      facility.location?.toLowerCase().includes(searchTerm.toLowerCase());
 
     const matchesType = filterType === 'all' || facility.facility_type === filterType;
 
@@ -202,7 +210,7 @@ const FacilityManagement = ({ userProfile }: { userProfile: UserProfile }) => {
                 </DialogHeader>
                 <div className="grid grid-cols-2 gap-4 py-4">
                   <div className="col-span-2">
-                    <Label htmlFor="facility_name">Facility Name</Label>
+                    <Label htmlFor="facility_name">Facility Name *</Label>
                     <Input
                       id="facility_name"
                       value={facilityForm.facility_name}
@@ -211,7 +219,7 @@ const FacilityManagement = ({ userProfile }: { userProfile: UserProfile }) => {
                     />
                   </div>
                   <div>
-                    <Label htmlFor="facility_type">Facility Type</Label>
+                    <Label htmlFor="facility_type">Facility Type *</Label>
                     <Select value={facilityForm.facility_type} onValueChange={(value) => setFacilityForm({...facilityForm, facility_type: value})}>
                       <SelectTrigger>
                         <SelectValue placeholder="Select type" />
@@ -232,7 +240,7 @@ const FacilityManagement = ({ userProfile }: { userProfile: UserProfile }) => {
                       id="capacity"
                       type="number"
                       value={facilityForm.capacity}
-                      onChange={(e) => setFacilityForm({...facilityForm, capacity: parseInt(e.target.value)})}
+                      onChange={(e) => setFacilityForm({...facilityForm, capacity: parseInt(e.target.value) || 0})}
                       placeholder="Maximum occupancy"
                     />
                   </div>
@@ -247,11 +255,11 @@ const FacilityManagement = ({ userProfile }: { userProfile: UserProfile }) => {
                   </div>
                 </div>
                 <div className="flex justify-end space-x-2">
-                  <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
+                  <Button variant="outline" onClick={() => setIsAddDialogOpen(false)} disabled={isSubmitting}>
                     Cancel
                   </Button>
-                  <Button onClick={handleAddFacility}>
-                    Add Facility
+                  <Button onClick={handleAddFacility} disabled={isSubmitting}>
+                    {isSubmitting ? 'Adding...' : 'Add Facility'}
                   </Button>
                 </div>
               </DialogContent>
@@ -287,68 +295,77 @@ const FacilityManagement = ({ userProfile }: { userProfile: UserProfile }) => {
           </div>
 
           {/* Facilities Table */}
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Facility</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Location</TableHead>
-                  <TableHead>Capacity</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredFacilities.map((facility) => (
-                  <TableRow key={facility.id}>
-                    <TableCell>
-                      <div className="font-medium">{facility.facility_name}</div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge className={getFacilityTypeColor(facility.facility_type)}>
-                        {facility.facility_type}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center space-x-1">
-                        <MapPin className="w-3 h-3 text-gray-400" />
-                        <span className="text-sm">{facility.location}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center space-x-1">
-                        <Users className="w-3 h-3 text-gray-400" />
-                        <span>{facility.capacity}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={facility.is_available ? "default" : "secondary"}>
-                        {facility.is_available ? "Available" : "Maintenance"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center space-x-2">
-                        <Button size="sm" variant="outline">
-                          <Edit className="w-3 h-3" />
-                        </Button>
-                        <Button size="sm" variant="outline">
-                          <Calendar className="w-3 h-3" />
-                        </Button>
-                        <Button size="sm" variant="outline">
-                          <Wrench className="w-3 h-3" />
-                        </Button>
-                      </div>
-                    </TableCell>
+          {filteredFacilities.length > 0 ? (
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Facility</TableHead>
+                    <TableHead>Type</TableHead>
+                    <TableHead>Location</TableHead>
+                    <TableHead>Capacity</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Actions</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-
-          {filteredFacilities.length === 0 && (
-            <div className="text-center py-8 text-gray-500">
-              No facilities found matching your criteria.
+                </TableHeader>
+                <TableBody>
+                  {filteredFacilities.map((facility) => (
+                    <TableRow key={facility.id}>
+                      <TableCell>
+                        <div className="font-medium">{facility.facility_name}</div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge className={getFacilityTypeColor(facility.facility_type)}>
+                          {facility.facility_type}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center space-x-1">
+                          <MapPin className="w-3 h-3 text-gray-400" />
+                          <span className="text-sm">{facility.location || 'Not specified'}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center space-x-1">
+                          <Users className="w-3 h-3 text-gray-400" />
+                          <span>{facility.capacity || 'N/A'}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={facility.is_available ? "default" : "secondary"}>
+                          {facility.is_available ? "Available" : "Maintenance"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center space-x-2">
+                          <Button size="sm" variant="outline">
+                            <Edit className="w-3 h-3" />
+                          </Button>
+                          <Button size="sm" variant="outline">
+                            <Calendar className="w-3 h-3" />
+                          </Button>
+                          <Button size="sm" variant="outline">
+                            <Wrench className="w-3 h-3" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          ) : (
+            <div className="text-center py-12 text-gray-500">
+              <AlertCircle className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+              <h3 className="text-lg font-medium mb-2">No Facilities Found</h3>
+              <p>No facilities found matching your criteria. Add your first facility to get started.</p>
+              <Button 
+                className="mt-4" 
+                onClick={() => setIsAddDialogOpen(true)}
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Add First Facility
+              </Button>
             </div>
           )}
         </CardContent>

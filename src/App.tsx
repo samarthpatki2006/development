@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -7,6 +6,8 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import Admin from "./pages/Admin";
 import Student from "./pages/Student";
+import Teacher from "./pages/Teacher";
+import Faculty from "./pages/Faculty";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();

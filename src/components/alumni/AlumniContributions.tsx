@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -227,7 +226,7 @@ const AlumniContributions = ({ user }: AlumniContributionsProps) => {
                   <Checkbox
                     id="anonymous"
                     checked={isAnonymous}
-                    onCheckedChange={setIsAnonymous}
+                    onCheckedChange={(checked) => setIsAnonymous(checked === true)}
                   />
                   <label htmlFor="anonymous" className="text-sm">
                     Make this donation anonymous

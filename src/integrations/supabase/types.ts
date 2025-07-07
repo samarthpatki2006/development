@@ -136,6 +136,322 @@ export type Database = {
           },
         ]
       }
+      alumni_contributions: {
+        Row: {
+          alumnus_id: string
+          amount: number | null
+          college_id: string
+          completed_at: string | null
+          contribution_type: string
+          created_at: string | null
+          currency: string | null
+          description: string | null
+          id: string
+          is_anonymous: boolean | null
+          payment_method: string | null
+          status: string | null
+          transaction_id: string | null
+        }
+        Insert: {
+          alumnus_id: string
+          amount?: number | null
+          college_id: string
+          completed_at?: string | null
+          contribution_type: string
+          created_at?: string | null
+          currency?: string | null
+          description?: string | null
+          id?: string
+          is_anonymous?: boolean | null
+          payment_method?: string | null
+          status?: string | null
+          transaction_id?: string | null
+        }
+        Update: {
+          alumnus_id?: string
+          amount?: number | null
+          college_id?: string
+          completed_at?: string | null
+          contribution_type?: string
+          created_at?: string | null
+          currency?: string | null
+          description?: string | null
+          id?: string
+          is_anonymous?: boolean | null
+          payment_method?: string | null
+          status?: string | null
+          transaction_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "alumni_contributions_alumnus_id_fkey"
+            columns: ["alumnus_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "alumni_contributions_college_id_fkey"
+            columns: ["college_id"]
+            isOneToOne: false
+            referencedRelation: "colleges"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      alumni_forum_posts: {
+        Row: {
+          author_id: string
+          content: string
+          created_at: string | null
+          forum_id: string
+          id: string
+          is_pinned: boolean | null
+          parent_post_id: string | null
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          author_id: string
+          content: string
+          created_at?: string | null
+          forum_id: string
+          id?: string
+          is_pinned?: boolean | null
+          parent_post_id?: string | null
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          author_id?: string
+          content?: string
+          created_at?: string | null
+          forum_id?: string
+          id?: string
+          is_pinned?: boolean | null
+          parent_post_id?: string | null
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "alumni_forum_posts_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "alumni_forum_posts_forum_id_fkey"
+            columns: ["forum_id"]
+            isOneToOne: false
+            referencedRelation: "alumni_forums"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "alumni_forum_posts_parent_post_id_fkey"
+            columns: ["parent_post_id"]
+            isOneToOne: false
+            referencedRelation: "alumni_forum_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      alumni_forums: {
+        Row: {
+          category: string
+          college_id: string
+          created_at: string | null
+          created_by: string
+          description: string | null
+          id: string
+          is_active: boolean | null
+          title: string
+        }
+        Insert: {
+          category: string
+          college_id: string
+          created_at?: string | null
+          created_by: string
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          title: string
+        }
+        Update: {
+          category?: string
+          college_id?: string
+          created_at?: string | null
+          created_by?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "alumni_forums_college_id_fkey"
+            columns: ["college_id"]
+            isOneToOne: false
+            referencedRelation: "colleges"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "alumni_forums_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      alumni_network_members: {
+        Row: {
+          id: string
+          joined_at: string | null
+          network_id: string
+          role: string | null
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          joined_at?: string | null
+          network_id: string
+          role?: string | null
+          user_id: string
+        }
+        Update: {
+          id?: string
+          joined_at?: string | null
+          network_id?: string
+          role?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "alumni_network_members_network_id_fkey"
+            columns: ["network_id"]
+            isOneToOne: false
+            referencedRelation: "alumni_networks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "alumni_network_members_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      alumni_networks: {
+        Row: {
+          category: string
+          college_id: string
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+        }
+        Insert: {
+          category: string
+          college_id: string
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+        }
+        Update: {
+          category?: string
+          college_id?: string
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "alumni_networks_college_id_fkey"
+            columns: ["college_id"]
+            isOneToOne: false
+            referencedRelation: "colleges"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "alumni_networks_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      alumni_news: {
+        Row: {
+          author_id: string
+          college_id: string
+          content: string
+          created_at: string | null
+          excerpt: string | null
+          featured_image: string | null
+          id: string
+          is_active: boolean | null
+          is_featured: boolean | null
+          published_at: string | null
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          author_id: string
+          college_id: string
+          content: string
+          created_at?: string | null
+          excerpt?: string | null
+          featured_image?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_featured?: boolean | null
+          published_at?: string | null
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          author_id?: string
+          college_id?: string
+          content?: string
+          created_at?: string | null
+          excerpt?: string | null
+          featured_image?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_featured?: boolean | null
+          published_at?: string | null
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "alumni_news_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "alumni_news_college_id_fkey"
+            columns: ["college_id"]
+            isOneToOne: false
+            referencedRelation: "colleges"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       analytics_metrics: {
         Row: {
           academic_year: string | null
@@ -816,6 +1132,85 @@ export type Database = {
           {
             foreignKeyName: "discussion_forums_created_by_fkey"
             columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      document_requests: {
+        Row: {
+          college_id: string
+          delivered_at: string | null
+          delivery_address: string | null
+          delivery_method: string | null
+          document_type: string
+          document_url: string | null
+          fee_amount: number | null
+          id: string
+          payment_status: string | null
+          processed_at: string | null
+          processed_by: string | null
+          purpose: string | null
+          status: string | null
+          submitted_at: string | null
+          tracking_id: string | null
+          user_id: string
+        }
+        Insert: {
+          college_id: string
+          delivered_at?: string | null
+          delivery_address?: string | null
+          delivery_method?: string | null
+          document_type: string
+          document_url?: string | null
+          fee_amount?: number | null
+          id?: string
+          payment_status?: string | null
+          processed_at?: string | null
+          processed_by?: string | null
+          purpose?: string | null
+          status?: string | null
+          submitted_at?: string | null
+          tracking_id?: string | null
+          user_id: string
+        }
+        Update: {
+          college_id?: string
+          delivered_at?: string | null
+          delivery_address?: string | null
+          delivery_method?: string | null
+          document_type?: string
+          document_url?: string | null
+          fee_amount?: number | null
+          id?: string
+          payment_status?: string | null
+          processed_at?: string | null
+          processed_by?: string | null
+          purpose?: string | null
+          status?: string | null
+          submitted_at?: string | null
+          tracking_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_requests_college_id_fkey"
+            columns: ["college_id"]
+            isOneToOne: false
+            referencedRelation: "colleges"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_requests_processed_by_fkey"
+            columns: ["processed_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_requests_user_id_fkey"
+            columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "user_profiles"
             referencedColumns: ["id"]
@@ -2186,6 +2581,130 @@ export type Database = {
           },
         ]
       }
+      volunteer_applications: {
+        Row: {
+          applied_at: string | null
+          availability: string | null
+          id: string
+          motivation: string | null
+          opportunity_id: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string | null
+          volunteer_id: string
+        }
+        Insert: {
+          applied_at?: string | null
+          availability?: string | null
+          id?: string
+          motivation?: string | null
+          opportunity_id: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string | null
+          volunteer_id: string
+        }
+        Update: {
+          applied_at?: string | null
+          availability?: string | null
+          id?: string
+          motivation?: string | null
+          opportunity_id?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string | null
+          volunteer_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "volunteer_applications_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "volunteer_opportunities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "volunteer_applications_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "volunteer_applications_volunteer_id_fkey"
+            columns: ["volunteer_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      volunteer_opportunities: {
+        Row: {
+          college_id: string
+          created_at: string | null
+          created_by: string
+          current_volunteers: number | null
+          description: string
+          end_date: string | null
+          id: string
+          is_active: boolean | null
+          location: string | null
+          max_volunteers: number | null
+          requirements: string | null
+          start_date: string | null
+          time_commitment: string | null
+          title: string
+        }
+        Insert: {
+          college_id: string
+          created_at?: string | null
+          created_by: string
+          current_volunteers?: number | null
+          description: string
+          end_date?: string | null
+          id?: string
+          is_active?: boolean | null
+          location?: string | null
+          max_volunteers?: number | null
+          requirements?: string | null
+          start_date?: string | null
+          time_commitment?: string | null
+          title: string
+        }
+        Update: {
+          college_id?: string
+          created_at?: string | null
+          created_by?: string
+          current_volunteers?: number | null
+          description?: string
+          end_date?: string | null
+          id?: string
+          is_active?: boolean | null
+          location?: string | null
+          max_volunteers?: number | null
+          requirements?: string | null
+          start_date?: string | null
+          time_commitment?: string | null
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "volunteer_opportunities_college_id_fkey"
+            columns: ["college_id"]
+            isOneToOne: false
+            referencedRelation: "colleges"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "volunteer_opportunities_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -2198,6 +2717,15 @@ export type Database = {
       generate_user_code: {
         Args: { college_code: string; user_type_param: string }
         Returns: string
+      }
+      get_alumni_stats: {
+        Args: { college_uuid: string }
+        Returns: {
+          total_alumni: number
+          active_contributors: number
+          total_donations: number
+          upcoming_events: number
+        }[]
       }
       get_college_by_code: {
         Args: { college_code: string }

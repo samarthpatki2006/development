@@ -10,6 +10,7 @@ import Teacher from "./pages/Teacher";
 import Faculty from "./pages/Faculty";
 import NotFound from "./pages/NotFound";
 import Parent from "./pages/Parent";
+import Alumni from "./pages/Alumni";
 
 const queryClient = new QueryClient();
 
@@ -26,6 +27,7 @@ const App = () => (
           <Route path="/teacher" element={<Teacher />} />
           <Route path="/faculty" element={<Faculty />} />
           <Route path="/parent" element={<Parent />} />
+          <Route path="/alumni" element={<Alumni />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

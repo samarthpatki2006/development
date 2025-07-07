@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -17,10 +18,12 @@ import {
   Archive,
   BarChart3,
   AlertTriangle,
-  Bell
+  Bell,
+  LogOut
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+import { useNavigate } from 'react-router-dom';
 
 // Import all admin components
 import EnhancedUserManagement from './EnhancedUserManagement';
@@ -62,7 +65,12 @@ interface DashboardStats {
   pendingApprovals: number;
 }
 
-const AdminDashboard = () => {
+interface AdminDashboardProps {
+  sessionData?: any;
+}
+
+const AdminDashboard = ({ sessionData }: AdminDashboardProps) => {
+  const navigate = useNavigate();
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [adminRoles, setAdminRoles] = useState<AdminRole[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -78,35 +86,60 @@ const AdminDashboard = () => {
 
   useEffect(() => {
     loadUserProfile();
-  }, []);
+  }, [sessionData]);
 
   const loadUserProfile = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      console.log('Loading user profile with session data:', sessionData);
       
-      if (!user) {
-        toast({
-          title: "Error",
-          description: "No authenticated user found.",
-          variant: "destructive",
-        });
-        return;
-      }
+      // If we have session data from localStorage, use it
+      if (sessionData && sessionData.user_id) {
+        const mockUserProfile: UserProfile = {
+          id: sessionData.user_id,
+          first_name: sessionData.first_name || 'Admin',
+          last_name: sessionData.last_name || 'User',
+          email: sessionData.email || '',
+          user_code: sessionData.user_code || 'ADM001',
+          user_type: sessionData.user_type || 'admin',
+          is_active: true,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          college_id: sessionData.college_id || '',
+          hierarchy_level: sessionData.user_type || 'admin'
+        };
 
-      // Mock user profile data with hierarchy_level
-      const mockUserProfile: UserProfile = {
-        id: user.id,
-        first_name: 'Admin',
-        last_name: 'User',
-        email: user.email || '',
-        user_code: 'ADM001',
-        user_type: 'admin',
-        is_active: true,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        college_id: 'college-1',
-        hierarchy_level: 'super_admin'
-      };
+        setUserProfile(mockUserProfile);
+      } else {
+        // Fallback to Supabase auth
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        if (!user) {
+          toast({
+            title: "Error",
+            description: "No authenticated user found.",
+            variant: "destructive",
+          });
+          navigate('/');
+          return;
+        }
+
+        // Mock user profile data
+        const mockUserProfile: UserProfile = {
+          id: user.id,
+          first_name: 'Admin',
+          last_name: 'User',
+          email: user.email || '',
+          user_code: 'ADM001',
+          user_type: 'admin',
+          is_active: true,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          college_id: 'college-1',
+          hierarchy_level: 'super_admin'
+        };
+
+        setUserProfile(mockUserProfile);
+      }
 
       const mockAdminRoles: AdminRole[] = [
         {
@@ -125,9 +158,10 @@ const AdminDashboard = () => {
         pendingApprovals: 8
       };
 
-      setUserProfile(mockUserProfile);
       setAdminRoles(mockAdminRoles);
       setDashboardStats(mockStats);
+      
+      console.log('User profile loaded successfully');
     } catch (error) {
       console.error('Error loading user profile:', error);
       toast({
@@ -137,6 +171,30 @@ const AdminDashboard = () => {
       });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      // Clear localStorage
+      localStorage.removeItem('colcord_session');
+      
+      // Sign out from Supabase
+      await supabase.auth.signOut();
+      
+      toast({
+        title: "Logged out successfully",
+        description: "You have been logged out of the admin dashboard.",
+      });
+      
+      navigate('/');
+    } catch (error) {
+      console.error('Logout error:', error);
+      toast({
+        title: "Error",
+        description: "Failed to logout. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -169,6 +227,9 @@ const AdminDashboard = () => {
         <CardContent className="p-6 text-center">
           <h2 className="text-lg font-semibold mb-2">Access Denied</h2>
           <p className="text-gray-600">You don't have permission to access the admin dashboard.</p>
+          <Button onClick={() => navigate('/')} className="mt-4">
+            Go to Login
+          </Button>
         </CardContent>
       </Card>
     );
@@ -184,6 +245,11 @@ const AdminDashboard = () => {
           </h1>
           <p className="text-gray-600">
             Welcome to ColCord Admin Dashboard
+            {sessionData && (
+              <span className="text-sm text-blue-600 block">
+                College: {sessionData.college_name || 'Unknown'}
+              </span>
+            )}
           </p>
         </div>
         <div className="flex items-center space-x-2">
@@ -193,6 +259,10 @@ const AdminDashboard = () => {
           <Button variant="outline" size="sm">
             <Bell className="w-4 h-4 mr-2" />
             Notifications ({dashboardStats.pendingApprovals})
+          </Button>
+          <Button variant="outline" size="sm" onClick={handleLogout}>
+            <LogOut className="w-4 h-4 mr-2" />
+            Logout
           </Button>
         </div>
       </div>
@@ -374,32 +444,26 @@ const AdminDashboard = () => {
           <EnhancedUserManagement userProfile={userProfile} adminRoles={adminRoles} />
         </TabsContent>
 
-        {/* Role Management Tab - Only pass userProfile */}
         <TabsContent value="roles">
           <RoleManagement userProfile={userProfile} />
         </TabsContent>
 
-        {/* Course Management Tab */}
         <TabsContent value="courses">
           <CourseManagement userProfile={userProfile} />
         </TabsContent>
 
-        {/* Facility Management Tab */}
         <TabsContent value="facilities">
           <FacilityManagement userProfile={userProfile} />
         </TabsContent>
 
-        {/* Event Management Tab */}
         <TabsContent value="events">
           <EventManagement userProfile={userProfile} />
         </TabsContent>
 
-        {/* Finance Management Tab */}
         <TabsContent value="finance">
           <FinanceManagement userProfile={userProfile} />
         </TabsContent>
 
-        {/* Communication Center Tab */}
         <TabsContent value="communication">
           <Card>
             <CardHeader>
@@ -421,7 +485,6 @@ const AdminDashboard = () => {
           </Card>
         </TabsContent>
 
-        {/* Content Management Tab */}
         <TabsContent value="content">
           <Card>
             <CardHeader>
@@ -443,17 +506,14 @@ const AdminDashboard = () => {
           </Card>
         </TabsContent>
 
-        {/* Security Settings Tab - Only pass userProfile */}
         <TabsContent value="security">
           <SecuritySettings userProfile={userProfile} />
         </TabsContent>
 
-        {/* System Settings Tab - Only pass userProfile */}
         <TabsContent value="settings">
           <SystemSettings userProfile={userProfile} />
         </TabsContent>
 
-        {/* Audit Logs Tab */}
         <TabsContent value="logs">
           <AuditLogs userProfile={userProfile} adminRoles={adminRoles} />
         </TabsContent>

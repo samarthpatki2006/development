@@ -35,21 +35,15 @@ const MultiStepLogin = () => {
   useEffect(() => {
     const checkExistingSession = () => {
       try {
-        // First check if we have session data in state
-        if (sessionData && sessionData.login_time) {
-          navigate('/admin');
-          return;
-        }
-
-        // If no session data in state, try to restore from localStorage
+        // Check if we have session data in localStorage
         if (typeof Storage !== 'undefined') {
           const storedSession = localStorage.getItem('colcord_session');
           if (storedSession) {
             const parsedSession = JSON.parse(storedSession);
+            console.log('Found existing session, redirecting to admin');
             
             // Validate session (you might want to add expiration check here)
             if (parsedSession.login_time && parsedSession.user_id) {
-              setSessionData(parsedSession);
               navigate('/admin');
               return;
             }
@@ -67,14 +61,7 @@ const MultiStepLogin = () => {
     };
 
     checkExistingSession();
-  }, []); // Empty dependency array - only run on mount
-
-  // Separate useEffect for session changes
-  useEffect(() => {
-    if (sessionData && sessionData.login_time) {
-      navigate('/admin');
-    }
-  }, [sessionData, navigate]);
+  }, [navigate]);
 
   const validateCollegeCode = async () => {
     setIsLoading(true);
@@ -282,6 +269,7 @@ const MultiStepLogin = () => {
         try {
           if (typeof Storage !== 'undefined') {
             localStorage.setItem('colcord_session', JSON.stringify(newSessionData));
+            console.log('Session stored in localStorage');
           }
         } catch (storageError) {
           console.log('localStorage not available, using session state only');
@@ -292,11 +280,9 @@ const MultiStepLogin = () => {
           description: `Welcome back, ${userFromCollege.first_name || 'User'}!`,
         });
 
-        // Navigate to dashboard
+        // Navigate to dashboard immediately after storing session
         console.log('Navigating to admin dashboard...');
-        setTimeout(() => {
-          navigate('/admin');
-        }, 1500);
+        navigate('/admin');
         
       } else {
         console.log('No user found with user_code:', userCode.toUpperCase(), 'in college:', collegeData.id);

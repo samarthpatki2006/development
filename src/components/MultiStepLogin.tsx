@@ -28,17 +28,54 @@ const MultiStepLogin = () => {
   const [collegeData, setCollegeData] = useState<CollegeData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [userExists, setUserExists] = useState(false);
+  const [userData, setUserData] = useState<any>(null);
+  const [sessionData, setSessionData] = useState<any>(null);
 
-  // Check if user is already authenticated
+  // Check if user is already logged in (using state instead of localStorage)
   useEffect(() => {
-    const checkAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
+  // Check for existing session on component mount
+  const checkExistingSession = () => {
+    try {
+      // First check if we have session data in state
+      if (sessionData && sessionData.login_time) {
         navigate('/admin');
+        return;
       }
-    };
-    checkAuth();
-  }, [navigate]);
+
+      // If no session data in state, try to restore from localStorage
+      if (typeof Storage !== 'undefined') {
+        const storedSession = localStorage.getItem('colcord_session');
+        if (storedSession) {
+          const parsedSession = JSON.parse(storedSession);
+          
+          // Validate session (you might want to add expiration check here)
+          if (parsedSession.login_time && parsedSession.user_id) {
+            setSessionData(parsedSession);
+            navigate('/admin');
+            return;
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error checking existing session:', error);
+      // Clear invalid session data
+      try {
+        localStorage.removeItem('colcord_session');
+      } catch (e) {
+        console.log('localStorage not available');
+      }
+    }
+  };
+
+  checkExistingSession();
+}, []); // Empty dependency array - only run on mount
+
+// Separate useEffect for session changes
+useEffect(() => {
+  if (sessionData && sessionData.login_time) {
+    navigate('/admin');
+  }
+}, [sessionData, navigate]);
 
   const validateCollegeCode = async () => {
     setIsLoading(true);
@@ -117,6 +154,7 @@ const MultiStepLogin = () => {
         const result = data[0];
         if (result.user_exists) {
           setUserExists(true);
+          setUserData(result);
           setCurrentStep(3);
           toast({
             title: "User Code Verified",
@@ -154,85 +192,132 @@ const MultiStepLogin = () => {
     setIsLoading(true);
     
     try {
-      // For demo purposes, create a temporary user email for authentication
-      const tempEmail = `${userCode.toLowerCase()}@${collegeData.code.toLowerCase()}.edu`;
-      
-      // Try to sign in with demo credentials
-      if (password === 'test123' || password === 'password') {
-        // Create a demo user session using Supabase auth
-        const { data, error } = await supabase.auth.signInWithPassword({
-          email: tempEmail,
-          password: password,
+      // Debug: Log the search parameters
+      console.log('Searching for user with:', {
+        user_code: userCode.toUpperCase(),
+        college_id: collegeData.id,
+        college_code: collegeData.code
+      });
+
+      // First, let's try to find the user by user_code only
+      const { data: userProfileData, error: userProfileError } = await supabase
+        .from('user_profiles')
+        .select('*')
+        .eq('user_code', userCode.toUpperCase());
+
+      console.log('User profile query result:', { userProfileData, userProfileError });
+
+      if (userProfileError) {
+        console.error('User profile query error:', userProfileError);
+        toast({
+          title: "Error",
+          description: "Database query failed. Please try again.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (userProfileData && userProfileData.length > 0) {
+        // Check if any of the returned users belong to the correct college
+        const userFromCollege = userProfileData.find(user => {
+          // Check if college_id matches or if college_code matches
+          return user.college_id === collegeData.id || 
+                 user.college_code === collegeData.code;
         });
 
-        if (error) {
-          // If user doesn't exist, create them for demo purposes
-          if (error.message.includes('Invalid login credentials')) {
-            const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-              email: tempEmail,
-              password: password,
-              options: {
-                data: {
-                  college_id: collegeData.id,
-                  user_code: userCode,
-                  user_type: userCode.startsWith('ADM') ? 'admin' : 
-                           userCode.startsWith('FAC') ? 'faculty' : 'student',
-                  first_name: 'Demo',
-                  last_name: 'User'
-                }
-              }
+        if (!userFromCollege) {
+          console.log('User found but not in the specified college');
+          toast({
+            title: "Access Denied",
+            description: "User not found in this college's database.",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        console.log('User found in college:', userFromCollege);
+        console.log('Available columns in user_profiles:', Object.keys(userFromCollege));
+
+        // Enhanced password validation
+        const storedPassword = userFromCollege.password;
+        
+        console.log('Password validation:', {
+          enteredPassword: password,
+          storedPassword: storedPassword,
+          passwordExists: !!storedPassword
+        });
+
+        // Check if password column exists and validate
+        if (!storedPassword) {
+          console.log('No password found in database - skipping password validation');
+          
+          toast({
+            title: "Development Mode",
+            description: "Password validation skipped - no password in database",
+            variant: "default",
+          });
+        } else {
+          // Perform password validation
+          if (storedPassword !== password) {
+            console.log('Password validation failed:', {
+              entered: password,
+              stored: storedPassword,
+              match: storedPassword === password
             });
-
-            if (signUpError) {
-              console.error('Sign up error:', signUpError);
-              toast({
-                title: "Authentication Error",
-                description: "Unable to create demo user session.",
-                variant: "destructive",
-              });
-              return;
-            }
-
-            // Sign in the newly created user
-            const { data: loginData, error: loginError } = await supabase.auth.signInWithPassword({
-              email: tempEmail,
-              password: password,
-            });
-
-            if (loginError) {
-              console.error('Login error:', loginError);
-              toast({
-                title: "Login Failed",
-                description: "Unable to authenticate user.",
-                variant: "destructive",
-              });
-              return;
-            }
-          } else {
-            console.error('Authentication error:', error);
+            
             toast({
               title: "Login Failed",
-              description: "Authentication failed. Please try again.",
+              description: "Invalid password. Please try again.",
               variant: "destructive",
             });
-            return;
+            return; // Exit early on password mismatch
           }
+          
+          console.log('Password validation successful');
+        }
+
+        // Create session data
+        const newSessionData = {
+          college_id: collegeData.id,
+          college_code: collegeData.code,
+          college_name: collegeData.name,
+          user_id: userFromCollege.id,
+          user_code: userCode,
+          user_type: userFromCollege.user_type,
+          first_name: userFromCollege.first_name,
+          last_name: userFromCollege.last_name,
+          login_time: new Date().toISOString(),
+          session_id: `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+        };
+
+        // Store session data in state instead of localStorage
+        setSessionData(newSessionData);
+
+        // Also try to store in localStorage if available (for persistence)
+        try {
+          if (typeof Storage !== 'undefined') {
+            localStorage.setItem('colcord_session', JSON.stringify(newSessionData));
+          }
+        } catch (storageError) {
+          console.log('localStorage not available, using session state only');
         }
 
         toast({
           title: "Login Successful!",
-          description: `Welcome to ColCord - ${collegeData.name}`,
+          description: `Welcome back, ${userFromCollege.first_name || 'User'}!`,
         });
 
-        // Redirect to admin dashboard
+        // Navigate to dashboard
+        console.log('Navigating to admin dashboard...');
         setTimeout(() => {
           navigate('/admin');
-        }, 1000);
+        }, 1500);
         
       } else {
+        console.log('No user found with user_code:', userCode.toUpperCase());
         toast({
           title: "Login Failed",
-          description: "Invalid password. For testing, use 'test123' or 'password'.",
+          description: "User not found. Please check your user code.",
           variant: "destructive",
         });
       }
@@ -240,7 +325,7 @@ const MultiStepLogin = () => {
       console.error('Login error:', error);
       toast({
         title: "Error",
-        description: "Something went wrong during login. Please try again.",
+        description: `Login failed: ${error.message || 'Unknown error'}`,
         variant: "destructive",
       });
     } finally {
@@ -256,6 +341,7 @@ const MultiStepLogin = () => {
       }
       if (currentStep === 3) {
         setUserExists(false);
+        setUserData(null);
       }
     }
   };
@@ -288,7 +374,7 @@ const MultiStepLogin = () => {
                   ? step.completed
                     ? "bg-green-500 border-green-500 text-white"
                     : collegeData
-                      ? `border-[${collegeData.primary_color}] text-[${collegeData.primary_color}]`
+                      ? "bg-blue-600 border-blue-600 text-white"
                       : "bg-blue-600 border-blue-600 text-white"
                   : "border-gray-300 text-gray-400"
               )}>
@@ -391,9 +477,6 @@ const MultiStepLogin = () => {
                   <KeyRound className="w-12 h-12 mx-auto text-blue-600" />
                   <h2 className="text-xl font-semibold text-gray-900">Enter Password</h2>
                   <p className="text-sm text-gray-600">Complete your secure login</p>
-                  <p className="text-xs text-blue-600 bg-blue-50 p-2 rounded">
-                    For testing, use password: <strong>test123</strong> or <strong>password</strong>
-                  </p>
                 </div>
                 
                 <div className="space-y-2">
@@ -404,6 +487,7 @@ const MultiStepLogin = () => {
                     placeholder="Enter your password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
+                    onKeyPress={(e) => e.key === 'Enter' && !isLoading && password && handleLogin()}
                   />
                 </div>
 
@@ -425,18 +509,27 @@ const MultiStepLogin = () => {
           </div>
         </Card>
 
+        {/* Debug Information */}
+        {sessionData && (
+          <div className="text-center text-sm text-green-600 bg-green-50 p-4 rounded-lg">
+            <p className="font-semibold">Login Successful!</p>
+            <p>Session ID: {sessionData.session_id}</p>
+            <p>User: {sessionData.first_name} ({sessionData.user_type})</p>
+          </div>
+        )}
+
         {/* Testing Instructions */}
         <div className="text-center text-sm text-gray-500 bg-gray-50 p-4 rounded-lg">
           <p className="font-semibold mb-2">Testing Instructions:</p>
           <p>1. College Code: <strong>TAPMI</strong>, <strong>BITS</strong>, or <strong>IIMB</strong></p>
           <p>2. User Code: <strong>STU0001</strong>, <strong>FAC0001</strong>, or <strong>ADM0001</strong></p>
-          <p>3. Password: <strong>test123</strong> or <strong>password</strong></p>
+          <p>3. Password: Enter the exact password from your database</p>
         </div>
 
         {/* Footer */}
         <div className="text-center text-sm text-gray-500">
           <p>Need help? Contact your institution's IT support</p>
-          <p className="mt-1">© 2024 ColCord - Secure Education Platform</p>
+          <p className="mt-1">© 2025 ColCord - Secure Education Platform</p>
         </div>
       </div>
     </div>

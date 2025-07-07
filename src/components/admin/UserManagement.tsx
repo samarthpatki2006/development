@@ -13,14 +13,14 @@ import { toast } from '@/hooks/use-toast';
 
 interface UserProfile {
   id: string;
-  first_name: string;
-  last_name: string;
-  email: string;
+  first_name: string | null;
+  last_name: string | null;
+  email: string | null;
   user_code: string;
-  user_type: 'student' | 'faculty' | 'admin' | 'staff';
-  is_active: boolean;
-  created_at: string;
-  updated_at: string;
+  user_type: 'student' | 'faculty' | 'admin' | 'staff' | 'parent' | 'alumni';
+  is_active: boolean | null;
+  created_at: string | null;
+  updated_at: string | null;
   college_id: string;
 }
 
@@ -127,9 +127,9 @@ const UserManagement = ({ userProfile, adminRoles }: UserManagementProps) => {
 
   const filteredUsers = users.filter(user => {
     const matchesSearch = 
-      user.first_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.last_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (user.first_name?.toLowerCase().includes(searchTerm.toLowerCase()) || false) ||
+      (user.last_name?.toLowerCase().includes(searchTerm.toLowerCase()) || false) ||
+      (user.email?.toLowerCase().includes(searchTerm.toLowerCase()) || false) ||
       user.user_code.toLowerCase().includes(searchTerm.toLowerCase());
 
     const matchesFilter = filterType === 'all' || user.user_type === filterType;
@@ -226,6 +226,8 @@ const UserManagement = ({ userProfile, adminRoles }: UserManagementProps) => {
                 <SelectItem value="faculty">Faculty</SelectItem>
                 <SelectItem value="admin">Admins</SelectItem>
                 <SelectItem value="staff">Staff</SelectItem>
+                <SelectItem value="parent">Parents</SelectItem>
+                <SelectItem value="alumni">Alumni</SelectItem>
               </SelectContent>
             </Select>
             {isSuperAdmin() && (
@@ -255,9 +257,9 @@ const UserManagement = ({ userProfile, adminRoles }: UserManagementProps) => {
                     <TableCell>
                       <div>
                         <div className="font-medium">
-                          {user.first_name} {user.last_name}
+                          {user.first_name || ''} {user.last_name || ''}
                         </div>
-                        <div className="text-sm text-gray-500">{user.email}</div>
+                        <div className="text-sm text-gray-500">{user.email || 'No email'}</div>
                       </div>
                     </TableCell>
                     <TableCell className="font-mono text-sm">{user.user_code}</TableCell>
@@ -332,19 +334,19 @@ const UserManagement = ({ userProfile, adminRoles }: UserManagementProps) => {
             <DialogHeader>
               <DialogTitle>User Details</DialogTitle>
               <DialogDescription>
-                Detailed information about {selectedUser.first_name} {selectedUser.last_name}
+                Detailed information about {selectedUser.first_name || ''} {selectedUser.last_name || ''}
               </DialogDescription>
             </DialogHeader>
             <div className="grid grid-cols-2 gap-4 py-4">
               <div>
                 <Label className="text-sm font-medium">Name</Label>
                 <p className="text-sm text-gray-600">
-                  {selectedUser.first_name} {selectedUser.last_name}
+                  {selectedUser.first_name || ''} {selectedUser.last_name || ''}
                 </p>
               </div>
               <div>
                 <Label className="text-sm font-medium">Email</Label>
-                <p className="text-sm text-gray-600">{selectedUser.email}</p>
+                <p className="text-sm text-gray-600">{selectedUser.email || 'No email'}</p>
               </div>
               <div>
                 <Label className="text-sm font-medium">User Code</Label>
@@ -371,7 +373,7 @@ const UserManagement = ({ userProfile, adminRoles }: UserManagementProps) => {
               <div className="col-span-2">
                 <Label className="text-sm font-medium">Created At</Label>
                 <p className="text-sm text-gray-600">
-                  {new Date(selectedUser.created_at).toLocaleDateString()}
+                  {selectedUser.created_at ? new Date(selectedUser.created_at).toLocaleDateString() : 'N/A'}
                 </p>
               </div>
             </div>

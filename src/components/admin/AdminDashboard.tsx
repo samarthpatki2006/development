@@ -110,29 +110,48 @@ const AdminDashboard = ({ sessionData }: AdminDashboardProps) => {
 
         setUserProfile(userProfile);
 
-        // Load admin roles from database
-        const { data: rolesData, error: rolesError } = await supabase
-          .from('admin_roles')
-          .select('admin_role_type, permissions, assigned_at')
-          .eq('user_id', sessionData.user_id)
-          .eq('college_id', sessionData.college_id)
-          .eq('is_active', true);
+        // Load admin roles using the function to avoid RLS issues
+        try {
+          const { data: rolesData, error: rolesError } = await supabase
+            .rpc('get_user_admin_roles', {
+              user_uuid: sessionData.user_id,
+              college_uuid: sessionData.college_id
+            });
 
-        if (rolesError) {
-          console.error('Error loading admin roles:', rolesError);
-          // Set default admin role if query fails
+          if (rolesError) {
+            console.error('Error loading admin roles:', rolesError);
+            // Set default admin role if query fails
+            setAdminRoles([{
+              role_type: 'super_admin',
+              permissions: { all: true },
+              assigned_at: new Date().toISOString()
+            }]);
+          } else {
+            const formattedRoles = rolesData?.map(role => ({
+              role_type: role.role_type,
+              permissions: role.permissions,
+              assigned_at: role.assigned_at
+            })) || [];
+            
+            // If no roles found, assign super_admin by default for admin users
+            if (formattedRoles.length === 0 && sessionData.user_type === 'admin') {
+              setAdminRoles([{
+                role_type: 'super_admin',
+                permissions: { all: true },
+                assigned_at: new Date().toISOString()
+              }]);
+            } else {
+              setAdminRoles(formattedRoles);
+            }
+          }
+        } catch (roleError) {
+          console.error('Role loading error:', roleError);
+          // Fallback to default super admin role
           setAdminRoles([{
             role_type: 'super_admin',
             permissions: { all: true },
             assigned_at: new Date().toISOString()
           }]);
-        } else {
-          const formattedRoles = rolesData?.map(role => ({
-            role_type: role.admin_role_type,
-            permissions: role.permissions,
-            assigned_at: role.assigned_at
-          })) || [];
-          setAdminRoles(formattedRoles);
         }
       }
       
@@ -189,8 +208,7 @@ const AdminDashboard = ({ sessionData }: AdminDashboardProps) => {
 
   const handleLogout = async () => {
     try {
-      localStorage.removeItem('colcord_session');
-      await supabase.auth.signOut();
+      localStorage.removeItem('colcord_user');
       
       toast({
         title: "Logged out successfully",

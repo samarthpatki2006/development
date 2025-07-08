@@ -778,6 +778,66 @@ export type Database = {
           },
         ]
       }
+      bulk_operations: {
+        Row: {
+          admin_user_id: string
+          college_id: string
+          completed_at: string | null
+          created_at: string | null
+          error_details: Json | null
+          failed_records: number | null
+          file_name: string | null
+          id: string
+          operation_type: string
+          status: string | null
+          successful_records: number | null
+          total_records: number | null
+        }
+        Insert: {
+          admin_user_id: string
+          college_id: string
+          completed_at?: string | null
+          created_at?: string | null
+          error_details?: Json | null
+          failed_records?: number | null
+          file_name?: string | null
+          id?: string
+          operation_type: string
+          status?: string | null
+          successful_records?: number | null
+          total_records?: number | null
+        }
+        Update: {
+          admin_user_id?: string
+          college_id?: string
+          completed_at?: string | null
+          created_at?: string | null
+          error_details?: Json | null
+          failed_records?: number | null
+          file_name?: string | null
+          id?: string
+          operation_type?: string
+          status?: string | null
+          successful_records?: number | null
+          total_records?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bulk_operations_admin_user_id_fkey"
+            columns: ["admin_user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bulk_operations_college_id_fkey"
+            columns: ["college_id"]
+            isOneToOne: false
+            referencedRelation: "colleges"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       certificates: {
         Row: {
           certificate_type: string | null
@@ -2150,6 +2210,33 @@ export type Database = {
           },
         ]
       }
+      role_permissions: {
+        Row: {
+          action: Database["public"]["Enums"]["permission_action"]
+          created_at: string | null
+          id: string
+          is_allowed: boolean | null
+          resource_type: Database["public"]["Enums"]["resource_type"]
+          role_type: Database["public"]["Enums"]["admin_role_type"]
+        }
+        Insert: {
+          action: Database["public"]["Enums"]["permission_action"]
+          created_at?: string | null
+          id?: string
+          is_allowed?: boolean | null
+          resource_type: Database["public"]["Enums"]["resource_type"]
+          role_type: Database["public"]["Enums"]["admin_role_type"]
+        }
+        Update: {
+          action?: Database["public"]["Enums"]["permission_action"]
+          created_at?: string | null
+          id?: string
+          is_allowed?: boolean | null
+          resource_type?: Database["public"]["Enums"]["resource_type"]
+          role_type?: Database["public"]["Enums"]["admin_role_type"]
+        }
+        Relationships: []
+      }
       security_settings: {
         Row: {
           backup_codes: string[] | null
@@ -2453,6 +2540,51 @@ export type Database = {
           {
             foreignKeyName: "teacher_messages_sender_id_fkey"
             columns: ["sender_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      temporary_passwords: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          expires_at: string
+          id: string
+          is_used: boolean | null
+          temp_password: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          expires_at: string
+          id?: string
+          is_used?: boolean | null
+          temp_password: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          expires_at?: string
+          id?: string
+          is_used?: boolean | null
+          temp_password?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "temporary_passwords_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "temporary_passwords_user_id_fkey"
+            columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "user_profiles"
             referencedColumns: ["id"]
@@ -2774,6 +2906,15 @@ export type Database = {
         }
         Returns: boolean
       }
+      has_resource_permission: {
+        Args: {
+          user_uuid: string
+          college_uuid: string
+          resource: Database["public"]["Enums"]["resource_type"]
+          action: Database["public"]["Enums"]["permission_action"]
+        }
+        Returns: boolean
+      }
       log_admin_action: {
         Args: {
           college_uuid: string
@@ -2799,7 +2940,11 @@ export type Database = {
         }[]
       }
       validate_user_login: {
-        Args: { college_code: string; user_code: string; user_password: string }
+        Args: {
+          p_college_code: string
+          p_user_code: string
+          p_user_password: string
+        }
         Returns: {
           login_success: boolean
           user_id: string
@@ -2818,6 +2963,27 @@ export type Database = {
         | "event_admin"
         | "finance_admin"
         | "it_admin"
+      permission_action:
+        | "create"
+        | "read"
+        | "update"
+        | "delete"
+        | "bulk_upload"
+        | "export"
+        | "assign"
+        | "approve"
+      resource_type:
+        | "students"
+        | "faculty"
+        | "staff"
+        | "courses"
+        | "fees"
+        | "facilities"
+        | "events"
+        | "library"
+        | "exams"
+        | "audit_logs"
+        | "system_settings"
       user_hierarchy_level:
         | "super_admin"
         | "admin"
@@ -2967,6 +3133,29 @@ export const Constants = {
         "event_admin",
         "finance_admin",
         "it_admin",
+      ],
+      permission_action: [
+        "create",
+        "read",
+        "update",
+        "delete",
+        "bulk_upload",
+        "export",
+        "assign",
+        "approve",
+      ],
+      resource_type: [
+        "students",
+        "faculty",
+        "staff",
+        "courses",
+        "fees",
+        "facilities",
+        "events",
+        "library",
+        "exams",
+        "audit_logs",
+        "system_settings",
       ],
       user_hierarchy_level: [
         "super_admin",

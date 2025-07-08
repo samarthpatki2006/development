@@ -122,9 +122,9 @@ const MultiStepLogin = () => {
 
     try {
       const { data, error } = await supabase.rpc('validate_user_login', {
-        college_code: collegeData?.code || '',
-        user_code: userCode,
-        user_password: password
+        p_college_code: collegeData?.code || '',
+        p_user_code: userCode,
+        p_user_password: password
       });
 
       if (error) throw error;

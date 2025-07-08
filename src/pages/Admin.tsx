@@ -13,14 +13,14 @@ const Admin = () => {
     const checkAuth = () => {
       try {
         // Check localStorage for custom session data
-        const storedSession = localStorage.getItem('colcord_session');
+        const storedSession = localStorage.getItem('colcord_user');
         console.log('Checking stored session:', storedSession);
         
         if (storedSession) {
           const parsedSession = JSON.parse(storedSession);
           console.log('Parsed session:', parsedSession);
           
-          if (parsedSession.login_time && parsedSession.user_id) {
+          if (parsedSession.user_type && parsedSession.user_id) {
             console.log('Valid session found, setting authenticated state');
             setSessionData(parsedSession);
             setIsAuthenticated(true);

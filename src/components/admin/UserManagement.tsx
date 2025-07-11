@@ -17,7 +17,7 @@ interface UserProfile {
   last_name: string | null;
   email: string | null;
   user_code: string;
-  user_type: 'student' | 'faculty' | 'admin' | 'staff' | 'parent' | 'alumni';
+  user_type: 'student' | 'faculty' | 'admin' | 'staff' | 'parent' | 'alumni' | 'super_admin';
   is_active: boolean | null;
   created_at: string | null;
   updated_at: string | null;
@@ -53,6 +53,7 @@ const UserManagement = ({ userProfile, adminRoles }: UserManagementProps) => {
 
   const getHierarchyFromUserType = (userType: string): string => {
     const hierarchyMap: Record<string, string> = {
+      'super_admin': 'super_admin',
       'admin': 'admin',
       'faculty': 'faculty',
       'student': 'student',
@@ -100,7 +101,8 @@ const UserManagement = ({ userProfile, adminRoles }: UserManagementProps) => {
 
   const isSuperAdmin = (): boolean => {
     return adminRoles.some(role => role.role_type === 'super_admin') || 
-           userProfile?.user_type === 'admin';
+           userProfile?.user_type === 'admin' ||
+           userProfile?.user_type === 'super_admin';
   };
 
   const canManageUser = (user: ExtendedUserProfile): boolean => {
@@ -225,6 +227,7 @@ const UserManagement = ({ userProfile, adminRoles }: UserManagementProps) => {
                 <SelectItem value="student">Students</SelectItem>
                 <SelectItem value="faculty">Faculty</SelectItem>
                 <SelectItem value="admin">Admins</SelectItem>
+                <SelectItem value="super_admin">Super Admins</SelectItem>
                 <SelectItem value="staff">Staff</SelectItem>
                 <SelectItem value="parent">Parents</SelectItem>
                 <SelectItem value="alumni">Alumni</SelectItem>
@@ -265,7 +268,7 @@ const UserManagement = ({ userProfile, adminRoles }: UserManagementProps) => {
                     <TableCell className="font-mono text-sm">{user.user_code}</TableCell>
                     <TableCell>
                       <Badge variant="outline" className="capitalize">
-                        {user.user_type}
+                        {user.user_type.replace('_', ' ')}
                       </Badge>
                     </TableCell>
                     <TableCell>
@@ -355,7 +358,7 @@ const UserManagement = ({ userProfile, adminRoles }: UserManagementProps) => {
               <div>
                 <Label className="text-sm font-medium">User Type</Label>
                 <Badge variant="outline" className="capitalize">
-                  {selectedUser.user_type}
+                  {selectedUser.user_type.replace('_', ' ')}
                 </Badge>
               </div>
               <div>

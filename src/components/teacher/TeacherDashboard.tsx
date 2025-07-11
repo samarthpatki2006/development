@@ -1,307 +1,224 @@
 
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import React from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { 
-  Calendar, 
-  Clock, 
-  FileText, 
-  Users, 
-  MessageSquare,
-  AlertCircle,
-  CheckCircle,
-  BookOpen
-} from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { BookOpen, Users, FileText, Calendar, Award, Upload } from 'lucide-react';
+import PermissionWrapper from '@/components/PermissionWrapper';
 
 interface TeacherDashboardProps {
   teacherData: any;
 }
 
 const TeacherDashboard = ({ teacherData }: TeacherDashboardProps) => {
-  const [todayClasses, setTodayClasses] = useState<any[]>([]);
-  const [pendingAssignments, setPendingAssignments] = useState<any[]>([]);
-  const [attendanceSummary, setAttendanceSummary] = useState<any[]>([]);
-  const [recentMessages, setRecentMessages] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    fetchDashboardData();
-  }, [teacherData]);
-
-  const fetchDashboardData = async () => {
-    try {
-      setLoading(true);
-      await Promise.all([
-        fetchTodayClasses(),
-        fetchPendingAssignments(),
-        fetchAttendanceSummary(),
-        fetchRecentMessages()
-      ]);
-    } catch (error) {
-      console.error('Error fetching dashboard data:', error);
-    } finally {
-      setLoading(false);
+  const teacherStats = [
+    {
+      title: 'Courses Teaching',
+      value: '4',
+      icon: BookOpen,
+      color: 'text-blue-600',
+      permission: 'review_assignments' as const
+    },
+    {
+      title: 'Total Students',
+      value: '120',
+      icon: Users,
+      color: 'text-green-600',
+      permission: 'view_attendance' as const
+    },
+    {
+      title: 'Pending Assignments',
+      value: '8',
+      icon: FileText,
+      color: 'text-orange-600',
+      permission: 'review_assignments' as const
+    },
+    {
+      title: 'Classes This Week',
+      value: '12',
+      icon: Calendar,
+      color: 'text-purple-600',
+      permission: 'mark_attendance' as const
     }
-  };
+  ];
 
-  const fetchTodayClasses = async () => {
-    const today = new Date().getDay();
-    const { data, error } = await supabase
-      .from('class_schedule')
-      .select(`
-        *,
-        courses (
-          id,
-          course_name,
-          course_code
-        )
-      `)
-      .eq('day_of_week', today)
-      .eq('courses.instructor_id', teacherData.user_id);
-
-    if (!error && data) {
-      setTodayClasses(data);
+  const recentActivities = [
+    {
+      title: 'Assignment Graded',
+      description: 'Data Structures - 15 submissions reviewed',
+      time: '1 hour ago',
+      permission: 'review_assignments' as const
+    },
+    {
+      title: 'Attendance Marked',
+      description: 'Computer Networks - 30 students present',
+      time: '3 hours ago',
+      permission: 'mark_attendance' as const
+    },
+    {
+      title: 'Material Uploaded',
+      description: 'Database Systems - Lecture slides added',
+      time: '1 day ago',
+      permission: 'upload_materials' as const
+    },
+    {
+      title: 'Grade Updated',
+      description: 'Midterm scores published for CS301',
+      time: '2 days ago',
+      permission: 'assign_grades' as const
     }
-  };
+  ];
 
-  const fetchPendingAssignments = async () => {
-    const { data, error } = await supabase
-      .from('assignment_submissions')
-      .select(`
-        *,
-        assignments (
-          title,
-          course_id,
-          courses (
-            course_name
-          )
-        ),
-        user_profiles!assignment_submissions_student_id_fkey (
-          first_name,
-          last_name
-        )
-      `)
-      .is('marks_obtained', null)
-      .eq('assignments.courses.instructor_id', teacherData.user_id)
-      .limit(5);
-
-    if (!error && data) {
-      setPendingAssignments(data);
+  const quickActions = [
+    {
+      title: 'Grade Assignments',
+      description: 'Review and grade pending submissions',
+      icon: Award,
+      color: 'bg-blue-50 text-blue-600',
+      permission: 'review_assignments' as const
+    },
+    {
+      title: 'Mark Attendance',
+      description: 'Record student attendance for classes',
+      icon: Users,
+      color: 'bg-green-50 text-green-600',
+      permission: 'mark_attendance' as const
+    },
+    {
+      title: 'Upload Materials',
+      description: 'Share lecture notes and resources',
+      icon: Upload,
+      color: 'bg-purple-50 text-purple-600',
+      permission: 'upload_materials' as const
+    },
+    {
+      title: 'Join Discussion',
+      description: 'Participate in faculty forums',
+      icon: FileText,
+      color: 'bg-yellow-50 text-yellow-600',
+      permission: 'join_forums' as const
     }
-  };
-
-  const fetchAttendanceSummary = async () => {
-    const { data, error } = await supabase
-      .from('courses')
-      .select(`
-        id,
-        course_name,
-        course_code,
-        enrollments (count),
-        attendance (
-          status,
-          class_date
-        )
-      `)
-      .eq('instructor_id', teacherData.user_id);
-
-    if (!error && data) {
-      const summary = data.map(course => {
-        const totalClasses = course.attendance?.length || 0;
-        const presentCount = course.attendance?.filter((a: any) => a.status === 'present').length || 0;
-        const attendanceRate = totalClasses > 0 ? Math.round((presentCount / totalClasses) * 100) : 0;
-        
-        return {
-          ...course,
-          attendanceRate,
-          totalStudents: course.enrollments?.[0]?.count || 0
-        };
-      });
-      setAttendanceSummary(summary);
-    }
-  };
-
-  const fetchRecentMessages = async () => {
-    const { data, error } = await supabase
-      .from('teacher_messages')
-      .select(`
-        *,
-        user_profiles!teacher_messages_sender_id_fkey (
-          first_name,
-          last_name
-        )
-      `)
-      .eq('recipient_id', teacherData.user_id)
-      .order('sent_at', { ascending: false })
-      .limit(5);
-
-    if (!error && data) {
-      setRecentMessages(data);
-    }
-  };
-
-  if (loading) {
-    return (
-      <div className="space-y-6">
-        <div className="animate-pulse space-y-4">
-          {[1, 2, 3, 4].map(i => (
-            <div key={i} className="h-32 bg-gray-200 rounded-lg"></div>
-          ))}
-        </div>
-      </div>
-    );
-  }
+  ];
 
   return (
     <div className="space-y-6">
       {/* Welcome Section */}
-      <div className="bg-gradient-to-r from-blue-500 to-purple-600 text-white p-6 rounded-lg">
-        <h2 className="text-2xl font-bold mb-2">Welcome back, {teacherData.first_name}!</h2>
-        <p className="text-blue-100">Here's what's happening in your classes today.</p>
-      </div>
-
-      {/* Today's Classes */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Calendar className="h-5 w-5" />
-            Today's Classes
+          <CardTitle className="flex items-center space-x-2">
+            <span>Welcome, Prof. {teacherData.first_name} {teacherData.last_name}!</span>
           </CardTitle>
+          <CardDescription>
+            Faculty ID: {teacherData.user_code} | Department: Computer Science
+          </CardDescription>
         </CardHeader>
-        <CardContent>
-          {todayClasses.length === 0 ? (
-            <p className="text-gray-500 text-center py-4">No classes scheduled for today</p>
-          ) : (
-            <div className="space-y-3">
-              {todayClasses.map((classItem) => (
-                <div key={classItem.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <Clock className="h-4 w-4 text-gray-500" />
-                    <div>
-                      <p className="font-medium">{classItem.courses?.course_name}</p>
-                      <p className="text-sm text-gray-600">
-                        {classItem.start_time} - {classItem.end_time}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm text-gray-600">{classItem.room_location}</p>
-                    <Badge variant="outline">{classItem.courses?.course_code}</Badge>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
       </Card>
+
+      {/* Quick Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {teacherStats.map((stat, index) => {
+          const Icon = stat.icon;
+          return (
+            <PermissionWrapper key={index} permission={stat.permission}>
+              <Card>
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-gray-600">{stat.title}</p>
+                      <p className="text-2xl font-bold">{stat.value}</p>
+                    </div>
+                    <Icon className={`h-8 w-8 ${stat.color}`} />
+                  </div>
+                </CardContent>
+              </Card>
+            </PermissionWrapper>
+          );
+        })}
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Pending Assignments */}
+        {/* Recent Activities */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <FileText className="h-5 w-5" />
-              Pending Reviews ({pendingAssignments.length})
-            </CardTitle>
+            <CardTitle>Recent Activities</CardTitle>
+            <CardDescription>Your latest teaching activities</CardDescription>
           </CardHeader>
-          <CardContent>
-            {pendingAssignments.length === 0 ? (
-              <div className="text-center py-4">
-                <CheckCircle className="h-8 w-8 text-green-500 mx-auto mb-2" />
-                <p className="text-gray-500">All caught up!</p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {pendingAssignments.map((submission) => (
-                  <div key={submission.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                    <div>
-                      <p className="font-medium">{submission.assignments?.title}</p>
-                      <p className="text-sm text-gray-600">
-                        {submission.user_profiles?.first_name} {submission.user_profiles?.last_name}
-                      </p>
-                      <p className="text-xs text-gray-500">{submission.assignments?.courses?.course_name}</p>
-                    </div>
-                    <Badge variant="secondary">
-                      <AlertCircle className="h-3 w-3 mr-1" />
-                      Review
-                    </Badge>
+          <CardContent className="space-y-4">
+            {recentActivities.map((activity, index) => (
+              <PermissionWrapper key={index} permission={activity.permission}>
+                <div className="flex items-start space-x-3">
+                  <div className="w-2 h-2 bg-blue-600 rounded-full mt-2"></div>
+                  <div className="flex-1">
+                    <p className="font-medium">{activity.title}</p>
+                    <p className="text-sm text-gray-600">{activity.description}</p>
+                    <p className="text-xs text-gray-400">{activity.time}</p>
                   </div>
-                ))}
-              </div>
-            )}
+                </div>
+              </PermissionWrapper>
+            ))}
           </CardContent>
         </Card>
 
-        {/* Attendance Summary */}
+        {/* Quick Actions */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Users className="h-5 w-5" />
-              Attendance Overview
-            </CardTitle>
+            <CardTitle>Quick Actions</CardTitle>
+            <CardDescription>Commonly used features</CardDescription>
           </CardHeader>
-          <CardContent>
-            {attendanceSummary.length === 0 ? (
-              <p className="text-gray-500 text-center py-4">No courses assigned</p>
-            ) : (
-              <div className="space-y-3">
-                {attendanceSummary.map((course) => (
-                  <div key={course.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                    <div>
-                      <p className="font-medium">{course.course_name}</p>
-                      <p className="text-sm text-gray-600">{course.totalStudents} students</p>
+          <CardContent className="space-y-3">
+            {quickActions.map((action, index) => {
+              const Icon = action.icon;
+              return (
+                <PermissionWrapper key={index} permission={action.permission}>
+                  <div className="flex items-center space-x-3 p-3 rounded-lg border hover:bg-gray-50 cursor-pointer">
+                    <div className={`p-2 rounded-lg ${action.color}`}>
+                      <Icon className="h-4 w-4" />
                     </div>
-                    <div className="text-right">
-                      <p className="text-lg font-bold text-blue-600">{course.attendanceRate}%</p>
-                      <p className="text-xs text-gray-500">Attendance Rate</p>
+                    <div className="flex-1">
+                      <p className="font-medium">{action.title}</p>
+                      <p className="text-sm text-gray-600">{action.description}</p>
                     </div>
                   </div>
-                ))}
-              </div>
-            )}
+                </PermissionWrapper>
+              );
+            })}
           </CardContent>
         </Card>
       </div>
 
-      {/* Recent Messages */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <MessageSquare className="h-5 w-5" />
-            Recent Messages
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {recentMessages.length === 0 ? (
-            <p className="text-gray-500 text-center py-4">No recent messages</p>
-          ) : (
+      {/* Teaching Schedule */}
+      <PermissionWrapper permission="mark_attendance">
+        <Card>
+          <CardHeader>
+            <CardTitle>Today's Classes</CardTitle>
+            <CardDescription>Your scheduled classes for today</CardDescription>
+          </CardHeader>
+          <CardContent>
             <div className="space-y-3">
-              {recentMessages.map((message) => (
-                <div key={message.id} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
-                  <MessageSquare className="h-4 w-4 text-gray-500 mt-1" />
-                  <div className="flex-1">
-                    <div className="flex items-center justify-between mb-1">
-                      <p className="font-medium text-sm">
-                        {message.user_profiles?.first_name} {message.user_profiles?.last_name}
-                      </p>
-                      <p className="text-xs text-gray-500">
-                        {new Date(message.sent_at).toLocaleDateString()}
-                      </p>
-                    </div>
-                    <p className="text-sm font-medium">{message.subject}</p>
-                    <p className="text-sm text-gray-600 truncate">{message.content}</p>
+              {[
+                { course: 'Data Structures & Algorithms', time: '09:00 - 10:30', room: 'Room 301', students: 35 },
+                { course: 'Database Management Systems', time: '11:00 - 12:30', room: 'Room 205', students: 42 },
+                { course: 'Computer Networks', time: '14:00 - 15:30', room: 'Lab 101', students: 28 }
+              ].map((class_item, index) => (
+                <div key={index} className="flex items-center justify-between p-4 border rounded-lg">
+                  <div>
+                    <h4 className="font-medium">{class_item.course}</h4>
+                    <p className="text-sm text-gray-600">{class_item.time} • {class_item.room}</p>
                   </div>
-                  {!message.is_read && (
-                    <Badge variant="destructive" className="text-xs">New</Badge>
-                  )}
+                  <div className="text-right">
+                    <Badge variant="secondary">{class_item.students} students</Badge>
+                    <div className="mt-2">
+                      <Button size="sm" variant="outline">
+                        Mark Attendance
+                      </Button>
+                    </div>
+                  </div>
                 </div>
               ))}
             </div>
-          )}
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </PermissionWrapper>
     </div>
   );
 };

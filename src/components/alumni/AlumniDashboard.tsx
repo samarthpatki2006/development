@@ -1,261 +1,260 @@
 
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { supabase } from '@/integrations/supabase/client';
-import { toast } from "@/components/ui/use-toast";
-import { Calendar, Users, Heart, Newspaper, TrendingUp, Award } from 'lucide-react';
+import React from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { GraduationCap, Heart, Calendar, Users, Award, MessageSquare } from 'lucide-react';
+import PermissionWrapper from '@/components/PermissionWrapper';
 
 interface AlumniDashboardProps {
   user: any;
 }
 
 const AlumniDashboard = ({ user }: AlumniDashboardProps) => {
-  const [news, setNews] = useState<any[]>([]);
-  const [events, setEvents] = useState<any[]>([]);
-  const [stats, setStats] = useState<any>(null);
-  const [contributions, setContributions] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    fetchDashboardData();
-  }, [user]);
-
-  const fetchDashboardData = async () => {
-    try {
-      setLoading(true);
-
-      // Fetch alumni news
-      const { data: newsData, error: newsError } = await supabase
-        .from('alumni_news')
-        .select('*')
-        .eq('college_id', user.college_id)
-        .eq('is_active', true)
-        .order('published_at', { ascending: false })
-        .limit(5);
-
-      if (newsError) throw newsError;
-      setNews(newsData || []);
-
-      // Fetch upcoming events
-      const { data: eventsData, error: eventsError } = await supabase
-        .from('events')
-        .select('*')
-        .eq('college_id', user.college_id)
-        .eq('is_active', true)
-        .gte('start_date', new Date().toISOString())
-        .order('start_date', { ascending: true })
-        .limit(5);
-
-      if (eventsError) throw eventsError;
-      setEvents(eventsData || []);
-
-      // Fetch alumni stats
-      const { data: statsData, error: statsError } = await supabase.rpc('get_alumni_stats', {
-        college_uuid: user.college_id
-      });
-
-      if (statsError) throw statsError;
-      setStats(statsData?.[0] || {});
-
-      // Fetch user's contributions
-      const { data: contributionsData, error: contributionsError } = await supabase
-        .from('alumni_contributions')
-        .select('*')
-        .eq('alumnus_id', user.user_id)
-        .order('created_at', { ascending: false })
-        .limit(3);
-
-      if (contributionsError) throw contributionsError;
-      setContributions(contributionsData || []);
-
-    } catch (error) {
-      console.error('Error fetching dashboard data:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to load dashboard data',
-        variant: 'destructive',
-      });
-    } finally {
-      setLoading(false);
+  const alumniStats = [
+    {
+      title: 'Years Since Graduation',
+      value: '5',
+      icon: GraduationCap,
+      color: 'text-blue-600',
+      permission: 'view_personal_dashboard' as const
+    },
+    {
+      title: 'Total Contributions',
+      value: '₹50,000',
+      icon: Heart,
+      color: 'text-red-600',
+      permission: 'alumni_contributions' as const
+    },
+    {
+      title: 'Events Attended',
+      value: '12',
+      icon: Calendar,
+      color: 'text-green-600',
+      permission: 'alumni_events' as const
+    },
+    {
+      title: 'Network Connections',
+      value: '45',
+      icon: Users,
+      color: 'text-purple-600',
+      permission: 'join_forums' as const
     }
-  };
+  ];
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center p-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-      </div>
-    );
-  }
+  const recentActivities = [
+    {
+      title: 'Contribution Made',
+      description: 'Donated ₹10,000 to scholarship fund',
+      time: '1 week ago',
+      permission: 'alumni_contributions' as const
+    },
+    {
+      title: 'Event Registered',
+      description: 'Annual Alumni Meet 2024',
+      time: '2 weeks ago',
+      permission: 'alumni_events' as const
+    },
+    {
+      title: 'Forum Post',
+      description: 'Shared career advice in CS forum',
+      time: '3 weeks ago',
+      permission: 'join_forums' as const
+    },
+    {
+      title: 'Certificate Requested',
+      description: 'Applied for degree verification',
+      time: '1 month ago',
+      permission: 'request_certificates' as const
+    }
+  ];
+
+  const quickActions = [
+    {
+      title: 'Make Contribution',
+      description: 'Support current students and college',
+      icon: Heart,
+      color: 'bg-red-50 text-red-600',
+      permission: 'alumni_contributions' as const
+    },
+    {
+      title: 'Alumni Events',
+      description: 'View and register for upcoming events',
+      icon: Calendar,
+      color: 'bg-green-50 text-green-600',
+      permission: 'alumni_events' as const
+    },
+    {
+      title: 'Join Discussion',
+      description: 'Connect with fellow alumni',
+      icon: MessageSquare,
+      color: 'bg-blue-50 text-blue-600',
+      permission: 'join_forums' as const
+    },
+    {
+      title: 'Request Certificate',
+      description: 'Apply for academic documents',
+      icon: Award,
+      color: 'bg-yellow-50 text-yellow-600',
+      permission: 'request_certificates' as const
+    }
+  ];
 
   return (
     <div className="space-y-6">
-      {/* Welcome Message */}
-      <Card className="bg-gradient-to-r from-blue-600 to-purple-600 text-white">
-        <CardContent className="p-6">
-          <h2 className="text-2xl font-bold mb-2">Welcome back to your alma mater!</h2>
-          <p className="text-blue-100">Stay connected with your college community and make a difference.</p>
-        </CardContent>
+      {/* Welcome Section */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center space-x-2">
+            <GraduationCap className="h-5 w-5" />
+            <span>Welcome back, {user.first_name} {user.last_name}!</span>
+          </CardTitle>
+          <CardDescription>
+            Alumni ID: {user.user_code} | Class of 2019 | Computer Science
+          </CardDescription>
+        </CardHeader>
       </Card>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Alumni</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats?.total_alumni || 0}</div>
-            <p className="text-xs text-muted-foreground">
-              Connected graduates
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Contributors</CardTitle>
-            <Heart className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats?.active_contributors || 0}</div>
-            <p className="text-xs text-muted-foreground">
-              Making a difference
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Donations</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">${stats?.total_donations?.toLocaleString() || 0}</div>
-            <p className="text-xs text-muted-foreground">
-              Community support
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Upcoming Events</CardTitle>
-            <Calendar className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats?.upcoming_events || 0}</div>
-            <p className="text-xs text-muted-foreground">
-              Events to attend
-            </p>
-          </CardContent>
-        </Card>
+      {/* Quick Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {alumniStats.map((stat, index) => {
+          const Icon = stat.icon;
+          return (
+            <PermissionWrapper key={index} permission={stat.permission}>
+              <Card>
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-gray-600">{stat.title}</p>
+                      <p className="text-2xl font-bold">{stat.value}</p>
+                    </div>
+                    <Icon className={`h-8 w-8 ${stat.color}`} />
+                  </div>
+                </CardContent>
+              </Card>
+            </PermissionWrapper>
+          );
+        })}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Campus News */}
+        {/* Recent Activities */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <Newspaper className="h-5 w-5" />
-              <span>Campus News & Updates</span>
-            </CardTitle>
+            <CardTitle>Recent Activities</CardTitle>
+            <CardDescription>Your latest alumni activities</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {news.length > 0 ? (
-              news.map((article) => (
-                <div key={article.id} className="border-l-4 border-blue-500 pl-4 py-2">
-                  <div className="flex justify-between items-start">
-                    <div className="flex-1">
-                      <h4 className="font-medium line-clamp-2">{article.title}</h4>
-                      <p className="text-sm text-gray-600 mt-1 line-clamp-2">{article.excerpt}</p>
-                    </div>
-                    {article.is_featured && (
-                      <Badge variant="default" className="ml-2">Featured</Badge>
-                    )}
+            {recentActivities.map((activity, index) => (
+              <PermissionWrapper key={index} permission={activity.permission}>
+                <div className="flex items-start space-x-3">
+                  <div className="w-2 h-2 bg-blue-600 rounded-full mt-2"></div>
+                  <div className="flex-1">
+                    <p className="font-medium">{activity.title}</p>
+                    <p className="text-sm text-gray-600">{activity.description}</p>
+                    <p className="text-xs text-gray-400">{activity.time}</p>
                   </div>
-                  <p className="text-xs text-gray-500 mt-2">
-                    {new Date(article.published_at).toLocaleDateString()}
-                  </p>
                 </div>
-              ))
-            ) : (
-              <p className="text-gray-500 text-center py-4">No news available</p>
-            )}
+              </PermissionWrapper>
+            ))}
           </CardContent>
         </Card>
 
-        {/* Upcoming Events */}
+        {/* Quick Actions */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <Calendar className="h-5 w-5" />
-              <span>Upcoming Events</span>
-            </CardTitle>
+            <CardTitle>Quick Actions</CardTitle>
+            <CardDescription>Connect and contribute to your alma mater</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            {events.length > 0 ? (
-              events.map((event) => (
-                <div key={event.id} className="border rounded-lg p-3">
-                  <div className="flex justify-between items-start">
-                    <div className="flex-1">
-                      <h4 className="font-medium">{event.event_name}</h4>
-                      <p className="text-sm text-gray-600">{event.description}</p>
-                      <div className="flex items-center space-x-4 mt-2 text-xs text-gray-500">
-                        <span>{new Date(event.start_date).toLocaleDateString()}</span>
-                        {event.location && <span>{event.location}</span>}
-                      </div>
+          <CardContent className="space-y-3">
+            {quickActions.map((action, index) => {
+              const Icon = action.icon;
+              return (
+                <PermissionWrapper key={index} permission={action.permission}>
+                  <div className="flex items-center space-x-3 p-3 rounded-lg border hover:bg-gray-50 cursor-pointer">
+                    <div className={`p-2 rounded-lg ${action.color}`}>
+                      <Icon className="h-4 w-4" />
                     </div>
-                    <Badge variant="outline">{event.event_type}</Badge>
+                    <div className="flex-1">
+                      <p className="font-medium">{action.title}</p>
+                      <p className="text-sm text-gray-600">{action.description}</p>
+                    </div>
                   </div>
-                </div>
-              ))
-            ) : (
-              <p className="text-gray-500 text-center py-4">No upcoming events</p>
-            )}
+                </PermissionWrapper>
+              );
+            })}
           </CardContent>
         </Card>
       </div>
 
-      {/* My Contributions */}
-      {contributions.length > 0 && (
+      {/* Alumni Spotlight */}
+      <PermissionWrapper permission="alumni_events">
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <Award className="h-5 w-5" />
-              <span>My Recent Contributions</span>
-            </CardTitle>
+            <CardTitle>Upcoming Alumni Events</CardTitle>
+            <CardDescription>Stay connected with your alma mater</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
-              {contributions.map((contribution) => (
-                <div key={contribution.id} className="flex justify-between items-center p-3 border rounded-lg">
+            <div className="space-y-4">
+              {[
+                {
+                  name: 'Annual Alumni Meet 2024',
+                  date: 'December 15, 2024',
+                  location: 'Main Campus',
+                  attendees: '200+ expected'
+                },
+                {
+                  name: 'Tech Talk Series',
+                  date: 'January 20, 2025',
+                  location: 'Virtual Event',
+                  attendees: '150+ registered'
+                },
+                {
+                  name: 'Scholarship Fundraiser',
+                  date: 'February 10, 2025',
+                  location: 'Bangalore',
+                  attendees: '50+ confirmed'
+                }
+              ].map((event, index) => (
+                <div key={index} className="flex items-center justify-between p-4 border rounded-lg">
                   <div>
-                    <h4 className="font-medium capitalize">{contribution.contribution_type}</h4>
-                    <p className="text-sm text-gray-600">{contribution.description}</p>
-                    <p className="text-xs text-gray-500">
-                      {new Date(contribution.created_at).toLocaleDateString()}
-                    </p>
+                    <h4 className="font-medium">{event.name}</h4>
+                    <p className="text-sm text-gray-600">{event.date} • {event.location}</p>
                   </div>
                   <div className="text-right">
-                    {contribution.amount && (
-                      <p className="font-bold">${contribution.amount.toLocaleString()}</p>
-                    )}
-                    <Badge 
-                      variant={contribution.status === 'completed' ? 'default' : 'secondary'}
-                    >
-                      {contribution.status}
-                    </Badge>
+                    <Badge variant="secondary">{event.attendees}</Badge>
+                    <div className="mt-2">
+                      <Button size="sm" variant="outline">
+                        Register
+                      </Button>
+                    </div>
                   </div>
                 </div>
               ))}
             </div>
           </CardContent>
         </Card>
-      )}
+      </PermissionWrapper>
+
+      {/* Contribution Impact */}
+      <PermissionWrapper permission="alumni_contributions">
+        <Card className="border-green-200 bg-green-50">
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2 text-green-800">
+              <Heart className="h-5 w-5" />
+              <span>Your Impact</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-green-700 mb-4">
+              Your contributions have helped 5 students with scholarships this year. Thank you for giving back!
+            </p>
+            <Button className="bg-green-600 hover:bg-green-700">
+              Make Another Contribution
+            </Button>
+          </CardContent>
+        </Card>
+      </PermissionWrapper>
     </div>
   );
 };

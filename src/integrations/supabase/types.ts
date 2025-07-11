@@ -2658,15 +2658,15 @@ export type Database = {
         Row: {
           college_id: string
           created_at: string | null
-          email: string | null
-          first_name: string | null
+          email: string
+          first_name: string
           hierarchy_level:
             | Database["public"]["Enums"]["user_hierarchy_level"]
             | null
           id: string
           is_active: boolean | null
-          last_name: string | null
-          password: string | null
+          last_name: string
+          password: string
           updated_at: string | null
           user_code: string
           user_type: Database["public"]["Enums"]["user_type_enum"]
@@ -2674,15 +2674,15 @@ export type Database = {
         Insert: {
           college_id: string
           created_at?: string | null
-          email?: string | null
-          first_name?: string | null
+          email: string
+          first_name: string
           hierarchy_level?:
             | Database["public"]["Enums"]["user_hierarchy_level"]
             | null
-          id?: string
+          id: string
           is_active?: boolean | null
-          last_name?: string | null
-          password?: string | null
+          last_name: string
+          password: string
           updated_at?: string | null
           user_code: string
           user_type: Database["public"]["Enums"]["user_type_enum"]
@@ -2690,15 +2690,15 @@ export type Database = {
         Update: {
           college_id?: string
           created_at?: string | null
-          email?: string | null
-          first_name?: string | null
+          email?: string
+          first_name?: string
           hierarchy_level?:
             | Database["public"]["Enums"]["user_hierarchy_level"]
             | null
           id?: string
           is_active?: boolean | null
-          last_name?: string | null
-          password?: string | null
+          last_name?: string
+          password?: string
           updated_at?: string | null
           user_code?: string
           user_type?: Database["public"]["Enums"]["user_type_enum"]
@@ -2898,12 +2898,24 @@ export type Database = {
           assigned_at: string
         }[]
       }
+      get_user_permissions: {
+        Args: { user_uuid: string }
+        Returns: {
+          user_type: string
+          college_id: string
+          permissions: Json
+        }[]
+      }
       has_admin_permission: {
         Args: {
           user_uuid: string
           college_uuid: string
           required_role: Database["public"]["Enums"]["admin_role_type"]
         }
+        Returns: boolean
+      }
+      has_permission: {
+        Args: { user_uuid: string; permission_name: string }
         Returns: boolean
       }
       has_resource_permission: {
@@ -2913,6 +2925,10 @@ export type Database = {
           resource: Database["public"]["Enums"]["resource_type"]
           action: Database["public"]["Enums"]["permission_action"]
         }
+        Returns: boolean
+      }
+      is_super_admin: {
+        Args: { user_uuid: string; college_uuid: string }
         Returns: boolean
       }
       log_admin_action: {
@@ -2958,8 +2974,8 @@ export type Database = {
     Enums: {
       admin_role_type:
         | "super_admin"
-        | "course_management_admin"
-        | "estate_logistics_admin"
+        | "user_admin"
+        | "facility_admin"
         | "event_admin"
         | "finance_admin"
         | "it_admin"
@@ -2991,7 +3007,6 @@ export type Database = {
         | "student"
         | "parent"
         | "alumni"
-      user_type: "student" | "faculty" | "admin" | "parent" | "alumni"
       user_type_enum:
         | "student"
         | "faculty"
@@ -2999,6 +3014,7 @@ export type Database = {
         | "staff"
         | "parent"
         | "alumni"
+        | "super_admin"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -3128,8 +3144,8 @@ export const Constants = {
     Enums: {
       admin_role_type: [
         "super_admin",
-        "course_management_admin",
-        "estate_logistics_admin",
+        "user_admin",
+        "facility_admin",
         "event_admin",
         "finance_admin",
         "it_admin",
@@ -3165,7 +3181,6 @@ export const Constants = {
         "parent",
         "alumni",
       ],
-      user_type: ["student", "faculty", "admin", "parent", "alumni"],
       user_type_enum: [
         "student",
         "faculty",
@@ -3173,6 +3188,7 @@ export const Constants = {
         "staff",
         "parent",
         "alumni",
+        "super_admin",
       ],
     },
   },

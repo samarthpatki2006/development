@@ -1,256 +1,250 @@
 
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
-import { supabase } from '@/integrations/supabase/client';
-import { toast } from "@/components/ui/use-toast";
-import { BookOpen, Calendar, CreditCard, Bell, TrendingUp, Users } from 'lucide-react';
+import React from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { User, BookOpen, Calendar, DollarSign, Award, AlertCircle } from 'lucide-react';
+import PermissionWrapper from '@/components/PermissionWrapper';
 
 interface ParentDashboardProps {
   user: any;
 }
 
 const ParentDashboard = ({ user }: ParentDashboardProps) => {
-  const [children, setChildren] = useState<any[]>([]);
-  const [academicSummary, setAcademicSummary] = useState<any[]>([]);
-  const [notifications, setNotifications] = useState<any[]>([]);
-  const [feeStatus, setFeeStatus] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    fetchDashboardData();
-  }, [user]);
-
-  const fetchDashboardData = async () => {
-    try {
-      setLoading(true);
-
-      // Fetch children
-      const { data: childrenData, error: childrenError } = await supabase.rpc('get_parent_children', {
-        parent_uuid: user.user_id
-      });
-
-      if (childrenError) throw childrenError;
-      setChildren(childrenData || []);
-
-      // Fetch academic summary for each child
-      if (childrenData && childrenData.length > 0) {
-        const summaryPromises = childrenData.map(async (child: any) => {
-          const { data, error } = await supabase.rpc('get_student_academic_summary', {
-            student_uuid: child.student_id,
-            parent_uuid: user.user_id
-          });
-          if (error) throw error;
-          return { child: child.student_name, data: data || [] };
-        });
-
-        const summaryResults = await Promise.all(summaryPromises);
-        setAcademicSummary(summaryResults);
-      }
-
-      // Fetch notifications
-      const { data: notificationsData, error: notificationsError } = await supabase
-        .from('parent_notifications')
-        .select('*')
-        .eq('parent_id', user.user_id)
-        .eq('is_read', false)
-        .order('created_at', { ascending: false })
-        .limit(5);
-
-      if (notificationsError) throw notificationsError;
-      setNotifications(notificationsData || []);
-
-      // Fetch fee status
-      const { data: feeData, error: feeError } = await supabase
-        .from('fee_reminders')
-        .select('*, fee_structures(*)')
-        .eq('user_id', user.user_id)
-        .eq('status', 'pending')
-        .order('due_date', { ascending: true });
-
-      if (feeError) throw feeError;
-      setFeeStatus(feeData || []);
-
-    } catch (error) {
-      console.error('Error fetching dashboard data:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to load dashboard data',
-        variant: 'destructive',
-      });
-    } finally {
-      setLoading(false);
+  // Mock data for children - in real app, this would come from parent_student_links
+  const children = [
+    {
+      id: 1,
+      name: 'Alex Johnson',
+      user_code: 'IIMBS240001',
+      class: 'Computer Science - Semester 6',
+      cgpa: '8.5',
+      attendance: '92%'
     }
-  };
+  ];
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center p-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-      </div>
-    );
-  }
+  const childStats = [
+    {
+      title: 'Current CGPA',
+      value: '8.5',
+      icon: Award,
+      color: 'text-green-600',
+      permission: 'view_child_grades' as const
+    },
+    {
+      title: 'Attendance',
+      value: '92%',
+      icon: Calendar,
+      color: 'text-blue-600',
+      permission: 'view_child_attendance' as const
+    },
+    {
+      title: 'Pending Fees',
+      value: '₹15,000',
+      icon: DollarSign,
+      color: 'text-red-600',
+      permission: 'view_child_fees' as const
+    },
+    {
+      title: 'Enrolled Courses',
+      value: '6',
+      icon: BookOpen,
+      color: 'text-purple-600',
+      permission: 'view_child_grades' as const
+    }
+  ];
+
+  const recentActivities = [
+    {
+      title: 'Grade Updated',
+      description: 'Computer Networks - A Grade received',
+      time: '1 day ago',
+      child: 'Alex Johnson',
+      permission: 'view_child_grades' as const
+    },
+    {
+      title: 'Fee Payment Due',
+      description: 'Semester Fee - Due in 5 days',
+      time: '2 days ago',
+      child: 'Alex Johnson',
+      permission: 'view_child_fees' as const
+    },
+    {
+      title: 'Attendance Alert',
+      description: 'Missed Database Management class',
+      time: '3 days ago',
+      child: 'Alex Johnson',
+      permission: 'view_child_attendance' as const
+    }
+  ];
+
+  const quickActions = [
+    {
+      title: 'View Grades',
+      description: 'Check your child\'s academic performance',
+      icon: Award,
+      color: 'bg-green-50 text-green-600',
+      permission: 'view_child_grades' as const
+    },
+    {
+      title: 'Pay Fees',
+      description: 'Make fee payments for your child',
+      icon: DollarSign,
+      color: 'bg-blue-50 text-blue-600',
+      permission: 'make_child_payments' as const
+    },
+    {
+      title: 'Attendance Report',
+      description: 'View detailed attendance records',
+      icon: Calendar,
+      color: 'bg-purple-50 text-purple-600',
+      permission: 'view_child_attendance' as const
+    },
+    {
+      title: 'Contact Support',
+      description: 'Get help with any concerns',
+      icon: AlertCircle,
+      color: 'bg-yellow-50 text-yellow-600',
+      permission: 'support_tickets' as const
+    }
+  ];
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {/* Children Overview */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Children</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{children.length}</div>
-            <p className="text-xs text-muted-foreground">
-              Enrolled students
-            </p>
-          </CardContent>
-        </Card>
+      {/* Welcome Section */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center space-x-2">
+            <User className="h-5 w-5" />
+            <span>Welcome, {user.first_name} {user.last_name}!</span>
+          </CardTitle>
+          <CardDescription>
+            Parent Portal | Monitor your child's academic progress
+          </CardDescription>
+        </CardHeader>
+      </Card>
 
-        {/* Overall Performance */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Overall Performance</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">Good</div>
-            <p className="text-xs text-muted-foreground">
-              Average across all subjects
-            </p>
-          </CardContent>
-        </Card>
+      {/* Children Overview */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Your Children</CardTitle>
+          <CardDescription>Students linked to your account</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-3">
+            {children.map((child) => (
+              <div key={child.id} className="flex items-center justify-between p-4 border rounded-lg">
+                <div>
+                  <h4 className="font-medium">{child.name}</h4>
+                  <p className="text-sm text-gray-600">{child.user_code} • {child.class}</p>
+                </div>
+                <div className="flex space-x-2">
+                  <PermissionWrapper permission="view_child_grades">
+                    <Badge variant="secondary">CGPA: {child.cgpa}</Badge>
+                  </PermissionWrapper>
+                  <PermissionWrapper permission="view_child_attendance">
+                    <Badge variant="outline">Attendance: {child.attendance}</Badge>
+                  </PermissionWrapper>
+                </div>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
 
-        {/* Pending Fees */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pending Fees</CardTitle>
-            <CreditCard className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">₹{feeStatus.reduce((total, fee) => total + Number(fee.due_amount), 0).toLocaleString()}</div>
-            <p className="text-xs text-muted-foreground">
-              {feeStatus.length} pending payments
-            </p>
-          </CardContent>
-        </Card>
-
-        {/* Notifications */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Unread Notifications</CardTitle>
-            <Bell className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{notifications.length}</div>
-            <p className="text-xs text-muted-foreground">
-              New messages and alerts
-            </p>
-          </CardContent>
-        </Card>
+      {/* Quick Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {childStats.map((stat, index) => {
+          const Icon = stat.icon;
+          return (
+            <PermissionWrapper key={index} permission={stat.permission}>
+              <Card>
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-gray-600">{stat.title}</p>
+                      <p className="text-2xl font-bold">{stat.value}</p>
+                    </div>
+                    <Icon className={`h-8 w-8 ${stat.color}`} />
+                  </div>
+                </CardContent>
+              </Card>
+            </PermissionWrapper>
+          );
+        })}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Children Academic Summary */}
+        {/* Recent Activities */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <BookOpen className="h-5 w-5" />
-              <span>Academic Summary</span>
-            </CardTitle>
+            <CardTitle>Recent Updates</CardTitle>
+            <CardDescription>Latest activities for your children</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {academicSummary.map((summary, index) => (
-              <div key={index} className="space-y-2">
-                <h4 className="font-medium text-lg">{summary.child}</h4>
-                {summary.data.map((course: any, courseIndex: number) => (
-                  <div key={courseIndex} className="border rounded-lg p-3 space-y-2">
-                    <div className="flex justify-between items-center">
-                      <span className="font-medium">{course.course_name}</span>
-                      <Badge variant={course.current_grade ? "default" : "secondary"}>
-                        {course.current_grade || 'In Progress'}
-                      </Badge>
-                    </div>
-                    <div className="space-y-1">
-                      <div className="flex justify-between text-sm">
-                        <span>Attendance</span>
-                        <span>{course.attendance_percentage}%</span>
-                      </div>
-                      <Progress value={Number(course.attendance_percentage)} className="h-2" />
-                      <div className="flex justify-between text-sm text-gray-600">
-                        <span>Assignments: {course.submitted_assignments}/{course.total_assignments}</span>
-                        <span>Instructor: {course.instructor_name}</span>
-                      </div>
-                    </div>
+            {recentActivities.map((activity, index) => (
+              <PermissionWrapper key={index} permission={activity.permission}>
+                <div className="flex items-start space-x-3">
+                  <div className="w-2 h-2 bg-blue-600 rounded-full mt-2"></div>
+                  <div className="flex-1">
+                    <p className="font-medium">{activity.title}</p>
+                    <p className="text-sm text-gray-600">{activity.description}</p>
+                    <p className="text-xs text-gray-400">{activity.child} • {activity.time}</p>
                   </div>
-                ))}
-              </div>
+                </div>
+              </PermissionWrapper>
             ))}
           </CardContent>
         </Card>
 
-        {/* Recent Notifications */}
+        {/* Quick Actions */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <Bell className="h-5 w-5" />
-              <span>Recent Notifications</span>
-            </CardTitle>
+            <CardTitle>Quick Actions</CardTitle>
+            <CardDescription>Frequently used features</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            {notifications.length > 0 ? (
-              notifications.map((notification) => (
-                <div key={notification.id} className="border-l-4 border-blue-500 pl-4 py-2">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h4 className="font-medium">{notification.title}</h4>
-                      <p className="text-sm text-gray-600">{notification.message}</p>
+            {quickActions.map((action, index) => {
+              const Icon = action.icon;
+              return (
+                <PermissionWrapper key={index} permission={action.permission}>
+                  <div className="flex items-center space-x-3 p-3 rounded-lg border hover:bg-gray-50 cursor-pointer">
+                    <div className={`p-2 rounded-lg ${action.color}`}>
+                      <Icon className="h-4 w-4" />
                     </div>
-                    <Badge variant="outline">{notification.notification_type}</Badge>
+                    <div className="flex-1">
+                      <p className="font-medium">{action.title}</p>
+                      <p className="text-sm text-gray-600">{action.description}</p>
+                    </div>
                   </div>
-                  <p className="text-xs text-gray-500 mt-1">
-                    {new Date(notification.created_at).toLocaleDateString()}
-                  </p>
-                </div>
-              ))
-            ) : (
-              <p className="text-gray-500 text-center py-4">No new notifications</p>
-            )}
+                </PermissionWrapper>
+              );
+            })}
           </CardContent>
         </Card>
       </div>
 
-      {/* Fee Status Overview */}
-      {feeStatus.length > 0 && (
-        <Card>
+      {/* Fee Payment Alert */}
+      <PermissionWrapper permission="view_child_fees">
+        <Card className="border-yellow-200 bg-yellow-50">
           <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <CreditCard className="h-5 w-5" />
-              <span>Pending Fee Payments</span>
+            <CardTitle className="flex items-center space-x-2 text-yellow-800">
+              <AlertCircle className="h-5 w-5" />
+              <span>Payment Reminder</span>
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
-              {feeStatus.map((fee) => (
-                <div key={fee.id} className="flex justify-between items-center p-3 border rounded-lg">
-                  <div>
-                    <h4 className="font-medium">{fee.fee_structures?.fee_type}</h4>
-                    <p className="text-sm text-gray-600">
-                      Due: {new Date(fee.due_date).toLocaleDateString()}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-bold text-lg">₹{Number(fee.due_amount).toLocaleString()}</p>
-                    <Badge variant="destructive">Due</Badge>
-                  </div>
-                </div>
-              ))}
-            </div>
+            <p className="text-yellow-700 mb-4">
+              Semester fees for Alex Johnson are due in 5 days. Amount due: ₹15,000
+            </p>
+            <PermissionWrapper permission="make_child_payments">
+              <Button className="bg-yellow-600 hover:bg-yellow-700">
+                Pay Now
+              </Button>
+            </PermissionWrapper>
           </CardContent>
         </Card>
-      )}
+      </PermissionWrapper>
     </div>
   );
 };

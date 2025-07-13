@@ -529,7 +529,7 @@ const HostelApplicationDialog: React.FC<{
                 <SelectValue placeholder="Select a specific room or leave blank" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">No preference</SelectItem>
+                <SelectItem value="no-preference">No preference</SelectItem>
                 {rooms.map((room) => (
                   <SelectItem key={room.id} value={room.id}>
                     Room {room.room_number} - {room.block_name} ({room.room_type})
@@ -623,7 +623,7 @@ const FacilityRequestDialog: React.FC<{
                 <SelectValue placeholder="Select facility or leave blank for general request" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">General Request</SelectItem>
+                <SelectItem value="general">General Request</SelectItem>
                 {facilities.map((facility) => (
                   <SelectItem key={facility.id} value={facility.id}>
                     {facility.facility_name} ({facility.facility_type})

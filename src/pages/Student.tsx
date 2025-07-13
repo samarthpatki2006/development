@@ -16,6 +16,9 @@ import {
   Bell
 } from 'lucide-react';
 import StudentDashboard from '@/components/student/StudentDashboard';
+import ScheduleTimetable from '@/components/student/ScheduleTimetable';
+import AttendanceOverview from '@/components/student/AttendanceOverview';
+import CoursesLearningSnapshot from '@/components/student/CoursesLearningSnapshot';
 import MyCourses from '@/components/student/MyCourses';
 import CalendarAttendance from '@/components/student/CalendarAttendance';
 import CommunicationCenter from '@/components/student/CommunicationCenter';
@@ -48,12 +51,15 @@ const Student = () => {
 
   const tabItems = [
     { value: 'dashboard', label: 'Dashboard', icon: GraduationCap },
-    { value: 'courses', label: 'My Courses', icon: BookOpen },
-    { value: 'calendar', label: 'Calendar & Attendance', icon: Calendar },
+    { value: 'schedule', label: 'Schedule', icon: Clock },
+    { value: 'attendance', label: 'Attendance', icon: Calendar },
+    { value: 'courses', label: 'Courses', icon: BookOpen },
+    { value: 'assignments', label: 'Assignments', icon: FileText },
+    { value: 'events', label: 'Events', icon: Bell },
     { value: 'communication', label: 'Communication', icon: MessageSquare },
-    { value: 'payments', label: 'Payments & Fees', icon: CreditCard },
-    { value: 'hostel', label: 'Hostel & Facility', icon: Building },
-    { value: 'support', label: 'Support & Help', icon: HelpCircle },
+    { value: 'payments', label: 'Payments', icon: CreditCard },
+    { value: 'hostel', label: 'Hostel', icon: Building },
+    { value: 'support', label: 'Support', icon: HelpCircle },
   ];
 
   return (
@@ -90,17 +96,17 @@ const Student = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           {/* Tab Navigation */}
-          <TabsList className="grid w-full grid-cols-7 lg:grid-cols-7 gap-1 h-auto p-1">
+          <TabsList className="grid w-full grid-cols-5 lg:grid-cols-10 gap-1 h-auto p-1">
             {tabItems.map((tab) => {
               const Icon = tab.icon;
               return (
                 <TabsTrigger
                   key={tab.value}
                   value={tab.value}
-                  className="flex flex-col items-center justify-center p-3 text-xs font-medium data-[state=active]:bg-blue-100 data-[state=active]:text-blue-700"
+                  className="flex flex-col items-center justify-center p-2 text-xs font-medium data-[state=active]:bg-blue-100 data-[state=active]:text-blue-700"
                 >
-                  <Icon className="h-5 w-5 mb-1" />
-                  <span className="hidden sm:block">{tab.label}</span>
+                  <Icon className="h-4 w-4 mb-1" />
+                  <span className="hidden sm:block text-xs">{tab.label}</span>
                 </TabsTrigger>
               );
             })}
@@ -111,11 +117,23 @@ const Student = () => {
             <StudentDashboard studentData={studentData} />
           </TabsContent>
 
+          <TabsContent value="schedule" className="space-y-6">
+            <ScheduleTimetable studentData={studentData} />
+          </TabsContent>
+
+          <TabsContent value="attendance" className="space-y-6">
+            <AttendanceOverview studentData={studentData} />
+          </TabsContent>
+
           <TabsContent value="courses" className="space-y-6">
+            <CoursesLearningSnapshot studentData={studentData} />
+          </TabsContent>
+
+          <TabsContent value="assignments" className="space-y-6">
             <MyCourses studentData={studentData} />
           </TabsContent>
 
-          <TabsContent value="calendar" className="space-y-6">
+          <TabsContent value="events" className="space-y-6">
             <CalendarAttendance studentData={studentData} />
           </TabsContent>
 

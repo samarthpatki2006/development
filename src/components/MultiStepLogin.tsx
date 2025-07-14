@@ -187,68 +187,144 @@ const MultiStepLogin = () => {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen">
-      <Card className="w-full max-w-md space-y-4 p-4">
-        <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl text-center">
+    <div className="min-h-screen bg-background flex items-center justify-center px-4">
+      {/* Background Grid Pattern */}
+      <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.05)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.05)_1px,transparent_1px)] bg-[size:20px_20px]"></div>
+      
+      <div className="relative z-10 w-full max-w-md">
+        {/* Hero Section */}
+        <div className="text-center mb-macro-md animate-fade-in-up">
+          <h1 className="text-hero text-foreground mb-4">
             {collegeData ? collegeData.name : 'ColCord'}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="grid gap-4">
-          {step === 1 && (
-            <div className="grid gap-2">
-              <Label htmlFor="collegeCode">College Code</Label>
-              <Input
-                id="collegeCode"
-                placeholder="Enter your college code"
-                type="text"
-                value={collegeCode}
-                onChange={(e) => setCollegeCode(e.target.value)}
-              />
-              <Button onClick={handleCollegeCodeSubmit} disabled={isLoading}>
-                {isLoading ? 'Validating...' : 'Next'}
-              </Button>
+          </h1>
+          <p className="text-body-large text-muted-foreground">
+            Built for India. Global Standards.
+          </p>
+          {step > 1 && (
+            <div className="mt-6 flex items-center justify-center space-x-2">
+              <div className="h-0.5 w-8 bg-primary"></div>
+              <span className="text-xs text-muted-foreground font-medium">STEP {step} OF 3</span>
+              <div className="h-0.5 w-8 bg-white-10"></div>
             </div>
           )}
-
-          {step === 2 && (
-            <div className="grid gap-2">
-              <Label htmlFor="userCode">User Code</Label>
-              <Input
-                id="userCode"
-                placeholder="Enter your user code"
-                type="text"
-                value={userCode}
-                onChange={(e) => setUserCode(e.target.value)}
-              />
-              <Button onClick={handleUserCodeSubmit} disabled={isLoading}>
-                {isLoading ? 'Validating...' : 'Next'}
-              </Button>
-            </div>
-          )}
-
-          {step === 3 && (
-            <div className="grid gap-2">
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                placeholder="Enter your password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-              <Button onClick={handleLogin} disabled={isLoading}>
-                {isLoading ? 'Logging in...' : 'Login'}
-              </Button>
-            </div>
-          )}
-        </CardContent>
-        <div className="px-4 text-center text-sm text-muted-foreground">
-          <Link to="#" className="hover:text-primary underline-offset-4 hover:underline">
-            Forgot Password?
-          </Link>
         </div>
-      </Card>
+
+        <Card className="border-border bg-card backdrop-blur-sm">
+          <CardHeader className="pb-4">
+            <CardTitle className="text-section-header text-center text-card-foreground">
+              {step === 1 && 'College Access'}
+              {step === 2 && 'User Verification'}
+              {step === 3 && 'Secure Login'}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {step === 1 && (
+              <div className="space-y-4 animate-fade-in">
+                <div className="space-y-2">
+                  <Label htmlFor="collegeCode" className="text-sm font-medium text-foreground">
+                    College Code
+                  </Label>
+                  <Input
+                    id="collegeCode"
+                    placeholder="Enter your college code"
+                    type="text"
+                    value={collegeCode}
+                    onChange={(e) => setCollegeCode(e.target.value)}
+                    className="bg-input border-border text-foreground placeholder:text-muted-foreground focus-ring"
+                  />
+                </div>
+                <Button 
+                  onClick={handleCollegeCodeSubmit} 
+                  disabled={isLoading}
+                  className="w-full h-12 bg-primary text-primary-foreground hover:bg-primary/90 font-medium transition-all duration-300 hover-scale focus-ring"
+                >
+                  {isLoading ? (
+                    <div className="flex items-center space-x-2">
+                      <div className="h-4 w-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin"></div>
+                      <span>Validating...</span>
+                    </div>
+                  ) : 'Continue'}
+                </Button>
+              </div>
+            )}
+
+            {step === 2 && (
+              <div className="space-y-4 animate-fade-in">
+                <div className="space-y-2">
+                  <Label htmlFor="userCode" className="text-sm font-medium text-foreground">
+                    User Code
+                  </Label>
+                  <Input
+                    id="userCode"
+                    placeholder="Enter your user code"
+                    type="text"
+                    value={userCode}
+                    onChange={(e) => setUserCode(e.target.value)}
+                    className="bg-input border-border text-foreground placeholder:text-muted-foreground focus-ring"
+                  />
+                </div>
+                <Button 
+                  onClick={handleUserCodeSubmit} 
+                  disabled={isLoading}
+                  className="w-full h-12 bg-primary text-primary-foreground hover:bg-primary/90 font-medium transition-all duration-300 hover-scale focus-ring"
+                >
+                  {isLoading ? (
+                    <div className="flex items-center space-x-2">
+                      <div className="h-4 w-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin"></div>
+                      <span>Validating...</span>
+                    </div>
+                  ) : 'Continue'}
+                </Button>
+              </div>
+            )}
+
+            {step === 3 && (
+              <div className="space-y-4 animate-fade-in">
+                <div className="space-y-2">
+                  <Label htmlFor="password" className="text-sm font-medium text-foreground">
+                    Password
+                  </Label>
+                  <Input
+                    id="password"
+                    placeholder="Enter your password"
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="bg-input border-border text-foreground placeholder:text-muted-foreground focus-ring"
+                  />
+                </div>
+                <Button 
+                  onClick={handleLogin} 
+                  disabled={isLoading}
+                  className="w-full h-12 bg-primary text-primary-foreground hover:bg-primary/90 font-medium transition-all duration-300 hover-scale focus-ring"
+                >
+                  {isLoading ? (
+                    <div className="flex items-center space-x-2">
+                      <div className="h-4 w-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin"></div>
+                      <span>Logging in...</span>
+                    </div>
+                  ) : 'Access Portal'}
+                </Button>
+              </div>
+            )}
+          </CardContent>
+          <div className="px-6 pb-6 text-center">
+            <Link 
+              to="#" 
+              className="text-sm text-muted-foreground hover:text-foreground transition-colors duration-300 underline-offset-4 hover:underline focus-ring rounded-sm"
+            >
+              Need assistance? Contact support
+            </Link>
+          </div>
+        </Card>
+
+        {/* Footer */}
+        <div className="text-center mt-macro-sm">
+          <p className="text-xs text-white-40">
+            Powered by ColCord • Secure • Reliable • Indian
+          </p>
+        </div>
+      </div>
     </div>
   );
 };

@@ -63,20 +63,31 @@ const Student = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background">
+      {/* Industrial Grid Background */}
+      <div className="fixed inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:40px_40px] pointer-events-none"></div>
+      
       {/* Header */}
-      <div className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="relative z-10 bg-background/95 backdrop-blur-sm border-b border-white/10">
+        <div className="container-asymmetric">
           <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-4">
-              <h1 className="text-2xl font-bold text-blue-600">ColCord</h1>
-              <span className="text-gray-400">|</span>
-              <span className="text-lg font-medium text-gray-700">Student Portal</span>
+            <div className="flex items-center space-x-6">
+              <h1 className="text-3xl font-bold text-foreground">ColCord</h1>
+              <div className="h-6 w-px bg-white/20"></div>
+              <div className="flex items-center space-x-2">
+                <div className="h-2 w-2 bg-role-student rounded-full animate-pulse-indicator"></div>
+                <span className="text-lg font-medium text-foreground">Student Portal</span>
+              </div>
             </div>
-            <div className="flex items-center space-x-4">
-              <span className="text-sm text-gray-600">
-                Welcome, {studentData.first_name} {studentData.last_name}
-              </span>
+            <div className="flex items-center space-x-6">
+              <div className="text-right">
+                <div className="text-sm font-medium text-foreground">
+                  {studentData.first_name} {studentData.last_name}
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  ID: {studentData.user_code}
+                </div>
+              </div>
               <Button 
                 variant="outline" 
                 size="sm"
@@ -84,8 +95,9 @@ const Student = () => {
                   localStorage.removeItem('colcord_user');
                   window.location.href = '/';
                 }}
+                className="hover-translate-up"
               >
-                Logout
+                Exit Portal
               </Button>
             </div>
           </div>
@@ -93,24 +105,26 @@ const Student = () => {
       </div>
 
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          {/* Tab Navigation */}
-          <TabsList className="grid w-full grid-cols-5 lg:grid-cols-10 gap-1 h-auto p-1">
-            {tabItems.map((tab) => {
-              const Icon = tab.icon;
-              return (
-                <TabsTrigger
-                  key={tab.value}
-                  value={tab.value}
-                  className="flex flex-col items-center justify-center p-2 text-xs font-medium data-[state=active]:bg-blue-100 data-[state=active]:text-blue-700"
-                >
-                  <Icon className="h-4 w-4 mb-1" />
-                  <span className="hidden sm:block text-xs">{tab.label}</span>
-                </TabsTrigger>
-              );
-            })}
-          </TabsList>
+      <div className="relative z-10 container-asymmetric py-macro-sm">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-macro-sm">
+          {/* Tab Navigation - Industrial Grid */}
+          <div className="bg-card border border-white/10 rounded-sharp p-1 backdrop-blur-sm">
+            <TabsList className="grid w-full grid-cols-5 lg:grid-cols-10 gap-micro-sm h-auto p-0 bg-transparent">
+              {tabItems.map((tab) => {
+                const Icon = tab.icon;
+                return (
+                  <TabsTrigger
+                    key={tab.value}
+                    value={tab.value}
+                    className="flex flex-col items-center justify-center p-3 text-xs font-medium border border-transparent rounded-sharp data-[state=active]:bg-role-student/10 data-[state=active]:border-role-student/20 data-[state=active]:text-foreground transition-all duration-300 hover:bg-white/5 hover:border-white/10 text-muted-foreground"
+                  >
+                    <Icon className="h-4 w-4 mb-1" />
+                    <span className="hidden sm:block text-xs font-medium">{tab.label}</span>
+                  </TabsTrigger>
+                );
+              })}
+            </TabsList>
+          </div>
 
           {/* Tab Content */}
           <TabsContent value="dashboard" className="space-y-6">

@@ -16,7 +16,10 @@ import {
   CalendarDays,
   TrendingUp,
   Archive,
-  Award
+  Award,
+  Bell,
+  Settings,
+  User
 } from 'lucide-react';
 import TeacherDashboard from '@/components/teacher/TeacherDashboard';
 import TeacherSchedule from '@/components/teacher/TeacherSchedule';
@@ -71,52 +74,78 @@ const Teacher = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Industrial Grid Background */}
       <div className="fixed inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:40px_40px] pointer-events-none"></div>
       
+      {/* Header */}
       <div className="relative z-10 bg-background/95 backdrop-blur-sm border-b border-white/10">
-        <div className="container-asymmetric">
+        <div className="container px-4 mx-auto">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-6">
-              <h1 className="text-3xl font-bold text-foreground">ColCord</h1>
+              <h1 className="text-2xl font-bold text-foreground">ColCord</h1>
               <div className="h-6 w-px bg-white/20"></div>
               <div className="flex items-center space-x-2">
                 <div className="h-2 w-2 bg-role-teacher rounded-full animate-pulse-indicator"></div>
                 <span className="text-lg font-medium text-foreground">Teacher Portal</span>
               </div>
             </div>
-            <div className="flex items-center space-x-6">
-              <div className="text-right">
-                <div className="text-sm font-medium text-foreground">
-                  {teacherData.first_name} {teacherData.last_name}
-                </div>
-                <div className="text-xs text-muted-foreground">ID: {teacherData.user_code}</div>
-              </div>
-              <Button variant="outline" size="sm" onClick={() => { localStorage.removeItem('colcord_user'); window.location.href = '/'; }} className="hover-translate-up">
-                Exit Portal
+            <div className="flex items-center space-x-3">
+              {/* Notification Icon */}
+              <Button 
+                variant="ghost" 
+                size="icon"
+                className="h-9 w-9 rounded-lg hover:bg-white/10 transition-colors"
+              >
+                <Bell className="h-5 w-5 text-foreground" />
+              </Button>
+              
+              {/* Settings Icon */}
+              <Button 
+                variant="ghost" 
+                size="icon"
+                className="h-9 w-9 rounded-lg hover:bg-white/10 transition-colors"
+              >
+                <Settings className="h-5 w-5 text-foreground" />
+              </Button>
+              
+              {/* Profile Icon */}
+              <Button 
+                variant="ghost" 
+                size="icon"
+                onClick={() => {
+                  localStorage.removeItem('colcord_user');
+                  window.location.href = '/';
+                }}
+                className="h-9 w-9 rounded-lg hover:bg-white/10 transition-colors"
+              >
+                <User className="h-5 w-5 text-foreground" />
               </Button>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="relative z-10 container-asymmetric py-macro-sm">
+      {/* Main Content */}
+      <div className="relative z-10 container px-4 mx-auto py-6">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           {/* Tab Navigation */}
-          <TabsList className="grid w-full grid-cols-6 lg:grid-cols-12 gap-1 h-auto p-1">
-            {tabItems.map((tab) => {
-              const Icon = tab.icon;
-              return (
-                <TabsTrigger
-                  key={tab.value}
-                  value={tab.value}
-                  className="flex flex-col items-center justify-center p-2 text-xs font-medium data-[state=active]:bg-blue-100 data-[state=active]:text-blue-700"
-                >
-                  <Icon className="h-4 w-4 mb-1" />
-                  <span className="hidden lg:block text-[10px]">{tab.label}</span>
-                </TabsTrigger>
-              );
-            })}
-          </TabsList>
+          <div className="bg-card border border-white/10 rounded-lg p-1 backdrop-blur-sm">
+            <TabsList className="grid w-full grid-cols-6 lg:grid-cols-12 gap-1 h-auto p-0 bg-transparent">
+              {tabItems.map((tab) => {
+                const Icon = tab.icon;
+                return (
+                  <TabsTrigger
+                    key={tab.value}
+                    value={tab.value}
+                    className="flex flex-col items-center justify-center p-3 text-xs font-medium border border-transparent rounded-lg data-[state=active]:bg-role-teacher/10 data-[state=active]:border-role-teacher/20 data-[state=active]:text-foreground transition-all duration-300 hover:bg-white/5 hover:border-white/10 text-muted-foreground"
+                  >
+                    <Icon className="h-4 w-4 mb-1" />
+                    <span className="hidden sm:block text-xs font-medium text-center leading-tight">{tab.label}</span>
+                  </TabsTrigger>
+                );
+              })}
+            </TabsList>
+          </div>
 
           {/* Tab Content */}
           <TabsContent value="dashboard" className="space-y-6">

@@ -11,14 +11,24 @@ import {
   Users,
   FileText,
   HelpCircle,
-  BarChart3
+  BarChart3,
+  Clock,
+  CalendarDays,
+  TrendingUp,
+  Archive,
+  Award
 } from 'lucide-react';
 import TeacherDashboard from '@/components/teacher/TeacherDashboard';
-import TeacherCourses from '@/components/teacher/TeacherCourses';
+import TeacherSchedule from '@/components/teacher/TeacherSchedule';
 import TeacherCalendarAttendance from '@/components/teacher/TeacherCalendarAttendance';
+import TeacherCourses from '@/components/teacher/TeacherCourses';
 import TeacherGradebook from '@/components/teacher/TeacherGradebook';
+import TeacherEvents from '@/components/teacher/TeacherEvents';
+import TeacherPerformance from '@/components/teacher/TeacherPerformance';
 import TeacherCommunication from '@/components/teacher/TeacherCommunication';
 import TeacherParentInteraction from '@/components/teacher/TeacherParentInteraction';
+import TeacherDocuments from '@/components/teacher/TeacherDocuments';
+import TeacherRecognition from '@/components/teacher/TeacherRecognition';
 import TeacherSupport from '@/components/teacher/TeacherSupport';
 
 const Teacher = () => {
@@ -46,12 +56,17 @@ const Teacher = () => {
 
   const tabItems = [
     { value: 'dashboard', label: 'Dashboard', icon: GraduationCap },
-    { value: 'courses', label: 'My Courses', icon: BookOpen },
-    { value: 'calendar', label: 'Calendar & Attendance', icon: Calendar },
-    { value: 'gradebook', label: 'Gradebook', icon: BarChart3 },
+    { value: 'schedule', label: 'Schedule & Timetable', icon: Clock },
+    { value: 'attendance', label: 'Attendance Management', icon: Calendar },
+    { value: 'courses', label: 'Course & Content', icon: BookOpen },
+    { value: 'gradebook', label: 'Assignments & Evaluation', icon: BarChart3 },
+    { value: 'events', label: 'Events & Calendar', icon: CalendarDays },
+    { value: 'performance', label: 'Student Performance', icon: TrendingUp },
     { value: 'communication', label: 'Communication', icon: MessageSquare },
     { value: 'parents', label: 'Parent Interaction', icon: Users },
-    { value: 'support', label: 'Support & Help', icon: HelpCircle },
+    { value: 'documents', label: 'Document Management', icon: Archive },
+    { value: 'recognition', label: 'Recognition & Feedback', icon: Award },
+    { value: 'support', label: 'Support & Helpdesk', icon: HelpCircle },
   ];
 
   return (
@@ -88,17 +103,17 @@ const Teacher = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           {/* Tab Navigation */}
-          <TabsList className="grid w-full grid-cols-7 lg:grid-cols-7 gap-1 h-auto p-1">
+          <TabsList className="grid w-full grid-cols-6 lg:grid-cols-12 gap-1 h-auto p-1">
             {tabItems.map((tab) => {
               const Icon = tab.icon;
               return (
                 <TabsTrigger
                   key={tab.value}
                   value={tab.value}
-                  className="flex flex-col items-center justify-center p-3 text-xs font-medium data-[state=active]:bg-blue-100 data-[state=active]:text-blue-700"
+                  className="flex flex-col items-center justify-center p-2 text-xs font-medium data-[state=active]:bg-blue-100 data-[state=active]:text-blue-700"
                 >
-                  <Icon className="h-5 w-5 mb-1" />
-                  <span className="hidden sm:block">{tab.label}</span>
+                  <Icon className="h-4 w-4 mb-1" />
+                  <span className="hidden lg:block text-[10px]">{tab.label}</span>
                 </TabsTrigger>
               );
             })}
@@ -109,16 +124,28 @@ const Teacher = () => {
             <TeacherDashboard teacherData={teacherData} />
           </TabsContent>
 
+          <TabsContent value="schedule" className="space-y-6">
+            <TeacherSchedule teacherData={teacherData} />
+          </TabsContent>
+
+          <TabsContent value="attendance" className="space-y-6">
+            <TeacherCalendarAttendance teacherData={teacherData} />
+          </TabsContent>
+
           <TabsContent value="courses" className="space-y-6">
             <TeacherCourses teacherData={teacherData} />
           </TabsContent>
 
-          <TabsContent value="calendar" className="space-y-6">
-            <TeacherCalendarAttendance teacherData={teacherData} />
-          </TabsContent>
-
           <TabsContent value="gradebook" className="space-y-6">
             <TeacherGradebook teacherData={teacherData} />
+          </TabsContent>
+
+          <TabsContent value="events" className="space-y-6">
+            <TeacherEvents teacherData={teacherData} />
+          </TabsContent>
+
+          <TabsContent value="performance" className="space-y-6">
+            <TeacherPerformance teacherData={teacherData} />
           </TabsContent>
 
           <TabsContent value="communication" className="space-y-6">
@@ -127,6 +154,14 @@ const Teacher = () => {
 
           <TabsContent value="parents" className="space-y-6">
             <TeacherParentInteraction teacherData={teacherData} />
+          </TabsContent>
+
+          <TabsContent value="documents" className="space-y-6">
+            <TeacherDocuments teacherData={teacherData} />
+          </TabsContent>
+
+          <TabsContent value="recognition" className="space-y-6">
+            <TeacherRecognition teacherData={teacherData} />
           </TabsContent>
 
           <TabsContent value="support" className="space-y-6">

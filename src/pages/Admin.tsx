@@ -55,15 +55,20 @@ const Admin = () => {
 
   if (!isAuthenticated || !sessionData) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex items-center justify-center min-h-screen bg-background">
         <div className="text-center">
-          <p className="text-gray-600">Redirecting to login...</p>
+          <p className="text-muted-foreground">Redirecting to login...</p>
         </div>
       </div>
     );
   }
 
-  return <AdminDashboard sessionData={sessionData} />;
+  return (
+    <div className="min-h-screen bg-background">
+      <div className="fixed inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:40px_40px] pointer-events-none"></div>
+      <AdminDashboard sessionData={sessionData} />
+    </div>
+  );
 };
 
 export default Admin;

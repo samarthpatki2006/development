@@ -70,37 +70,36 @@ const Teacher = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-background">
+      <div className="fixed inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:40px_40px] pointer-events-none"></div>
+      
+      <div className="relative z-10 bg-background/95 backdrop-blur-sm border-b border-white/10">
+        <div className="container-asymmetric">
           <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-4">
-              <h1 className="text-2xl font-bold text-blue-600">ColCord</h1>
-              <span className="text-gray-400">|</span>
-              <span className="text-lg font-medium text-gray-700">Teacher Portal</span>
+            <div className="flex items-center space-x-6">
+              <h1 className="text-3xl font-bold text-foreground">ColCord</h1>
+              <div className="h-6 w-px bg-white/20"></div>
+              <div className="flex items-center space-x-2">
+                <div className="h-2 w-2 bg-role-faculty rounded-full animate-pulse-indicator"></div>
+                <span className="text-lg font-medium text-foreground">Teacher Portal</span>
+              </div>
             </div>
-            <div className="flex items-center space-x-4">
-              <span className="text-sm text-gray-600">
-                Welcome, {teacherData.first_name} {teacherData.last_name}
-              </span>
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => {
-                  localStorage.removeItem('colcord_user');
-                  window.location.href = '/';
-                }}
-              >
-                Logout
+            <div className="flex items-center space-x-6">
+              <div className="text-right">
+                <div className="text-sm font-medium text-foreground">
+                  {teacherData.first_name} {teacherData.last_name}
+                </div>
+                <div className="text-xs text-muted-foreground">ID: {teacherData.user_code}</div>
+              </div>
+              <Button variant="outline" size="sm" onClick={() => { localStorage.removeItem('colcord_user'); window.location.href = '/'; }} className="hover-translate-up">
+                Exit Portal
               </Button>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="relative z-10 container-asymmetric py-macro-sm">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           {/* Tab Navigation */}
           <TabsList className="grid w-full grid-cols-6 lg:grid-cols-12 gap-1 h-auto p-1">

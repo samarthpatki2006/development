@@ -111,7 +111,7 @@ const CourseManagement = ({ userProfile }: { userProfile: UserProfile }) => {
         .from('user_profiles')
         .select('id, first_name, last_name')
         .eq('college_id', userProfile.college_id)
-        .in('user_type', ['faculty', 'admin'])
+        .in('user_type', ['teacher', 'admin'])
         .eq('is_active', true);
 
       if (error) {

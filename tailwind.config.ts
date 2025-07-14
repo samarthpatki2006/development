@@ -74,7 +74,7 @@ export default {
 				// Role-based color system
 				role: {
 					admin: '#dc2626',
-					faculty: '#2563eb',
+					teacher: '#2563eb',
 					student: '#16a34a',
 					parent: '#6b7280',
 					alumni: '#eab308'

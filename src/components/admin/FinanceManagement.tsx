@@ -312,7 +312,7 @@ const FinanceManagement = ({ userProfile }: { userProfile: UserProfile }) => {
                     <SelectContent>
                       <SelectItem value="all">All User Types</SelectItem>
                       <SelectItem value="student">Students</SelectItem>
-                      <SelectItem value="faculty">Faculty</SelectItem>
+                      <SelectItem value="teacher">Teachers</SelectItem>
                       <SelectItem value="staff">Staff</SelectItem>
                     </SelectContent>
                   </Select>

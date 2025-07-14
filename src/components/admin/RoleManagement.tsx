@@ -88,7 +88,7 @@ const RoleManagement = ({ userProfile }: RoleManagementProps) => {
         .from('user_profiles')
         .select('*')
         .eq('college_id', userProfile.college_id)
-        .in('user_type', ['admin', 'faculty'])
+        .in('user_type', ['admin', 'teacher'])
         .eq('is_active', true);
 
       if (error) {

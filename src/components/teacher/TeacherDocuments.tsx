@@ -126,7 +126,7 @@ const TeacherDocuments = ({ teacherData }: TeacherDocumentsProps) => {
         version: '2.1',
         effective_date: '2024-01-01',
         document_url: '#',
-        access_level: 'all_faculty'
+        access_level: 'all_teachers'
       },
       {
         id: '2',
@@ -135,7 +135,7 @@ const TeacherDocuments = ({ teacherData }: TeacherDocumentsProps) => {
         version: '1.5',
         effective_date: '2024-01-15',
         document_url: '#',
-        access_level: 'all_faculty'
+        access_level: 'all_teachers'
       },
       {
         id: '3',
@@ -144,7 +144,7 @@ const TeacherDocuments = ({ teacherData }: TeacherDocumentsProps) => {
         version: '3.0',
         effective_date: '2024-02-01',
         document_url: '#',
-        access_level: 'all_faculty'
+        access_level: 'all_teachers'
       }
     ]);
   };

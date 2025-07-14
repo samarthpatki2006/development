@@ -105,32 +105,21 @@ const StudentDashboard = ({ studentData }: StudentDashboardProps) => {
   ];
 
   return (
-    <div className="space-y-macro-sm animate-fade-in-up">
-      {/* Hero Section */}
-      <div className="relative overflow-hidden bg-card border border-white/10 rounded-sharp p-8">
-        <div className="relative z-10">
-          <div className="flex items-center space-x-4 mb-6">
-            <div className="h-3 w-3 bg-role-student rounded-full animate-pulse-indicator"></div>
-            <h1 className="text-section-header text-card-foreground">
+    <div className="space-y-6 animate-fade-in-up">
+      {/* Welcome Section */}
+      <div className="bg-card border border-white/10 rounded-lg p-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-card-foreground mb-2">
               Welcome back, {studentData.first_name}
             </h1>
+            <p className="text-muted-foreground">Student ID: {studentData.user_code}</p>
           </div>
-          <div className="grid md:grid-cols-3 gap-6">
-            <div className="space-y-2">
-              <p className="text-sm text-muted-foreground font-medium">STUDENT ID</p>
-              <p className="text-xl font-bold text-card-foreground">{studentData.user_code}</p>
-            </div>
-            <div className="space-y-2">
-              <p className="text-sm text-muted-foreground font-medium">SEMESTER</p>
-              <p className="text-xl font-bold text-card-foreground">Fall 2024</p>
-            </div>
-            <div className="space-y-2">
-              <p className="text-sm text-muted-foreground font-medium">CURRENT CGPA</p>
-              <p className="text-xl font-bold text-role-student">8.5</p>
-            </div>
+          <div className="text-right">
+            <p className="text-sm text-muted-foreground">Current CGPA</p>
+            <p className="text-2xl font-bold text-role-student">8.5</p>
           </div>
         </div>
-        <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(34,197,94,0.05),transparent_50%)]"></div>
       </div>
 
       {/* Quick Stats Grid */}
@@ -146,9 +135,9 @@ const StudentDashboard = ({ studentData }: StudentDashboardProps) => {
                       <p className="text-sm font-medium text-muted-foreground">{stat.title}</p>
                       <p className="text-2xl font-bold text-card-foreground">{stat.value}</p>
                     </div>
-                    <div className="p-3 rounded-sharp bg-white/5">
-                      <Icon className="h-6 w-6 text-role-student" />
-                    </div>
+                  <div className="p-3 rounded-lg bg-white/5">
+                    <Icon className="h-6 w-6 text-role-student" />
+                  </div>
                   </div>
                 </CardContent>
               </Card>
@@ -157,7 +146,7 @@ const StudentDashboard = ({ studentData }: StudentDashboardProps) => {
         })}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-macro-sm">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Recent Activities */}
         <Card className="border-white/10">
           <CardHeader>
@@ -167,7 +156,7 @@ const StudentDashboard = ({ studentData }: StudentDashboardProps) => {
           <CardContent className="space-y-4">
             {recentActivities.map((activity, index) => (
               <PermissionWrapper key={index} permission={activity.permission}>
-                <div className="flex items-start space-x-4 p-3 rounded-sharp bg-white/5 hover:bg-white/10 transition-colors duration-300">
+                <div className="flex items-start space-x-4 p-3 rounded-lg bg-white/5 hover:bg-white/10 transition-colors duration-300">
                   <div className="w-2 h-2 bg-role-student rounded-full mt-3 animate-pulse-indicator"></div>
                   <div className="flex-1">
                     <p className="font-medium text-card-foreground">{activity.title}</p>
@@ -191,8 +180,8 @@ const StudentDashboard = ({ studentData }: StudentDashboardProps) => {
               const Icon = action.icon;
               return (
                 <PermissionWrapper key={index} permission={action.permission}>
-                  <div className="flex items-center space-x-4 p-4 rounded-sharp border border-white/10 hover:border-role-student/20 hover:bg-white/5 cursor-pointer transition-all duration-300 hover-translate-up">
-                    <div className="p-3 rounded-sharp bg-role-student/10">
+                  <div className="flex items-center space-x-4 p-4 rounded-lg border border-white/10 hover:border-role-student/20 hover:bg-white/5 cursor-pointer transition-all duration-300 hover-translate-up">
+                    <div className="p-3 rounded-lg bg-role-student/10">
                       <Icon className="h-5 w-5 text-role-student" />
                     </div>
                     <div className="flex-1">
@@ -221,7 +210,7 @@ const StudentDashboard = ({ studentData }: StudentDashboardProps) => {
                 { name: 'Database Management Systems', code: 'CS302', instructor: 'Dr. Johnson', progress: 60 },
                 { name: 'Computer Networks', code: 'CS303', instructor: 'Dr. Brown', progress: 80 }
               ].map((course, index) => (
-                <div key={index} className="p-6 border border-white/10 rounded-sharp bg-white/5 hover:border-role-student/20 transition-all duration-300 hover-translate-up">
+                <div key={index} className="p-6 border border-white/10 rounded-lg bg-white/5 hover:border-role-student/20 transition-all duration-300 hover-translate-up">
                   <div className="flex justify-between items-start mb-4">
                     <h4 className="font-bold text-card-foreground">{course.name}</h4>
                     <Badge variant="secondary" className="bg-role-student/10 text-role-student border-role-student/20">{course.code}</Badge>

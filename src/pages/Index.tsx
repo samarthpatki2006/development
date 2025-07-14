@@ -35,6 +35,15 @@ const Index = () => {
     }
   }, [navigate]);
 
+  // Sample college data - this should ideally come from your backend/config
+  const collegeData = {
+    code: "COLCORD",
+    name: "College Coordination System",
+    logo: "🎓",
+    primary_color: "#2563eb",
+    secondary_color: "#1d4ed8"
+  };
+
   return (
     <div className="min-h-screen bg-background">
       {/* Industrial Grid Background */}
@@ -44,7 +53,7 @@ const Index = () => {
         <div className="w-full max-w-6xl mx-auto">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
             {/* Left side - College Branding */}
-            <CollegeBranding />
+            <CollegeBranding college={collegeData} />
             
             {/* Right side - Login */}
             <div className="flex justify-center lg:justify-end">

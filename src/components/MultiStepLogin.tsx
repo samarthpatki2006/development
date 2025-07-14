@@ -163,7 +163,7 @@ const MultiStepLogin = () => {
         window.location.href = '/admin';
       } else if (loginResult.user_type === 'student') {
         window.location.href = '/student';
-      } else if (loginResult.user_type === 'faculty') {
+      } else if (loginResult.user_type === 'teacher') {
         window.location.href = '/teacher';
       } else if (loginResult.user_type === 'parent') {
         window.location.href = '/parent';

@@ -114,7 +114,7 @@ export const usePermissions = () => {
             userPermissions.facility_requests = true;
             break;
 
-          case 'faculty':
+          case 'teacher':
             userPermissions.view_submit_assignments = true;
             userPermissions.review_assignments = true;
             userPermissions.view_grades = true;

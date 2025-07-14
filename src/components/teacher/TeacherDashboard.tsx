@@ -93,7 +93,7 @@ const TeacherDashboard = ({ teacherData }: TeacherDashboardProps) => {
     },
     {
       title: 'Join Discussion',
-      description: 'Participate in faculty forums',
+      description: 'Participate in teacher forums',
       icon: FileText,
       color: 'bg-yellow-50 text-yellow-600',
       permission: 'join_forums' as const
@@ -109,7 +109,7 @@ const TeacherDashboard = ({ teacherData }: TeacherDashboardProps) => {
             <span>Welcome, Prof. {teacherData.first_name} {teacherData.last_name}!</span>
           </CardTitle>
           <CardDescription>
-            Faculty ID: {teacherData.user_code} | Department: Computer Science
+            Teacher ID: {teacherData.user_code} | Department: Computer Science
           </CardDescription>
         </CardHeader>
       </Card>

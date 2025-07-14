@@ -17,7 +17,7 @@ interface UserProfile {
   last_name: string | null;
   email: string | null;
   user_code: string;
-  user_type: 'student' | 'faculty' | 'admin' | 'staff' | 'parent' | 'alumni' | 'super_admin';
+  user_type: 'student' | 'teacher' | 'admin' | 'staff' | 'parent' | 'alumni' | 'super_admin';
   is_active: boolean | null;
   created_at: string | null;
   updated_at: string | null;
@@ -55,7 +55,7 @@ const UserManagement = ({ userProfile, adminRoles }: UserManagementProps) => {
     const hierarchyMap: Record<string, string> = {
       'super_admin': 'super_admin',
       'admin': 'admin',
-      'faculty': 'faculty',
+      'teacher': 'teacher',
       'student': 'student',
       'staff': 'staff',
       'parent': 'parent',
@@ -83,8 +83,9 @@ const UserManagement = ({ userProfile, adminRoles }: UserManagementProps) => {
         // Map users and add hierarchy_level based on user_type
         const usersWithHierarchy: ExtendedUserProfile[] = (data || []).map(user => ({
           ...user,
-          hierarchy_level: getHierarchyFromUserType(user.user_type)
-        }));
+          user_type: user.user_type === 'faculty' ? 'teacher' : user.user_type,
+          hierarchy_level: getHierarchyFromUserType(user.user_type === 'faculty' ? 'teacher' : user.user_type)
+        })) as ExtendedUserProfile[];
         setUsers(usersWithHierarchy);
       }
     } catch (error) {
@@ -113,7 +114,7 @@ const UserManagement = ({ userProfile, adminRoles }: UserManagementProps) => {
     const hierarchyLevels: Record<string, number> = {
       'super_admin': 1,
       'admin': 2,
-      'faculty': 3,
+      'teacher': 3,
       'staff': 4,
       'student': 5,
       'parent': 6,
@@ -143,7 +144,7 @@ const UserManagement = ({ userProfile, adminRoles }: UserManagementProps) => {
     const colors: Record<string, string> = {
       'super_admin': 'bg-red-100 text-red-800',
       'admin': 'bg-purple-100 text-purple-800',
-      'faculty': 'bg-blue-100 text-blue-800',
+      'teacher': 'bg-blue-100 text-blue-800',
       'staff': 'bg-indigo-100 text-indigo-800',
       'student': 'bg-green-100 text-green-800',
       'parent': 'bg-yellow-100 text-yellow-800',
@@ -225,7 +226,7 @@ const UserManagement = ({ userProfile, adminRoles }: UserManagementProps) => {
               <SelectContent>
                 <SelectItem value="all">All Users</SelectItem>
                 <SelectItem value="student">Students</SelectItem>
-                <SelectItem value="faculty">Faculty</SelectItem>
+                <SelectItem value="teacher">Teachers</SelectItem>
                 <SelectItem value="admin">Admins</SelectItem>
                 <SelectItem value="super_admin">Super Admins</SelectItem>
                 <SelectItem value="staff">Staff</SelectItem>

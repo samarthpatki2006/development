@@ -80,7 +80,7 @@ const Teacher = () => {
               <h1 className="text-3xl font-bold text-foreground">ColCord</h1>
               <div className="h-6 w-px bg-white/20"></div>
               <div className="flex items-center space-x-2">
-                <div className="h-2 w-2 bg-role-faculty rounded-full animate-pulse-indicator"></div>
+                <div className="h-2 w-2 bg-role-teacher rounded-full animate-pulse-indicator"></div>
                 <span className="text-lg font-medium text-foreground">Teacher Portal</span>
               </div>
             </div>

@@ -114,9 +114,9 @@ const UserOnboarding = ({ userProfile }: { userProfile: UserProfile }) => {
           user: {
             first_name: 'Jane',
             last_name: 'Smith',
-            email: 'jane.smith@faculty.edu',
-            user_code: 'FAC001',
-            user_type: 'faculty'
+            email: 'jane.smith@teacher.edu',
+            user_code: 'TCH001',
+            user_type: 'teacher'
           }
         }
       ];
@@ -138,7 +138,7 @@ const UserOnboarding = ({ userProfile }: { userProfile: UserProfile }) => {
     const year = new Date().getFullYear().toString().slice(-2);
     const typePrefix = {
       'student': 'S',
-      'faculty': 'F',
+      'teacher': 'T',
       'staff': 'T',
       'admin': 'A',
       'parent': 'P',
@@ -373,7 +373,7 @@ const UserOnboarding = ({ userProfile }: { userProfile: UserProfile }) => {
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="student">Student</SelectItem>
-                          <SelectItem value="faculty">Faculty</SelectItem>
+                          <SelectItem value="teacher">Teacher</SelectItem>
                           <SelectItem value="staff">Staff</SelectItem>
                           <SelectItem value="parent">Parent</SelectItem>
                           <SelectItem value="alumni">Alumni</SelectItem>
@@ -440,7 +440,7 @@ const UserOnboarding = ({ userProfile }: { userProfile: UserProfile }) => {
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="student">Student</SelectItem>
-                          <SelectItem value="faculty">Faculty</SelectItem>
+                          <SelectItem value="teacher">Teacher</SelectItem>
                           <SelectItem value="staff">Staff</SelectItem>
                           <SelectItem value="parent">Parent</SelectItem>
                           <SelectItem value="alumni">Alumni</SelectItem>

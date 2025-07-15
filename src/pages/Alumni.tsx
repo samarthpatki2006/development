@@ -61,8 +61,8 @@ const Alumni = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+      <div className="flex items-center justify-center min-h-screen bg-background">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-role-alumni"></div>
       </div>
     );
   }
@@ -72,18 +72,18 @@ const Alumni = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b">
+      <header className="bg-card border-b border-white/10 backdrop-blur-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-4">
+          <div className="flex justify-between items-center py-6">
             <div className="flex items-center space-x-4">
-              <h1 className="text-2xl font-bold text-gray-900">ColCord - Alumni Portal</h1>
-              <span className="text-sm text-gray-600">Welcome back, {user.first_name} {user.last_name}</span>
+              <h1 className="text-3xl font-bold text-card-foreground">ColCord - Alumni Portal</h1>
+              <span className="text-sm text-muted-foreground">Welcome back, {user.first_name} {user.last_name}</span>
             </div>
             <button
               onClick={handleLogout}
-              className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md text-sm font-medium"
+              className="bg-destructive hover:bg-destructive/90 text-destructive-foreground px-6 py-2 rounded-md text-sm font-medium transition-colors"
             >
               Logout
             </button>
@@ -94,56 +94,76 @@ const Alumni = () => {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Tabs defaultValue="dashboard" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-6">
-            <TabsTrigger value="dashboard" className="flex items-center space-x-2">
+          <TabsList className="grid w-full grid-cols-6 bg-card/50 backdrop-blur-sm border border-white/10">
+            <TabsTrigger 
+              value="dashboard" 
+              className="flex items-center space-x-2 data-[state=active]:bg-role-alumni/20 data-[state=active]:text-role-alumni data-[state=active]:border-role-alumni/30"
+            >
               <Home className="h-4 w-4" />
-              <span>Dashboard</span>
+              <span className="hidden sm:inline">Dashboard</span>
             </TabsTrigger>
-            <TabsTrigger value="events" className="flex items-center space-x-2">
+            <TabsTrigger 
+              value="events" 
+              className="flex items-center space-x-2 data-[state=active]:bg-role-alumni/20 data-[state=active]:text-role-alumni data-[state=active]:border-role-alumni/30"
+            >
               <Calendar className="h-4 w-4" />
-              <span>Events</span>
+              <span className="hidden sm:inline">Events</span>
             </TabsTrigger>
-            <TabsTrigger value="networking" className="flex items-center space-x-2">
+            <TabsTrigger 
+              value="networking" 
+              className="flex items-center space-x-2 data-[state=active]:bg-role-alumni/20 data-[state=active]:text-role-alumni data-[state=active]:border-role-alumni/30"
+            >
               <Users className="h-4 w-4" />
-              <span>Networking</span>
+              <span className="hidden sm:inline">Networking</span>
             </TabsTrigger>
-            <TabsTrigger value="contributions" className="flex items-center space-x-2">
+            <TabsTrigger 
+              value="contributions" 
+              className="flex items-center space-x-2 data-[state=active]:bg-role-alumni/20 data-[state=active]:text-role-alumni data-[state=active]:border-role-alumni/30"
+            >
               <Heart className="h-4 w-4" />
-              <span>Contributions</span>
+              <span className="hidden sm:inline">Contributions</span>
             </TabsTrigger>
-            <TabsTrigger value="documents" className="flex items-center space-x-2">
+            <TabsTrigger 
+              value="documents" 
+              className="flex items-center space-x-2 data-[state=active]:bg-role-alumni/20 data-[state=active]:text-role-alumni data-[state=active]:border-role-alumni/30"
+            >
               <FileText className="h-4 w-4" />
-              <span>Documents</span>
+              <span className="hidden sm:inline">Documents</span>
             </TabsTrigger>
-            <TabsTrigger value="support" className="flex items-center space-x-2">
+            <TabsTrigger 
+              value="support" 
+              className="flex items-center space-x-2 data-[state=active]:bg-role-alumni/20 data-[state=active]:text-role-alumni data-[state=active]:border-role-alumni/30"
+            >
               <HelpCircle className="h-4 w-4" />
-              <span>Support</span>
+              <span className="hidden sm:inline">Support</span>
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="dashboard">
-            <AlumniDashboard user={user} />
-          </TabsContent>
+          <div className="min-h-[600px]">
+            <TabsContent value="dashboard" className="space-y-6 animate-fade-in">
+              <AlumniDashboard user={user} />
+            </TabsContent>
 
-          <TabsContent value="events">
-            <AlumniEvents user={user} />
-          </TabsContent>
+            <TabsContent value="events" className="space-y-6 animate-fade-in">
+              <AlumniEvents user={user} />
+            </TabsContent>
 
-          <TabsContent value="networking">
-            <AlumniNetworking user={user} />
-          </TabsContent>
+            <TabsContent value="networking" className="space-y-6 animate-fade-in">
+              <AlumniNetworking user={user} />
+            </TabsContent>
 
-          <TabsContent value="contributions">
-            <AlumniContributions user={user} />
-          </TabsContent>
+            <TabsContent value="contributions" className="space-y-6 animate-fade-in">
+              <AlumniContributions user={user} />
+            </TabsContent>
 
-          <TabsContent value="documents">
-            <AlumniDocuments user={user} />
-          </TabsContent>
+            <TabsContent value="documents" className="space-y-6 animate-fade-in">
+              <AlumniDocuments user={user} />
+            </TabsContent>
 
-          <TabsContent value="support">
-            <AlumniSupport user={user} />
-          </TabsContent>
+            <TabsContent value="support" className="space-y-6 animate-fade-in">
+              <AlumniSupport user={user} />
+            </TabsContent>
+          </div>
         </Tabs>
       </main>
     </div>

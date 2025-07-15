@@ -6,54 +6,65 @@ interface NavigationWrapperProps {
   children: React.ReactNode;
 }
 
+// Define user type to route mapping
+const USER_ROUTE_MAP = {
+  'student': '/student',
+  'faculty': '/teacher',
+  'teacher': '/teacher',
+  'admin': '/admin',
+  'super_admin': '/admin',
+  'parent': '/parent',
+  'alumni': '/alumni'
+} as const;
+
 const NavigationWrapper = ({ children }: NavigationWrapperProps) => {
   const location = useLocation();
   const navigate = useNavigate();
+  const currentPath = location.pathname;
 
   useEffect(() => {
-    const userData = localStorage.getItem('colcord_user');
-    const currentPath = location.pathname;
-
-    if (!userData) {
-      // If no user data and not on login page, redirect to login
-      if (currentPath !== '/') {
-        navigate('/');
-      }
-      return;
-    }
-
-    try {
-      const user = JSON.parse(userData);
+    const handleUserNavigation = () => {
+      const userData = localStorage.getItem('colcord_user');
       
-      // Define the correct route for each user type
-      const userRoutes = {
-        'student': '/student',
-        'faculty': '/teacher',
-        'teacher': '/teacher',
-        'admin': '/admin',
-        'super_admin': '/admin',
-        'parent': '/parent',
-        'alumni': '/alumni'
-      };
-
-      const correctRoute = userRoutes[user.user_type as keyof typeof userRoutes];
-      
-      // If user is logged in and on the login page, redirect to their correct route
-      if (currentPath === '/' && correctRoute) {
-        navigate(correctRoute);
+      // Handle unauthenticated users
+      if (!userData) {
+        if (currentPath !== '/') {
+          navigate('/');
+        }
         return;
       }
-      
-      // If user is on the wrong route, redirect them to their correct route
-      if (correctRoute && currentPath !== correctRoute) {
-        navigate(correctRoute);
+
+      // Handle authenticated users
+      try {
+        const user = JSON.parse(userData);
+        const correctRoute = USER_ROUTE_MAP[user.user_type as keyof typeof USER_ROUTE_MAP];
+        
+        if (!correctRoute) {
+          console.error('Invalid user type:', user.user_type);
+          localStorage.removeItem('colcord_user');
+          navigate('/');
+          return;
+        }
+
+        // Redirect from login page to user's dashboard
+        if (currentPath === '/') {
+          navigate(correctRoute);
+          return;
+        }
+        
+        // Redirect if user is on wrong route
+        if (currentPath !== correctRoute) {
+          navigate(correctRoute);
+        }
+      } catch (error) {
+        console.error('Error parsing user data:', error);
+        localStorage.removeItem('colcord_user');
+        navigate('/');
       }
-    } catch (error) {
-      console.error('Error parsing user data:', error);
-      localStorage.removeItem('colcord_user');
-      navigate('/');
-    }
-  }, [location.pathname, navigate]);
+    };
+
+    handleUserNavigation();
+  }, [currentPath, navigate]);
 
   return <>{children}</>;
 };

@@ -1,8 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 import { toast } from "@/components/ui/use-toast";
 import AlumniDashboard from '@/components/alumni/AlumniDashboard';
@@ -13,13 +11,23 @@ import AlumniDocuments from '@/components/alumni/AlumniDocuments';
 import AlumniSupport from '@/components/alumni/AlumniSupport';
 import { Home, Calendar, Users, Heart, FileText, HelpCircle } from 'lucide-react';
 
+// Tab configuration for better maintainability
+const ALUMNI_TABS = [
+  { value: 'dashboard', label: 'Dashboard', icon: Home },
+  { value: 'events', label: 'Events', icon: Calendar },
+  { value: 'networking', label: 'Networking', icon: Users },
+  { value: 'contributions', label: 'Contributions', icon: Heart },
+  { value: 'documents', label: 'Documents', icon: FileText },
+  { value: 'support', label: 'Support', icon: HelpCircle },
+];
+
 const Alumni = () => {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
-    const checkUser = async () => {
+    const initializeUser = async () => {
       try {
         const userData = localStorage.getItem('colcord_user');
         if (!userData) {
@@ -47,7 +55,7 @@ const Alumni = () => {
       }
     };
 
-    checkUser();
+    initializeUser();
   }, [navigate]);
 
   const handleLogout = () => {
@@ -62,7 +70,7 @@ const Alumni = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-background">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-role-alumni"></div>
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-role-alumni" />
       </div>
     );
   }
@@ -78,8 +86,12 @@ const Alumni = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-6">
             <div className="flex items-center space-x-4">
-              <h1 className="text-3xl font-bold text-card-foreground">ColCord - Alumni Portal</h1>
-              <span className="text-sm text-muted-foreground">Welcome back, {user.first_name} {user.last_name}</span>
+              <h1 className="text-3xl font-bold text-card-foreground">
+                ColCord - Alumni Portal
+              </h1>
+              <span className="text-sm text-muted-foreground">
+                Welcome back, {user.first_name} {user.last_name}
+              </span>
             </div>
             <button
               onClick={handleLogout}
@@ -95,48 +107,19 @@ const Alumni = () => {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Tabs defaultValue="dashboard" className="space-y-6">
           <TabsList className="grid w-full grid-cols-6 bg-card/50 backdrop-blur-sm border border-white/10">
-            <TabsTrigger 
-              value="dashboard" 
-              className="flex items-center space-x-2 data-[state=active]:bg-role-alumni/20 data-[state=active]:text-role-alumni data-[state=active]:border-role-alumni/30"
-            >
-              <Home className="h-4 w-4" />
-              <span className="hidden sm:inline">Dashboard</span>
-            </TabsTrigger>
-            <TabsTrigger 
-              value="events" 
-              className="flex items-center space-x-2 data-[state=active]:bg-role-alumni/20 data-[state=active]:text-role-alumni data-[state=active]:border-role-alumni/30"
-            >
-              <Calendar className="h-4 w-4" />
-              <span className="hidden sm:inline">Events</span>
-            </TabsTrigger>
-            <TabsTrigger 
-              value="networking" 
-              className="flex items-center space-x-2 data-[state=active]:bg-role-alumni/20 data-[state=active]:text-role-alumni data-[state=active]:border-role-alumni/30"
-            >
-              <Users className="h-4 w-4" />
-              <span className="hidden sm:inline">Networking</span>
-            </TabsTrigger>
-            <TabsTrigger 
-              value="contributions" 
-              className="flex items-center space-x-2 data-[state=active]:bg-role-alumni/20 data-[state=active]:text-role-alumni data-[state=active]:border-role-alumni/30"
-            >
-              <Heart className="h-4 w-4" />
-              <span className="hidden sm:inline">Contributions</span>
-            </TabsTrigger>
-            <TabsTrigger 
-              value="documents" 
-              className="flex items-center space-x-2 data-[state=active]:bg-role-alumni/20 data-[state=active]:text-role-alumni data-[state=active]:border-role-alumni/30"
-            >
-              <FileText className="h-4 w-4" />
-              <span className="hidden sm:inline">Documents</span>
-            </TabsTrigger>
-            <TabsTrigger 
-              value="support" 
-              className="flex items-center space-x-2 data-[state=active]:bg-role-alumni/20 data-[state=active]:text-role-alumni data-[state=active]:border-role-alumni/30"
-            >
-              <HelpCircle className="h-4 w-4" />
-              <span className="hidden sm:inline">Support</span>
-            </TabsTrigger>
+            {ALUMNI_TABS.map((tab) => {
+              const Icon = tab.icon;
+              return (
+                <TabsTrigger 
+                  key={tab.value}
+                  value={tab.value}
+                  className="flex items-center space-x-2 data-[state=active]:bg-role-alumni/20 data-[state=active]:text-role-alumni data-[state=active]:border-role-alumni/30"
+                >
+                  <Icon className="h-4 w-4" />
+                  <span className="hidden sm:inline">{tab.label}</span>
+                </TabsTrigger>
+              );
+            })}
           </TabsList>
 
           <div className="min-h-[600px]">

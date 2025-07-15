@@ -39,7 +39,7 @@ export interface UserPermissions {
   alumni_events: boolean;
 }
 
-const defaultPermissions: UserPermissions = {
+const DEFAULT_PERMISSIONS: UserPermissions = {
   view_personal_dashboard: false,
   view_college_branding: false,
   view_submit_assignments: false,
@@ -65,8 +65,61 @@ const defaultPermissions: UserPermissions = {
   alumni_events: false,
 };
 
+// Permission sets for different user types
+const PERMISSION_SETS = {
+  student: {
+    view_personal_dashboard: true,
+    view_college_branding: true,
+    view_submit_assignments: true,
+    view_grades: true,
+    view_attendance: true,
+    join_forums: true,
+    view_fees: true,
+    make_payments: true,
+    request_certificates: true,
+    apply_hostel: true,
+    facility_requests: true,
+    support_tickets: true,
+  },
+  teacher: {
+    view_personal_dashboard: true,
+    view_college_branding: true,
+    view_submit_assignments: true,
+    review_assignments: true,
+    view_grades: true,
+    assign_grades: true,
+    mark_attendance: true,
+    view_attendance: true,
+    upload_materials: true,
+    join_forums: true,
+    view_fees: true,
+    review_fees: true,
+    request_certificates: true,
+    facility_requests: true,
+    support_tickets: true,
+  },
+  parent: {
+    view_personal_dashboard: true,
+    view_college_branding: true,
+    view_child_grades: true,
+    view_child_attendance: true,
+    view_child_fees: true,
+    make_child_payments: true,
+    support_tickets: true,
+  },
+  alumni: {
+    view_personal_dashboard: true,
+    view_college_branding: true,
+    join_forums: true,
+    request_certificates: true,
+    alumni_contributions: true,
+    alumni_events: true,
+    support_tickets: true,
+  },
+};
+
 export const usePermissions = () => {
-  const [permissions, setPermissions] = useState<UserPermissions>(defaultPermissions);
+  const [permissions, setPermissions] = useState<UserPermissions>(DEFAULT_PERMISSIONS);
   const [userType, setUserType] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -91,60 +144,14 @@ export const usePermissions = () => {
           return;
         }
 
+        const userTypeKey = profile.user_type === 'faculty' ? 'teacher' : profile.user_type;
         setUserType(profile.user_type);
 
-        // Set permissions based on user type according to the matrix
-        const userPermissions: UserPermissions = { ...defaultPermissions };
-
-        // Common permissions for all users
-        userPermissions.view_personal_dashboard = true;
-        userPermissions.view_college_branding = true;
-        userPermissions.support_tickets = true;
-
-        switch (profile.user_type) {
-          case 'student':
-            userPermissions.view_submit_assignments = true;
-            userPermissions.view_grades = true;
-            userPermissions.view_attendance = true;
-            userPermissions.join_forums = true;
-            userPermissions.view_fees = true;
-            userPermissions.make_payments = true;
-            userPermissions.request_certificates = true;
-            userPermissions.apply_hostel = true;
-            userPermissions.facility_requests = true;
-            break;
-
-          case 'teacher':
-            userPermissions.view_submit_assignments = true;
-            userPermissions.review_assignments = true;
-            userPermissions.view_grades = true;
-            userPermissions.assign_grades = true;
-            userPermissions.mark_attendance = true;
-            userPermissions.view_attendance = true;
-            userPermissions.upload_materials = true;
-            userPermissions.join_forums = true;
-            userPermissions.view_fees = true;
-            userPermissions.review_fees = true;
-            userPermissions.request_certificates = true;
-            userPermissions.facility_requests = true;
-            break;
-
-          case 'parent':
-            userPermissions.view_child_grades = true;
-            userPermissions.view_child_attendance = true;
-            userPermissions.view_child_fees = true;
-            userPermissions.make_child_payments = true;
-            break;
-
-          case 'alumni':
-            userPermissions.join_forums = true;
-            userPermissions.request_certificates = true;
-            userPermissions.alumni_contributions = true;
-            userPermissions.alumni_events = true;
-            break;
+        // Get permissions for user type
+        const userPermissions = PERMISSION_SETS[userTypeKey as keyof typeof PERMISSION_SETS];
+        if (userPermissions) {
+          setPermissions({ ...DEFAULT_PERMISSIONS, ...userPermissions });
         }
-
-        setPermissions(userPermissions);
       } catch (error) {
         console.error('Error loading user permissions:', error);
       } finally {

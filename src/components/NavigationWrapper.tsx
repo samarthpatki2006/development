@@ -12,9 +12,11 @@ const NavigationWrapper = ({ children }: NavigationWrapperProps) => {
 
   useEffect(() => {
     const userData = localStorage.getItem('colcord_user');
+    const currentPath = location.pathname;
+
     if (!userData) {
-      // If no user data, redirect to login
-      if (location.pathname !== '/') {
+      // If no user data and not on login page, redirect to login
+      if (currentPath !== '/') {
         navigate('/');
       }
       return;
@@ -22,7 +24,6 @@ const NavigationWrapper = ({ children }: NavigationWrapperProps) => {
 
     try {
       const user = JSON.parse(userData);
-      const currentPath = location.pathname;
       
       // Define the correct route for each user type
       const userRoutes = {
@@ -37,15 +38,19 @@ const NavigationWrapper = ({ children }: NavigationWrapperProps) => {
 
       const correctRoute = userRoutes[user.user_type as keyof typeof userRoutes];
       
-      // If user is on the wrong route, redirect them
+      // If user is logged in and on the login page, redirect to their correct route
+      if (currentPath === '/' && correctRoute) {
+        navigate(correctRoute);
+        return;
+      }
+      
+      // If user is on the wrong route, redirect them to their correct route
       if (correctRoute && currentPath !== correctRoute) {
-        // Allow access to the home page for navigation
-        if (currentPath !== '/') {
-          navigate(correctRoute);
-        }
+        navigate(correctRoute);
       }
     } catch (error) {
       console.error('Error parsing user data:', error);
+      localStorage.removeItem('colcord_user');
       navigate('/');
     }
   }, [location.pathname, navigate]);

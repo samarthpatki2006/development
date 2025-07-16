@@ -3,7 +3,8 @@ import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { GraduationCap, Heart, Calendar, Users, Award, MessageSquare } from 'lucide-react';
+import { GraduationCap, Heart, Calendar, Users, Award, MessageSquare, TrendingUp, Target } from 'lucide-react';
+import StatsCard from '@/components/layout/StatsCard';
 import PermissionWrapper from '@/components/PermissionWrapper';
 
 interface AlumniDashboardProps {
@@ -16,29 +17,25 @@ const AlumniDashboard = ({ user }: AlumniDashboardProps) => {
       title: 'Years Since Graduation',
       value: '5',
       icon: GraduationCap,
-      color: 'text-role-alumni',
-      permission: 'view_personal_dashboard' as const
+      iconBgColor: 'bg-role-alumni'
     },
     {
       title: 'Total Contributions',
       value: '₹50,000',
       icon: Heart,
-      color: 'text-red-600',
-      permission: 'alumni_contributions' as const
+      iconBgColor: 'bg-red-500'
     },
     {
       title: 'Events Attended',
       value: '12',
       icon: Calendar,
-      color: 'text-green-600',
-      permission: 'alumni_events' as const
+      iconBgColor: 'bg-green-500'
     },
     {
       title: 'Network Connections',
       value: '45',
       icon: Users,
-      color: 'text-purple-600',
-      permission: 'join_forums' as const
+      iconBgColor: 'bg-purple-500'
     }
   ];
 
@@ -74,34 +71,30 @@ const AlumniDashboard = ({ user }: AlumniDashboardProps) => {
       title: 'Make Contribution',
       description: 'Support current students and college',
       icon: Heart,
-      color: 'bg-red-50 text-red-600',
       permission: 'alumni_contributions' as const
     },
     {
       title: 'Alumni Events',
       description: 'View and register for upcoming events',
       icon: Calendar,
-      color: 'bg-green-50 text-green-600',
       permission: 'alumni_events' as const
     },
     {
       title: 'Join Discussion',
       description: 'Connect with fellow alumni',
       icon: MessageSquare,
-      color: 'bg-blue-50 text-blue-600',
       permission: 'join_forums' as const
     },
     {
       title: 'Request Certificate',
       description: 'Apply for academic documents',
       icon: Award,
-      color: 'bg-yellow-50 text-yellow-600',
       permission: 'request_certificates' as const
     }
   ];
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="space-y-6">
       {/* Welcome Section */}
       <Card className="border-white/10 bg-card/50 backdrop-blur-sm">
         <CardHeader>
@@ -115,42 +108,85 @@ const AlumniDashboard = ({ user }: AlumniDashboardProps) => {
         </CardHeader>
       </Card>
 
-      {/* Quick Stats */}
+      {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {alumniStats.map((stat, index) => {
-          const Icon = stat.icon;
-          return (
-            <PermissionWrapper key={index} permission={stat.permission}>
-              <Card className="border-white/10 bg-card/50 backdrop-blur-sm hover:border-role-alumni/20 transition-all duration-300 hover-translate-up">
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-muted-foreground">{stat.title}</p>
-                      <p className="text-2xl font-bold text-card-foreground">{stat.value}</p>
-                    </div>
-                    <div className="p-3 rounded-lg bg-role-alumni/10">
-                      <Icon className="h-6 w-6 text-role-alumni" />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </PermissionWrapper>
-          );
-        })}
+        {alumniStats.map((stat, index) => (
+          <StatsCard
+            key={index}
+            title={stat.title}
+            value={stat.value}
+            icon={stat.icon}
+            iconBgColor={stat.iconBgColor}
+          />
+        ))}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Alumni Impact */}
+        <Card className="border-white/10 bg-card/50 backdrop-blur-sm">
+          <CardHeader>
+            <CardTitle className="text-card-foreground">Alumni Impact</CardTitle>
+            <CardDescription>Your contribution impact over time</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="h-64 bg-gradient-to-br from-role-alumni/20 via-red-500/20 to-green-500/20 rounded-lg flex items-center justify-center">
+              <p className="text-muted-foreground">Impact Analytics Chart</p>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Network Growth */}
+        <Card className="border-white/10 bg-card/50 backdrop-blur-sm">
+          <CardHeader>
+            <CardTitle className="text-card-foreground">Network Growth</CardTitle>
+            <CardDescription>Your alumni connections and engagement</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="h-64 bg-gradient-to-br from-purple-500/20 via-blue-500/20 to-role-alumni/20 rounded-lg flex items-center justify-center">
+              <p className="text-muted-foreground">Network Analytics Chart</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Contribution Progress */}
+        <Card className="border-white/10 bg-card/50 backdrop-blur-sm">
+          <CardHeader>
+            <CardTitle className="text-card-foreground">Contribution Progress</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-sm text-muted-foreground">Annual Goal</span>
+                <span className="text-sm text-card-foreground">₹50,000 / ₹100,000</span>
+              </div>
+              <div className="w-full bg-white/10 rounded-full h-2">
+                <div className="bg-gradient-to-r from-role-alumni to-red-500 h-2 rounded-full" style={{ width: '50%' }}></div>
+              </div>
+            </div>
+            <div>
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-sm text-muted-foreground">Students Helped</span>
+                <span className="text-sm text-card-foreground">5 this year</span>
+              </div>
+              <div className="w-full bg-white/10 rounded-full h-2">
+                <div className="bg-gradient-to-r from-green-500 to-role-alumni h-2 rounded-full" style={{ width: '83%' }}></div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Recent Activities */}
         <Card className="border-white/10 bg-card/50 backdrop-blur-sm">
           <CardHeader>
             <CardTitle className="text-card-foreground">Recent Activities</CardTitle>
-            <CardDescription>Your latest alumni activities</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-3">
             {recentActivities.map((activity, index) => (
               <PermissionWrapper key={index} permission={activity.permission}>
-                <div className="flex items-start space-x-4 p-3 rounded-lg bg-white/5 hover:bg-white/10 transition-colors duration-300">
-                  <div className="w-2 h-2 bg-role-alumni rounded-full mt-3 animate-pulse-indicator"></div>
+                <div className="flex items-start space-x-3 p-3 bg-white/5 rounded-lg">
+                  <div className="w-2 h-2 bg-role-alumni rounded-full mt-2"></div>
                   <div className="flex-1">
                     <p className="font-medium text-card-foreground">{activity.title}</p>
                     <p className="text-sm text-muted-foreground">{activity.description}</p>
@@ -161,23 +197,25 @@ const AlumniDashboard = ({ user }: AlumniDashboardProps) => {
             ))}
           </CardContent>
         </Card>
+      </div>
 
-        {/* Quick Actions */}
-        <Card className="border-white/10 bg-card/50 backdrop-blur-sm">
-          <CardHeader>
-            <CardTitle className="text-card-foreground">Quick Actions</CardTitle>
-            <CardDescription>Connect and contribute to your alma mater</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
+      {/* Quick Actions */}
+      <Card className="border-white/10 bg-card/50 backdrop-blur-sm">
+        <CardHeader>
+          <CardTitle className="text-card-foreground">Quick Actions</CardTitle>
+          <CardDescription>Connect and contribute to your alma mater</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             {quickActions.map((action, index) => {
               const Icon = action.icon;
               return (
                 <PermissionWrapper key={index} permission={action.permission}>
-                  <div className="flex items-center space-x-4 p-4 rounded-lg border border-white/10 hover:border-role-alumni/20 hover:bg-white/5 cursor-pointer transition-all duration-300 hover-translate-up">
+                  <div className="flex flex-col items-center space-y-3 p-6 border border-white/10 rounded-lg bg-white/5 hover:border-role-alumni/20 hover:bg-white/10 cursor-pointer transition-all duration-300">
                     <div className="p-3 rounded-lg bg-role-alumni/10">
-                      <Icon className="h-5 w-5 text-role-alumni" />
+                      <Icon className="h-6 w-6 text-role-alumni" />
                     </div>
-                    <div className="flex-1">
+                    <div className="text-center">
                       <p className="font-medium text-card-foreground">{action.title}</p>
                       <p className="text-sm text-muted-foreground">{action.description}</p>
                     </div>
@@ -185,58 +223,9 @@ const AlumniDashboard = ({ user }: AlumniDashboardProps) => {
                 </PermissionWrapper>
               );
             })}
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Alumni Spotlight */}
-      <PermissionWrapper permission="alumni_events">
-        <Card className="border-white/10 bg-card/50 backdrop-blur-sm">
-          <CardHeader>
-            <CardTitle className="text-card-foreground">Upcoming Alumni Events</CardTitle>
-            <CardDescription>Stay connected with your alma mater</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {[
-                {
-                  name: 'Annual Alumni Meet 2024',
-                  date: 'December 15, 2024',
-                  location: 'Main Campus',
-                  attendees: '200+ expected'
-                },
-                {
-                  name: 'Tech Talk Series',
-                  date: 'January 20, 2025',
-                  location: 'Virtual Event',
-                  attendees: '150+ registered'
-                },
-                {
-                  name: 'Scholarship Fundraiser',
-                  date: 'February 10, 2025',
-                  location: 'Bangalore',
-                  attendees: '50+ confirmed'
-                }
-              ].map((event, index) => (
-                <div key={index} className="flex items-center justify-between p-4 border border-white/10 rounded-lg bg-white/5 hover:border-role-alumni/20 transition-colors duration-300">
-                  <div>
-                    <h4 className="font-medium text-card-foreground">{event.name}</h4>
-                    <p className="text-sm text-muted-foreground">{event.date} • {event.location}</p>
-                  </div>
-                  <div className="text-right">
-                    <Badge variant="secondary" className="bg-role-alumni/10 text-role-alumni border-role-alumni/20">{event.attendees}</Badge>
-                    <div className="mt-2">
-                      <Button size="sm" variant="outline" className="border-role-alumni/30 hover:bg-role-alumni/10">
-                        Register
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      </PermissionWrapper>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Contribution Impact */}
       <PermissionWrapper permission="alumni_contributions">

@@ -1,29 +1,22 @@
 
 import React, { useState, useEffect } from 'react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useNavigate } from 'react-router-dom';
 import { toast } from "@/components/ui/use-toast";
+import { Button } from '@/components/ui/button';
+import { Home, Calendar, Users, Heart, FileText, HelpCircle, Bell, Settings, User } from 'lucide-react';
+import SidebarNavigation from '@/components/layout/SidebarNavigation';
 import AlumniDashboard from '@/components/alumni/AlumniDashboard';
 import AlumniEvents from '@/components/alumni/AlumniEvents';
 import AlumniNetworking from '@/components/alumni/AlumniNetworking';
 import AlumniContributions from '@/components/alumni/AlumniContributions';
 import AlumniDocuments from '@/components/alumni/AlumniDocuments';
 import AlumniSupport from '@/components/alumni/AlumniSupport';
-import { Home, Calendar, Users, Heart, FileText, HelpCircle } from 'lucide-react';
-
-// Tab configuration for better maintainability
-const ALUMNI_TABS = [
-  { value: 'dashboard', label: 'Dashboard', icon: Home },
-  { value: 'events', label: 'Events', icon: Calendar },
-  { value: 'networking', label: 'Networking', icon: Users },
-  { value: 'contributions', label: 'Contributions', icon: Heart },
-  { value: 'documents', label: 'Documents', icon: FileText },
-  { value: 'support', label: 'Support', icon: HelpCircle },
-];
 
 const Alumni = () => {
+  const [activeView, setActiveView] = useState('dashboard');
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -79,76 +72,113 @@ const Alumni = () => {
     return null;
   }
 
+  const sidebarItems = [
+    { id: 'dashboard', label: 'Dashboard', icon: Home },
+    { id: 'events', label: 'Events', icon: Calendar },
+    { id: 'networking', label: 'Networking', icon: Users },
+    { id: 'contributions', label: 'Contributions', icon: Heart },
+    { id: 'documents', label: 'Documents', icon: FileText },
+    { id: 'support', label: 'Support', icon: HelpCircle },
+  ];
+
+  const renderContent = () => {
+    switch (activeView) {
+      case 'dashboard':
+        return <AlumniDashboard user={user} />;
+      case 'events':
+        return <AlumniEvents user={user} />;
+      case 'networking':
+        return <AlumniNetworking user={user} />;
+      case 'contributions':
+        return <AlumniContributions user={user} />;
+      case 'documents':
+        return <AlumniDocuments user={user} />;
+      case 'support':
+        return <AlumniSupport user={user} />;
+      default:
+        return <AlumniDashboard user={user} />;
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
+      {/* Background Grid */}
+      <div className="fixed inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:40px_40px] pointer-events-none"></div>
+      
       {/* Header */}
-      <header className="bg-card border-b border-white/10 backdrop-blur-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-6">
-            <div className="flex items-center space-x-4">
-              <h1 className="text-3xl font-bold text-card-foreground">
-                ColCord - Alumni Portal
-              </h1>
-              <span className="text-sm text-muted-foreground">
-                Welcome back, {user.first_name} {user.last_name}
-              </span>
+      <div className="relative z-10 bg-background/95 backdrop-blur-sm border-b border-white/10">
+        <div className="container px-4 mx-auto">
+          <div className="flex justify-between items-center h-16">
+            <div className="flex items-center space-x-6">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+                className="h-9 w-9 rounded-lg hover:bg-white/10 transition-colors"
+              >
+                <span className="sr-only">Toggle sidebar</span>
+                <div className="w-4 h-4 flex flex-col space-y-1">
+                  <div className="w-full h-0.5 bg-foreground"></div>
+                  <div className="w-full h-0.5 bg-foreground"></div>
+                  <div className="w-full h-0.5 bg-foreground"></div>
+                </div>
+              </Button>
+              <h1 className="text-2xl font-bold text-foreground">ColCord</h1>
+              <div className="h-6 w-px bg-white/20"></div>
+              <div className="flex items-center space-x-2">
+                <div className="h-2 w-2 bg-role-alumni rounded-full animate-pulse-indicator"></div>
+                <span className="text-lg font-medium text-foreground">Alumni Portal</span>
+              </div>
             </div>
-            <button
-              onClick={handleLogout}
-              className="bg-destructive hover:bg-destructive/90 text-destructive-foreground px-6 py-2 rounded-md text-sm font-medium transition-colors"
-            >
-              Logout
-            </button>
+            <div className="flex items-center space-x-3">
+              <span className="text-sm text-muted-foreground">
+                Welcome, {user.first_name} {user.last_name}
+              </span>
+              <Button 
+                variant="ghost" 
+                size="icon"
+                className="h-9 w-9 rounded-lg hover:bg-white/10 transition-colors"
+              >
+                <Bell className="h-5 w-5 text-foreground" />
+              </Button>
+              
+              <Button 
+                variant="ghost" 
+                size="icon"
+                className="h-9 w-9 rounded-lg hover:bg-white/10 transition-colors"
+              >
+                <Settings className="h-5 w-5 text-foreground" />
+              </Button>
+              
+              <Button 
+                variant="ghost" 
+                size="icon"
+                onClick={handleLogout}
+                className="h-9 w-9 rounded-lg hover:bg-white/10 transition-colors"
+              >
+                <User className="h-5 w-5 text-foreground" />
+              </Button>
+            </div>
           </div>
         </div>
-      </header>
+      </div>
 
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <Tabs defaultValue="dashboard" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-6 bg-card/50 backdrop-blur-sm border border-white/10">
-            {ALUMNI_TABS.map((tab) => {
-              const Icon = tab.icon;
-              return (
-                <TabsTrigger 
-                  key={tab.value}
-                  value={tab.value}
-                  className="flex items-center space-x-2 data-[state=active]:bg-role-alumni/20 data-[state=active]:text-role-alumni data-[state=active]:border-role-alumni/30"
-                >
-                  <Icon className="h-4 w-4" />
-                  <span className="hidden sm:inline">{tab.label}</span>
-                </TabsTrigger>
-              );
-            })}
-          </TabsList>
+      {/* Main Layout */}
+      <div className="relative z-10 flex">
+        {/* Sidebar */}
+        <SidebarNavigation
+          items={sidebarItems}
+          activeItem={activeView}
+          onItemClick={setActiveView}
+          userType="alumni"
+          collapsed={sidebarCollapsed}
+        />
 
-          <div className="min-h-[600px]">
-            <TabsContent value="dashboard" className="space-y-6 animate-fade-in">
-              <AlumniDashboard user={user} />
-            </TabsContent>
-
-            <TabsContent value="events" className="space-y-6 animate-fade-in">
-              <AlumniEvents user={user} />
-            </TabsContent>
-
-            <TabsContent value="networking" className="space-y-6 animate-fade-in">
-              <AlumniNetworking user={user} />
-            </TabsContent>
-
-            <TabsContent value="contributions" className="space-y-6 animate-fade-in">
-              <AlumniContributions user={user} />
-            </TabsContent>
-
-            <TabsContent value="documents" className="space-y-6 animate-fade-in">
-              <AlumniDocuments user={user} />
-            </TabsContent>
-
-            <TabsContent value="support" className="space-y-6 animate-fade-in">
-              <AlumniSupport user={user} />
-            </TabsContent>
-          </div>
-        </Tabs>
-      </main>
+        {/* Main Content */}
+        <div className="flex-1 p-6">
+          {renderContent()}
+        </div>
+      </div>
     </div>
   );
 };

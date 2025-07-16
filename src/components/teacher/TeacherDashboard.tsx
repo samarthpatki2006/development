@@ -2,198 +2,233 @@
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { BookOpen, Users, Calendar, Award, TrendingUp, Clock, Target, CheckSquare } from 'lucide-react';
-import StatsCard from '@/components/layout/StatsCard';
+import { Button } from '@/components/ui/button';
+import { BookOpen, Users, FileText, Calendar, Award, Upload } from 'lucide-react';
 import PermissionWrapper from '@/components/PermissionWrapper';
 
 interface TeacherDashboardProps {
   teacherData: any;
 }
 
+// Dashboard statistics configuration
+const TEACHER_STATS = [
+  {
+    title: 'Courses Teaching',
+    value: '4',
+    icon: BookOpen,
+    color: 'text-blue-600',
+    permission: 'review_assignments' as const
+  },
+  {
+    title: 'Total Students',
+    value: '120',
+    icon: Users,
+    color: 'text-green-600',
+    permission: 'view_attendance' as const
+  },
+  {
+    title: 'Pending Assignments',
+    value: '8',
+    icon: FileText,
+    color: 'text-orange-600',
+    permission: 'review_assignments' as const
+  },
+  {
+    title: 'Classes This Week',
+    value: '12',
+    icon: Calendar,
+    color: 'text-purple-600',
+    permission: 'mark_attendance' as const
+  }
+];
+
+// Recent activities configuration
+const RECENT_ACTIVITIES = [
+  {
+    title: 'Assignment Graded',
+    description: 'Data Structures - 15 submissions reviewed',
+    time: '1 hour ago',
+    permission: 'review_assignments' as const
+  },
+  {
+    title: 'Attendance Marked',
+    description: 'Computer Networks - 30 students present',
+    time: '3 hours ago',
+    permission: 'mark_attendance' as const
+  },
+  {
+    title: 'Material Uploaded',
+    description: 'Database Systems - Lecture slides added',
+    time: '1 day ago',
+    permission: 'upload_materials' as const
+  },
+  {
+    title: 'Grade Updated',
+    description: 'Midterm scores published for CS301',
+    time: '2 days ago',
+    permission: 'assign_grades' as const
+  }
+];
+
+// Quick actions configuration
+const QUICK_ACTIONS = [
+  {
+    title: 'Grade Assignments',
+    description: 'Review and grade pending submissions',
+    icon: Award,
+    color: 'bg-blue-50 text-blue-600',
+    permission: 'review_assignments' as const
+  },
+  {
+    title: 'Mark Attendance',
+    description: 'Record student attendance for classes',
+    icon: Users,
+    color: 'bg-green-50 text-green-600',
+    permission: 'mark_attendance' as const
+  },
+  {
+    title: 'Upload Materials',
+    description: 'Share lecture notes and resources',
+    icon: Upload,
+    color: 'bg-purple-50 text-purple-600',
+    permission: 'upload_materials' as const
+  },
+  {
+    title: 'Join Discussion',
+    description: 'Participate in teacher forums',
+    icon: FileText,
+    color: 'bg-yellow-50 text-yellow-600',
+    permission: 'join_forums' as const
+  }
+];
+
+// Today's classes data
+const TODAY_CLASSES = [
+  { course: 'Data Structures & Algorithms', time: '09:00 - 10:30', room: 'Room 301', students: 35 },
+  { course: 'Database Management Systems', time: '11:00 - 12:30', room: 'Room 205', students: 42 },
+  { course: 'Computer Networks', time: '14:00 - 15:30', room: 'Lab 101', students: 28 }
+];
+
 const TeacherDashboard = ({ teacherData }: TeacherDashboardProps) => {
-  const stats = [
-    {
-      title: 'Courses Teaching',
-      value: '4',
-      icon: BookOpen,
-      iconBgColor: 'bg-blue-500'
-    },
-    {
-      title: 'Total Students',
-      value: '156',
-      icon: Users,
-      iconBgColor: 'bg-green-500'
-    },
-    {
-      title: 'Classes This Week',
-      value: '18',
-      icon: Calendar,
-      iconBgColor: 'bg-purple-500'
-    },
-    {
-      title: 'Pending Grading',
-      value: '23',
-      icon: CheckSquare,
-      iconBgColor: 'bg-orange-500'
-    }
-  ];
+  const renderStatCard = (stat: typeof TEACHER_STATS[0], index: number) => {
+    const Icon = stat.icon;
+    return (
+      <PermissionWrapper key={index} permission={stat.permission}>
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">{stat.title}</p>
+                <p className="text-2xl font-bold">{stat.value}</p>
+              </div>
+              <Icon className={`h-8 w-8 ${stat.color}`} />
+            </div>
+          </CardContent>
+        </Card>
+      </PermissionWrapper>
+    );
+  };
 
-  const upcomingClasses = [
-    {
-      title: 'Database Systems - CS301',
-      time: '09:00 AM - 10:30 AM',
-      room: 'Room 204',
-      type: 'lecture'
-    },
-    {
-      title: 'Web Development - CS401',
-      time: '02:00 PM - 03:30 PM',
-      room: 'Lab 1',
-      type: 'practical'
-    },
-    {
-      title: 'Data Structures - CS201',
-      time: '04:00 PM - 05:30 PM',
-      room: 'Room 102',
-      type: 'tutorial'
-    }
-  ];
+  const renderActivity = (activity: typeof RECENT_ACTIVITIES[0], index: number) => (
+    <PermissionWrapper key={index} permission={activity.permission}>
+      <div className="flex items-start space-x-3">
+        <div className="w-2 h-2 bg-blue-600 rounded-full mt-2" />
+        <div className="flex-1">
+          <p className="font-medium">{activity.title}</p>
+          <p className="text-sm text-gray-600">{activity.description}</p>
+          <p className="text-xs text-gray-400">{activity.time}</p>
+        </div>
+      </div>
+    </PermissionWrapper>
+  );
 
-  const recentCourses = [
-    { name: 'Database Systems', code: 'CS301', students: 42, progress: 75 },
-    { name: 'Web Development', code: 'CS401', students: 38, progress: 60 },
-    { name: 'Data Structures', code: 'CS201', students: 45, progress: 80 },
-    { name: 'Software Engineering', code: 'CS501', students: 31, progress: 45 }
-  ];
+  const renderQuickAction = (action: typeof QUICK_ACTIONS[0], index: number) => {
+    const Icon = action.icon;
+    return (
+      <PermissionWrapper key={index} permission={action.permission}>
+        <div className="flex items-center space-x-3 p-3 rounded-lg border hover:bg-gray-50 cursor-pointer">
+          <div className={`p-2 rounded-lg ${action.color}`}>
+            <Icon className="h-4 w-4" />
+          </div>
+          <div className="flex-1">
+            <p className="font-medium">{action.title}</p>
+            <p className="text-sm text-gray-600">{action.description}</p>
+          </div>
+        </div>
+      </PermissionWrapper>
+    );
+  };
+
+  const renderClassItem = (classItem: typeof TODAY_CLASSES[0], index: number) => (
+    <div key={index} className="flex items-center justify-between p-4 border rounded-lg">
+      <div>
+        <h4 className="font-medium">{classItem.course}</h4>
+        <p className="text-sm text-gray-600">{classItem.time} • {classItem.room}</p>
+      </div>
+      <div className="text-right">
+        <Badge variant="secondary">{classItem.students} students</Badge>
+        <div className="mt-2">
+          <Button size="sm" variant="outline">
+            Mark Attendance
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <div className="space-y-6">
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {stats.map((stat, index) => (
-          <StatsCard
-            key={index}
-            title={stat.title}
-            value={stat.value}
-            icon={stat.icon}
-            iconBgColor={stat.iconBgColor}
-          />
-        ))}
+      {/* Welcome Section */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center space-x-2">
+            <span>Welcome, Prof. {teacherData.first_name} {teacherData.last_name}!</span>
+          </CardTitle>
+          <CardDescription>
+            Teacher ID: {teacherData.user_code} | Department: Computer Science
+          </CardDescription>
+        </CardHeader>
+      </Card>
+
+      {/* Quick Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {TEACHER_STATS.map(renderStatCard)}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Teaching Performance */}
-        <Card className="border-white/10 bg-card/50 backdrop-blur-sm">
+        {/* Recent Activities */}
+        <Card>
           <CardHeader>
-            <CardTitle className="text-card-foreground">Teaching Performance</CardTitle>
-            <CardDescription>Student feedback and course ratings</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="h-64 bg-gradient-to-br from-green-500/20 via-blue-500/20 to-purple-500/20 rounded-lg flex items-center justify-center">
-              <p className="text-muted-foreground">Performance Analytics Chart</p>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Student Progress */}
-        <Card className="border-white/10 bg-card/50 backdrop-blur-sm">
-          <CardHeader>
-            <CardTitle className="text-card-foreground">Student Progress</CardTitle>
-            <CardDescription>Overall class performance trends</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="h-64 bg-gradient-to-br from-blue-500/20 via-green-500/20 to-yellow-500/20 rounded-lg flex items-center justify-center">
-              <p className="text-muted-foreground">Student Progress Chart</p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Grading Workload */}
-        <Card className="border-white/10 bg-card/50 backdrop-blur-sm">
-          <CardHeader>
-            <CardTitle className="text-card-foreground">Grading Workload</CardTitle>
+            <CardTitle>Recent Activities</CardTitle>
+            <CardDescription>Your latest teaching activities</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div>
-              <div className="flex justify-between items-center mb-2">
-                <span className="text-sm text-muted-foreground">Assignments to Grade</span>
-                <span className="text-sm text-card-foreground">23 pending</span>
-              </div>
-              <div className="w-full bg-white/10 rounded-full h-2">
-                <div className="bg-gradient-to-r from-orange-500 to-red-500 h-2 rounded-full" style={{ width: '65%' }}></div>
-              </div>
-            </div>
-            <div>
-              <div className="flex justify-between items-center mb-2">
-                <span className="text-sm text-muted-foreground">Exams to Grade</span>
-                <span className="text-sm text-card-foreground">8 pending</span>
-              </div>
-              <div className="w-full bg-white/10 rounded-full h-2">
-                <div className="bg-gradient-to-r from-yellow-500 to-orange-500 h-2 rounded-full" style={{ width: '35%' }}></div>
-              </div>
-            </div>
+            {RECENT_ACTIVITIES.map(renderActivity)}
           </CardContent>
         </Card>
 
-        {/* Upcoming Classes */}
-        <Card className="border-white/10 bg-card/50 backdrop-blur-sm">
+        {/* Quick Actions */}
+        <Card>
           <CardHeader>
-            <CardTitle className="text-card-foreground">Upcoming Classes</CardTitle>
+            <CardTitle>Quick Actions</CardTitle>
+            <CardDescription>Commonly used features</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            {upcomingClasses.map((classItem, index) => (
-              <div key={index} className="flex items-center space-x-3 p-3 bg-white/5 rounded-lg">
-                <div className="w-2 h-2 bg-role-teacher rounded-full"></div>
-                <div className="flex-1">
-                  <p className="font-medium text-card-foreground">{classItem.title}</p>
-                  <p className="text-sm text-muted-foreground">{classItem.time} • {classItem.room}</p>
-                </div>
-                <Badge variant="outline" className="border-role-teacher/20 text-role-teacher">
-                  {classItem.type}
-                </Badge>
-              </div>
-            ))}
+            {QUICK_ACTIONS.map(renderQuickAction)}
           </CardContent>
         </Card>
       </div>
 
-      {/* Teaching Courses */}
-      <PermissionWrapper permission="upload_materials">
-        <Card className="border-white/10 bg-card/50 backdrop-blur-sm">
+      {/* Teaching Schedule */}
+      <PermissionWrapper permission="mark_attendance">
+        <Card>
           <CardHeader>
-            <CardTitle className="text-card-foreground">Teaching Courses</CardTitle>
-            <CardDescription>Your courses this semester</CardDescription>
+            <CardTitle>Today's Classes</CardTitle>
+            <CardDescription>Your scheduled classes for today</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {recentCourses.map((course, index) => (
-                <div key={index} className="p-6 border border-white/10 rounded-lg bg-white/5 hover:border-role-teacher/20 transition-all duration-300">
-                  <div className="flex justify-between items-start mb-4">
-                    <h4 className="font-bold text-card-foreground">{course.name}</h4>
-                    <Badge variant="secondary" className="bg-role-teacher/10 text-role-teacher border-role-teacher/20">
-                      {course.code}
-                    </Badge>
-                  </div>
-                  <div className="space-y-2 mb-4">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Students</span>
-                      <span className="text-card-foreground font-medium">{course.students}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Progress</span>
-                      <span className="text-card-foreground font-medium">{course.progress}%</span>
-                    </div>
-                  </div>
-                  <div className="w-full bg-white/10 rounded-full h-2">
-                    <div 
-                      className="bg-role-teacher h-2 rounded-full transition-all duration-500" 
-                      style={{ width: `${course.progress}%` }}
-                    ></div>
-                  </div>
-                </div>
-              ))}
+            <div className="space-y-3">
+              {TODAY_CLASSES.map(renderClassItem)}
             </div>
           </CardContent>
         </Card>

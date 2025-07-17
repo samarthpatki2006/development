@@ -1,6 +1,8 @@
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
+import { Session } from '@supabase/supabase-js';
 import MultiStepLogin from '@/components/MultiStepLogin';
 import CollegeBranding from '@/components/CollegeBranding';
 
@@ -15,32 +17,26 @@ const DEFAULT_COLLEGE_CONFIG = {
 
 const Index = () => {
   const navigate = useNavigate();
+  const [session, setSession] = useState<Session | null>(null);
 
   useEffect(() => {
-    // Check if user is already logged in
-    const userData = localStorage.getItem('colcord_user');
-    if (userData) {
-      try {
-        const user = JSON.parse(userData);
-        const userRoutes = {
-          'student': '/student',
-          'faculty': '/teacher',
-          'teacher': '/teacher',
-          'admin': '/admin',
-          'super_admin': '/admin',
-          'parent': '/parent',
-          'alumni': '/alumni'
-        };
-
-        const correctRoute = userRoutes[user.user_type as keyof typeof userRoutes];
-        if (correctRoute) {
-          navigate(correctRoute);
+    // Check if user is already authenticated with Supabase
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        setSession(session);
+        
+        if (session?.user) {
+          // User is authenticated, they'll be redirected by NavigationWrapper
+          // based on their profile data
         }
-      } catch (error) {
-        console.error('Error parsing user data:', error);
-        localStorage.removeItem('colcord_user');
       }
-    }
+    );
+
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+    });
+
+    return () => subscription.unsubscribe();
   }, [navigate]);
 
   return (

@@ -2666,7 +2666,6 @@ export type Database = {
           id: string
           is_active: boolean | null
           last_name: string
-          password: string
           updated_at: string | null
           user_code: string
           user_type: Database["public"]["Enums"]["user_type_enum"]
@@ -2682,7 +2681,6 @@ export type Database = {
           id: string
           is_active?: boolean | null
           last_name: string
-          password: string
           updated_at?: string | null
           user_code: string
           user_type: Database["public"]["Enums"]["user_type_enum"]
@@ -2698,7 +2696,6 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           last_name?: string
-          password?: string
           updated_at?: string | null
           user_code?: string
           user_type?: Database["public"]["Enums"]["user_type_enum"]
@@ -2896,6 +2893,24 @@ export type Database = {
           role_type: Database["public"]["Enums"]["admin_role_type"]
           permissions: Json
           assigned_at: string
+        }[]
+      }
+      get_user_email: {
+        Args: { college_code: string; user_code: string }
+        Returns: {
+          user_exists: boolean
+          email: string
+        }[]
+      }
+      get_user_email_for_auth: {
+        Args: { college_code: string; user_code: string }
+        Returns: {
+          email: string
+          user_id: string
+          user_type: Database["public"]["Enums"]["user_type_enum"]
+          first_name: string
+          last_name: string
+          college_id: string
         }[]
       }
       get_user_permissions: {

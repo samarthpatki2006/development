@@ -1,11 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/use-toast";
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { Session, User } from '@supabase/supabase-js';
 
 interface CollegeData {
   id: string;
@@ -17,12 +18,92 @@ interface CollegeData {
 }
 
 const MultiStepLogin = () => {
+  const navigate = useNavigate();
   const [step, setStep] = useState(1);
   const [collegeCode, setCollegeCode] = useState('');
   const [userCode, setUserCode] = useState('');
   const [password, setPassword] = useState('');
   const [collegeData, setCollegeData] = useState<CollegeData | null>(null);
+  const [userEmail, setUserEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [session, setSession] = useState<Session | null>(null);
+  const [user, setUser] = useState<User | null>(null);
+
+  // Set up auth state listener
+  useEffect(() => {
+    // Set up auth state listener FIRST
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        setSession(session);
+        setUser(session?.user ?? null);
+        
+        // If user is authenticated, fetch their profile and redirect
+        if (session?.user) {
+          setTimeout(() => {
+            handleAuthenticatedUser(session.user);
+          }, 0);
+        }
+      }
+    );
+
+    // THEN check for existing session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const handleAuthenticatedUser = async (user: User) => {
+    try {
+      // Get user profile data from user_profiles table
+      const { data: profile, error } = await supabase
+        .from('user_profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+
+      if (error || !profile) {
+        console.error('Error fetching user profile:', error);
+        toast({
+          title: 'Profile Error',
+          description: 'Could not load user profile. Please contact support.',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      // Store user data for legacy compatibility
+      const userData = {
+        user_id: profile.id,
+        user_type: profile.user_type,
+        first_name: profile.first_name,
+        last_name: profile.last_name,
+        college_id: profile.college_id,
+        user_code: profile.user_code,
+        email: profile.email
+      };
+
+      localStorage.setItem('colcord_user', JSON.stringify(userData));
+
+      // Redirect based on user type
+      const userRoutes = {
+        'student': '/student',
+        'faculty': '/teacher',
+        'teacher': '/teacher',
+        'admin': '/admin',
+        'super_admin': '/admin',
+        'parent': '/parent',
+        'alumni': '/alumni'
+      };
+
+      const route = userRoutes[profile.user_type as keyof typeof userRoutes] || '/student';
+      navigate(route);
+    } catch (error) {
+      console.error('Error handling authenticated user:', error);
+    }
+  };
 
   const handleCollegeCodeSubmit = async () => {
     if (!collegeCode) {
@@ -77,16 +158,17 @@ const MultiStepLogin = () => {
     setIsLoading(true);
 
     try {
-      const { data, error } = await supabase.rpc('validate_college_user', {
+      // Get user email using the new secure function
+      const { data, error } = await supabase.rpc('get_user_email_for_auth', {
         college_code: collegeData?.code || '',
         user_code: userCode
       });
 
       if (error) throw error;
 
-      const validationResult = data?.[0];
+      const userResult = data?.[0];
 
-      if (!validationResult?.user_exists) {
+      if (!userResult?.email) {
         toast({
           title: 'Invalid User Code',
           description: 'This user code does not exist in this college',
@@ -95,6 +177,7 @@ const MultiStepLogin = () => {
         return;
       }
 
+      setUserEmail(userResult.email);
       setStep(3);
     } catch (error) {
       console.error('User code validation error:', error);
@@ -118,67 +201,62 @@ const MultiStepLogin = () => {
       return;
     }
 
+    if (!userEmail) {
+      toast({
+        title: 'Error',
+        description: 'User email not found. Please start over.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     setIsLoading(true);
 
     try {
-      const { data, error } = await supabase.rpc('validate_user_login', {
-        p_college_code: collegeData?.code || '',
-        p_user_code: userCode,
-        p_user_password: password
+      // Use Supabase auth with email and password
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: userEmail,
+        password: password
       });
 
-      if (error) throw error;
-
-      const loginResult = data?.[0];
-      
-      if (!loginResult?.login_success) {
-        toast({
-          title: 'Login Failed',
-          description: loginResult?.error_message || 'Invalid credentials',
-          variant: 'destructive',
-        });
+      if (error) {
+        console.error('Login error:', error);
+        
+        // Handle specific auth errors
+        if (error.message.includes('Invalid login credentials')) {
+          toast({
+            title: 'Login Failed',
+            description: 'Invalid password. Please check your credentials.',
+            variant: 'destructive',
+          });
+        } else if (error.message.includes('Email not confirmed')) {
+          toast({
+            title: 'Email Not Confirmed',
+            description: 'Please check your email and confirm your account.',
+            variant: 'destructive',
+          });
+        } else {
+          toast({
+            title: 'Login Error',
+            description: error.message || 'An error occurred during login.',
+            variant: 'destructive',
+          });
+        }
         return;
       }
 
-      // Store user data in localStorage for session management
-      const userData = {
-        user_id: loginResult.user_id,
-        user_type: loginResult.user_type,
-        first_name: loginResult.first_name,
-        last_name: loginResult.last_name,
-        college_id: collegeData?.id,
-        college_name: collegeData?.name,
-        user_code: userCode
-      };
-
-      localStorage.setItem('colcord_user', JSON.stringify(userData));
-
-      toast({
-        title: 'Login Successful',
-        description: `Welcome back, ${loginResult.first_name}!`,
-      });
-
-      // Redirect based on user type
-      if (loginResult.user_type === 'admin' || loginResult.user_type === 'staff') {
-        window.location.href = '/admin';
-      } else if (loginResult.user_type === 'student') {
-        window.location.href = '/student';
-      } else if (loginResult.user_type === 'teacher') {
-        window.location.href = '/teacher';
-      } else if (loginResult.user_type === 'parent') {
-        window.location.href = '/parent';
-      } else if (loginResult.user_type === 'alumni') {
-        window.location.href = '/alumni';
-      } else {
-        // For other user types, redirect to appropriate portal
-        window.location.href = '/student';
+      if (data.user) {
+        toast({
+          title: 'Login Successful',
+          description: 'Welcome back! Redirecting to your dashboard...',
+        });
+        // Auth state change will handle the redirect
       }
-
     } catch (error) {
-      console.error('Login error:', error);
+      console.error('Unexpected login error:', error);
       toast({
         title: 'Login Error',
-        description: 'An error occurred during login. Please try again.',
+        description: 'An unexpected error occurred. Please try again.',
         variant: 'destructive',
       });
     } finally {

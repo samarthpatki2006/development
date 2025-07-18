@@ -2904,14 +2904,7 @@ export type Database = {
       }
       get_user_email_for_auth: {
         Args: { college_code: string; user_code: string }
-        Returns: {
-          email: string
-          user_id: string
-          user_type: Database["public"]["Enums"]["user_type_enum"]
-          first_name: string
-          last_name: string
-          college_id: string
-        }[]
+        Returns: string
       }
       get_user_permissions: {
         Args: { user_uuid: string }

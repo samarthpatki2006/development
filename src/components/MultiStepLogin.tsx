@@ -159,7 +159,7 @@ const MultiStepLogin = () => {
 
     try {
       // Get user email using the new secure function
-      const { data, error } = await supabase.rpc('get_user_email_for_auth', {
+      const { data, error } = await supabase.rpc('get_user_email', {
         college_code: collegeData?.code || '',
         user_code: userCode
       });

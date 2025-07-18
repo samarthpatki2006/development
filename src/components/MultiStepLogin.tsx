@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "@/components/ui/use-toast";
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -28,6 +29,18 @@ const MultiStepLogin = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
+  const [isSignUp, setIsSignUp] = useState(false);
+  
+  // Signup form data
+  const [signupData, setSignupData] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    userType: 'student' as 'student' | 'faculty' | 'parent' | 'alumni',
+    customUserCode: '',
+    generatePassword: '',
+    confirmPassword: ''
+  });
 
   // Set up auth state listener
   useEffect(() => {
@@ -264,6 +277,168 @@ const MultiStepLogin = () => {
     }
   };
 
+  const handleSignupSubmit = async () => {
+    // Validation
+    if (!signupData.firstName || !signupData.lastName || !signupData.email) {
+      toast({
+        title: 'Missing Information',
+        description: 'Please fill in all required fields',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (!signupData.customUserCode) {
+      toast({
+        title: 'User Code Required',
+        description: 'Please enter your preferred user code',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (!signupData.generatePassword || signupData.generatePassword.length < 6) {
+      toast({
+        title: 'Password Too Short',
+        description: 'Password must be at least 6 characters long',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (signupData.generatePassword !== signupData.confirmPassword) {
+      toast({
+        title: 'Password Mismatch',
+        description: 'Passwords do not match',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (!collegeData) {
+      toast({
+        title: 'College Not Selected',
+        description: 'Please go back and select a college',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      // Check if user code already exists
+      const { data: existingUser, error: checkError } = await supabase.rpc('get_user_email', {
+        college_code: collegeData.code,
+        user_code: signupData.customUserCode
+      });
+
+      if (checkError) throw checkError;
+
+      if (existingUser && existingUser[0]?.user_exists) {
+        toast({
+          title: 'User Code Taken',
+          description: 'This user code is already in use. Please choose another.',
+          variant: 'destructive',
+        });
+        setIsLoading(false);
+        return;
+      }
+
+      // Create the user in Supabase Auth
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: signupData.email,
+        password: signupData.generatePassword,
+        options: {
+          emailRedirectTo: `${window.location.origin}/`,
+          data: {
+            college_id: collegeData.id,
+            user_code: signupData.customUserCode,
+            user_type: signupData.userType,
+            first_name: signupData.firstName,
+            last_name: signupData.lastName
+          }
+        }
+      });
+
+      if (authError) {
+        console.error('Signup auth error:', authError);
+        
+        if (authError.message.includes('User already registered')) {
+          toast({
+            title: 'Email Already Registered',
+            description: 'This email is already registered. Please use the login option.',
+            variant: 'destructive',
+          });
+        } else {
+          toast({
+            title: 'Signup Error',
+            description: authError.message || 'An error occurred during signup.',
+            variant: 'destructive',
+          });
+        }
+        return;
+      }
+
+      if (authData.user) {
+        toast({
+          title: 'Signup Successful!',
+          description: 'Please check your email to confirm your account, then you can login.',
+        });
+        
+        // Reset form and switch to login mode
+        setIsSignUp(false);
+        setStep(1);
+        setSignupData({
+          firstName: '',
+          lastName: '',
+          email: '',
+          userType: 'student',
+          customUserCode: '',
+          generatePassword: '',
+          confirmPassword: ''
+        });
+        setCollegeCode('');
+        setUserCode('');
+        setPassword('');
+        setCollegeData(null);
+        setUserEmail('');
+      }
+    } catch (error) {
+      console.error('Unexpected signup error:', error);
+      toast({
+        title: 'Signup Error',
+        description: 'An unexpected error occurred. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const resetForm = () => {
+    setStep(1);
+    setCollegeCode('');
+    setUserCode('');
+    setPassword('');
+    setCollegeData(null);
+    setUserEmail('');
+    setSignupData({
+      firstName: '',
+      lastName: '',
+      email: '',
+      userType: 'student',
+      customUserCode: '',
+      generatePassword: '',
+      confirmPassword: ''
+    });
+  };
+
+  const toggleMode = () => {
+    setIsSignUp(!isSignUp);
+    resetForm();
+  };
+
   return (
     <div className="min-h-screen bg-background flex items-center justify-center px-4">
       {/* Background Grid Pattern */}
@@ -290,13 +465,23 @@ const MultiStepLogin = () => {
         <Card className="border-border bg-card backdrop-blur-sm">
           <CardHeader className="pb-4">
             <CardTitle className="text-section-header text-center text-card-foreground">
-              {step === 1 && 'College Access'}
-              {step === 2 && 'User Verification'}
-              {step === 3 && 'Secure Login'}
+              {!isSignUp ? (
+                <>
+                  {step === 1 && 'College Access'}
+                  {step === 2 && 'User Verification'}
+                  {step === 3 && 'Secure Login'}
+                </>
+              ) : (
+                <>
+                  {step === 1 && 'Select College'}
+                  {step === 2 && 'Create Account'}
+                </>
+              )}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
-            {step === 1 && (
+            {/* Login Flow */}
+            {!isSignUp && step === 1 && (
               <div className="space-y-4 animate-fade-in">
                 <div className="space-y-2">
                   <Label htmlFor="collegeCode" className="text-sm font-medium text-foreground">
@@ -326,7 +511,7 @@ const MultiStepLogin = () => {
               </div>
             )}
 
-            {step === 2 && (
+            {!isSignUp && step === 2 && (
               <div className="space-y-4 animate-fade-in">
                 <div className="space-y-2">
                   <Label htmlFor="userCode" className="text-sm font-medium text-foreground">
@@ -356,7 +541,7 @@ const MultiStepLogin = () => {
               </div>
             )}
 
-            {step === 3 && (
+            {!isSignUp && step === 3 && (
               <div className="space-y-4 animate-fade-in">
                 <div className="space-y-2">
                   <Label htmlFor="password" className="text-sm font-medium text-foreground">
@@ -385,14 +570,179 @@ const MultiStepLogin = () => {
                 </Button>
               </div>
             )}
+
+            {/* Signup Flow */}
+            {isSignUp && step === 1 && (
+              <div className="space-y-4 animate-fade-in">
+                <div className="space-y-2">
+                  <Label htmlFor="signupCollegeCode" className="text-sm font-medium text-foreground">
+                    College Code
+                  </Label>
+                  <Input
+                    id="signupCollegeCode"
+                    placeholder="Enter your college code"
+                    type="text"
+                    value={collegeCode}
+                    onChange={(e) => setCollegeCode(e.target.value)}
+                    className="bg-input border-border text-foreground placeholder:text-muted-foreground focus-ring"
+                  />
+                </div>
+                <Button 
+                  onClick={handleCollegeCodeSubmit} 
+                  disabled={isLoading}
+                  className="w-full h-12 bg-primary text-primary-foreground hover:bg-primary/90 font-medium transition-all duration-300 hover-scale focus-ring"
+                >
+                  {isLoading ? (
+                    <div className="flex items-center space-x-2">
+                      <div className="h-4 w-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin"></div>
+                      <span>Validating...</span>
+                    </div>
+                  ) : 'Continue'}
+                </Button>
+              </div>
+            )}
+
+            {isSignUp && step === 2 && (
+              <div className="space-y-4 animate-fade-in">
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <Label htmlFor="firstName" className="text-sm font-medium text-foreground">
+                      First Name
+                    </Label>
+                    <Input
+                      id="firstName"
+                      placeholder="First name"
+                      type="text"
+                      value={signupData.firstName}
+                      onChange={(e) => setSignupData({...signupData, firstName: e.target.value})}
+                      className="bg-input border-border text-foreground placeholder:text-muted-foreground focus-ring"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="lastName" className="text-sm font-medium text-foreground">
+                      Last Name
+                    </Label>
+                    <Input
+                      id="lastName"
+                      placeholder="Last name"
+                      type="text"
+                      value={signupData.lastName}
+                      onChange={(e) => setSignupData({...signupData, lastName: e.target.value})}
+                      className="bg-input border-border text-foreground placeholder:text-muted-foreground focus-ring"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="email" className="text-sm font-medium text-foreground">
+                    Email Address
+                  </Label>
+                  <Input
+                    id="email"
+                    placeholder="your.email@example.com"
+                    type="email"
+                    value={signupData.email}
+                    onChange={(e) => setSignupData({...signupData, email: e.target.value})}
+                    className="bg-input border-border text-foreground placeholder:text-muted-foreground focus-ring"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="userType" className="text-sm font-medium text-foreground">
+                    User Type
+                  </Label>
+                  <Select value={signupData.userType} onValueChange={(value: any) => setSignupData({...signupData, userType: value})}>
+                    <SelectTrigger className="bg-input border-border text-foreground focus-ring">
+                      <SelectValue placeholder="Select your role" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="student">Student</SelectItem>
+                      <SelectItem value="faculty">Faculty</SelectItem>
+                      <SelectItem value="parent">Parent</SelectItem>
+                      <SelectItem value="alumni">Alumni</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="customUserCode" className="text-sm font-medium text-foreground">
+                    Custom User Code
+                  </Label>
+                  <Input
+                    id="customUserCode"
+                    placeholder="Choose your user code (e.g., JOHN2024)"
+                    type="text"
+                    value={signupData.customUserCode}
+                    onChange={(e) => setSignupData({...signupData, customUserCode: e.target.value.toUpperCase()})}
+                    className="bg-input border-border text-foreground placeholder:text-muted-foreground focus-ring"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <Label htmlFor="generatePassword" className="text-sm font-medium text-foreground">
+                      Password
+                    </Label>
+                    <Input
+                      id="generatePassword"
+                      placeholder="Password"
+                      type="password"
+                      value={signupData.generatePassword}
+                      onChange={(e) => setSignupData({...signupData, generatePassword: e.target.value})}
+                      className="bg-input border-border text-foreground placeholder:text-muted-foreground focus-ring"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="confirmPassword" className="text-sm font-medium text-foreground">
+                      Confirm Password
+                    </Label>
+                    <Input
+                      id="confirmPassword"
+                      placeholder="Confirm password"
+                      type="password"
+                      value={signupData.confirmPassword}
+                      onChange={(e) => setSignupData({...signupData, confirmPassword: e.target.value})}
+                      className="bg-input border-border text-foreground placeholder:text-muted-foreground focus-ring"
+                    />
+                  </div>
+                </div>
+
+                <Button 
+                  onClick={handleSignupSubmit} 
+                  disabled={isLoading}
+                  className="w-full h-12 bg-primary text-primary-foreground hover:bg-primary/90 font-medium transition-all duration-300 hover-scale focus-ring"
+                >
+                  {isLoading ? (
+                    <div className="flex items-center space-x-2">
+                      <div className="h-4 w-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin"></div>
+                      <span>Creating Account...</span>
+                    </div>
+                  ) : 'Create Account'}
+                </Button>
+              </div>
+            )}
           </CardContent>
-          <div className="px-6 pb-6 text-center">
-            <Link 
-              to="#" 
-              className="text-sm text-muted-foreground hover:text-foreground transition-colors duration-300 underline-offset-4 hover:underline focus-ring rounded-sm"
-            >
-              Need assistance? Contact support
-            </Link>
+          
+          <div className="px-6 pb-6 space-y-4">
+            {/* Toggle between Login and Signup */}
+            <div className="text-center">
+              <Button
+                variant="ghost"
+                onClick={toggleMode}
+                className="text-sm text-muted-foreground hover:text-foreground underline-offset-4 hover:underline"
+              >
+                {isSignUp ? 'Already have an account? Login' : "Don't have an account? Sign up"}
+              </Button>
+            </div>
+            
+            <div className="text-center">
+              <Link 
+                to="#" 
+                className="text-sm text-muted-foreground hover:text-foreground transition-colors duration-300 underline-offset-4 hover:underline focus-ring rounded-sm"
+              >
+                Need assistance? Contact support
+              </Link>
+            </div>
           </div>
         </Card>
 

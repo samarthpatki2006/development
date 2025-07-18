@@ -98,8 +98,7 @@ const MultiStepLogin = () => {
         email: profile.email
       };
 
-      // Store in memory instead of localStorage for artifact compatibility
-      window.colcordUser = userData;
+      localStorage.setItem('colcord_user', JSON.stringify(userData));
 
       // Redirect based on user type
       const userRoutes = {
@@ -346,18 +345,18 @@ const MultiStepLogin = () => {
         return;
       }
 
-      // Create the user in Supabase Auth with minimal metadata
+      // Create the user in Supabase Auth
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: signupData.email,
         password: signupData.generatePassword,
         options: {
           emailRedirectTo: `${window.location.origin}/`,
           data: {
-            first_name: signupData.firstName,
-            last_name: signupData.lastName,
             college_id: collegeData.id,
             user_code: signupData.customUserCode,
-            user_type: signupData.userType
+            user_type: signupData.userType,
+            first_name: signupData.firstName,
+            last_name: signupData.lastName
           }
         }
       });
@@ -365,17 +364,10 @@ const MultiStepLogin = () => {
       if (authError) {
         console.error('Signup auth error:', authError);
         
-        // Handle specific auth errors
         if (authError.message.includes('User already registered')) {
           toast({
             title: 'Email Already Registered',
             description: 'This email is already registered. Please use the login option.',
-            variant: 'destructive',
-          });
-        } else if (authError.message.includes('Database error')) {
-          toast({
-            title: 'Database Error',
-            description: 'There was an issue creating your account. Please contact support.',
             variant: 'destructive',
           });
         } else {
@@ -389,33 +381,6 @@ const MultiStepLogin = () => {
       }
 
       if (authData.user) {
-        // If user was created but not yet confirmed, manual profile creation might be needed
-        if (authData.user && !authData.user.email_confirmed_at) {
-          // Try to create profile manually if the trigger didn't work
-          try {
-            const { error: profileError } = await supabase
-              .from('user_profiles')
-              .insert({
-                id: authData.user.id,
-                email: signupData.email,
-                first_name: signupData.firstName,
-                last_name: signupData.lastName,
-                college_id: collegeData.id,
-                user_code: signupData.customUserCode,
-                user_type: signupData.userType,
-                created_at: new Date().toISOString(),
-                updated_at: new Date().toISOString()
-              });
-
-            if (profileError) {
-              console.error('Profile creation error:', profileError);
-              // Don't fail here - the trigger might have worked
-            }
-          } catch (profileError) {
-            console.error('Manual profile creation failed:', profileError);
-          }
-        }
-
         toast({
           title: 'Signup Successful!',
           description: 'Please check your email to confirm your account, then you can login.',

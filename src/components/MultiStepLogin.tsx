@@ -36,7 +36,7 @@ const MultiStepLogin = () => {
     firstName: '',
     lastName: '',
     email: '',
-    userType: 'student' as 'student' | 'faculty' | 'parent' | 'alumni',
+    userType: 'student' as 'student' | 'faculty' | 'parent' | 'alumni' | 'super_admin' | 'staff',
     customUserCode: '',
     generatePassword: '',
     confirmPassword: ''

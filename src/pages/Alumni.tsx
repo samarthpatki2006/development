@@ -11,6 +11,7 @@ import AlumniNetworking from '@/components/alumni/AlumniNetworking';
 import AlumniContributions from '@/components/alumni/AlumniContributions';
 import AlumniDocuments from '@/components/alumni/AlumniDocuments';
 import AlumniSupport from '@/components/alumni/AlumniSupport';
+import { supabase } from '@/integrations/supabase/client';
 
 const Alumni = () => {
   const [activeView, setActiveView] = useState('dashboard');
@@ -51,7 +52,8 @@ const Alumni = () => {
     initializeUser();
   }, [navigate]);
 
-  const handleLogout = () => {
+  const handleLogout = async() => {
+    await supabase.auth.signOut();
     localStorage.removeItem('colcord_user');
     toast({
       title: 'Logged Out',

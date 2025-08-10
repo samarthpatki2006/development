@@ -31,6 +31,7 @@ import TeacherRecognition from '@/components/teacher/TeacherRecognition';
 import TeacherEvents from '@/components/teacher/TeacherEvents';
 import TeacherParentInteraction from '@/components/teacher/TeacherParentInteraction';
 import TeacherSupport from '@/components/teacher/TeacherSupport';
+import { supabase } from '@/integrations/supabase/client';
 
 const Teacher = () => {
   const [activeView, setActiveView] = useState('dashboard');
@@ -71,7 +72,8 @@ const Teacher = () => {
     checkUser();
   }, [navigate]);
 
-  const handleLogout = () => {
+  const handleLogout = async() => {
+    await supabase.auth.signOut();
     localStorage.removeItem('colcord_user');
     toast({
       title: 'Logged Out',

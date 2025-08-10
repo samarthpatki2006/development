@@ -49,7 +49,7 @@ const Teacher = () => {
         }
 
         const parsedUser = JSON.parse(userData);
-        if (parsedUser.user_type !== 'teacher') {
+        if (parsedUser.user_type !== 'faculty') {
           toast({
             title: 'Access Denied',
             description: 'This area is for teachers only.',
@@ -208,7 +208,7 @@ const Teacher = () => {
           items={sidebarItems}
           activeItem={activeView}
           onItemClick={setActiveView}
-          userType="teacher"
+          userType="faculty"
           collapsed={sidebarCollapsed}
         />
 

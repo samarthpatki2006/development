@@ -29,7 +29,6 @@ const App = () => (
             <Route path="/teacher" element={<Teacher />} />
             <Route path="/parent" element={<Parent />} />
             <Route path="/alumni" element={<Alumni />} />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
         </NavigationWrapper>

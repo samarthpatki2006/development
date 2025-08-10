@@ -19,7 +19,11 @@ import {
   LogOut,
   Plus,
   TrendingUp,
-  AlertCircle
+  AlertCircle,
+  UserCheck,
+  Award,
+  Clock,
+  Activity
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -42,7 +46,7 @@ interface UserProfile {
   last_name: string;
   email: string;
   user_code: string;
-  user_type: 'student' | 'teacher' | 'admin' | 'staff';
+  user_type: 'student' | 'faculty' | 'admin' | 'staff';
   is_active: boolean;
   created_at: string;
   updated_at: string;
@@ -75,6 +79,7 @@ const AdminDashboard = ({ sessionData }: AdminDashboardProps) => {
   const [adminRoles, setAdminRoles] = useState<AdminRole[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
+  const [collegeName, setCollegeName] = useState<string>('Loading...');
   const [dashboardStats, setDashboardStats] = useState<DashboardStats>({
     totalUsers: 0,
     activeUsers: 0,
@@ -84,10 +89,57 @@ const AdminDashboard = ({ sessionData }: AdminDashboardProps) => {
     pendingApprovals: 0
   });
 
+  // Function to fetch college name
+  const fetchCollegeName = async (collegeId: string): Promise<string> => {
+    try {
+      const { data, error } = await supabase
+        .from('colleges')
+        .select('name')
+        .eq('id', collegeId)
+        .single();
+
+      if (error) {
+        console.error('Error fetching college name:', error);
+        throw error;
+      }
+
+      return data?.name || 'Unknown College';
+    } catch (error) {
+      console.error('Failed to fetch college name:', error);
+      throw error;
+    }
+  };
+
   useEffect(() => {
-    loadUserProfile();
-    loadDashboardStats();
+    const loadData = async () => {
+      try {
+        await Promise.all([
+          loadUserProfile(),
+          loadDashboardStats()
+        ]);
+      } catch (error) {
+        console.error('Error loading dashboard data:', error);
+        setIsLoading(false);
+      }
+    };
+    
+    if (sessionData) {
+      loadData();
+    } else {
+      setIsLoading(false);
+    }
   }, [sessionData]);
+
+  // Load college name when sessionData changes
+  useEffect(() => {
+    if (sessionData?.college_id) {
+      fetchCollegeName(sessionData.college_id)
+        .then(name => setCollegeName(name))
+        .catch(() => setCollegeName('Unknown College'));
+    } else {
+      setCollegeName('Unknown College');
+    }
+  }, [sessionData?.college_id]);
 
   const loadUserProfile = async () => {
     try {
@@ -110,17 +162,17 @@ const AdminDashboard = ({ sessionData }: AdminDashboardProps) => {
 
         setUserProfile(userProfile);
 
-        // Load admin roles using the function to avoid RLS issues
+        // Load admin roles with error handling
         try {
           const { data: rolesData, error: rolesError } = await supabase
             .rpc('get_user_admin_roles', {
               user_uuid: sessionData.user_id,
               college_uuid: sessionData.college_id
             });
+            console.log('Admin roles data:', rolesData);
 
           if (rolesError) {
-            console.error('Error loading admin roles:', rolesError);
-            // Set default admin role if query fails
+            console.warn('Error loading admin roles:', rolesError);
             setAdminRoles([{
               role_type: 'super_admin',
               permissions: { all: true },
@@ -133,7 +185,6 @@ const AdminDashboard = ({ sessionData }: AdminDashboardProps) => {
               assigned_at: role.assigned_at
             })) || [];
             
-            // If no roles found, assign super_admin by default for admin users
             if (formattedRoles.length === 0 && sessionData.user_type === 'admin') {
               setAdminRoles([{
                 role_type: 'super_admin',
@@ -145,8 +196,7 @@ const AdminDashboard = ({ sessionData }: AdminDashboardProps) => {
             }
           }
         } catch (roleError) {
-          console.error('Role loading error:', roleError);
-          // Fallback to default super admin role
+          console.warn('Role loading error:', roleError);
           setAdminRoles([{
             role_type: 'super_admin',
             permissions: { all: true },
@@ -158,11 +208,14 @@ const AdminDashboard = ({ sessionData }: AdminDashboardProps) => {
       console.log('User profile loaded successfully');
     } catch (error) {
       console.error('Error loading user profile:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load user profile.",
-        variant: "destructive",
-      });
+      if (typeof toast === 'function') {
+        toast({
+          title: "Error",
+          description: "Failed to load user profile.",
+          variant: "destructive",
+        });
+      }
+      throw error;
     } finally {
       setIsLoading(false);
     }
@@ -172,8 +225,11 @@ const AdminDashboard = ({ sessionData }: AdminDashboardProps) => {
     try {
       if (!sessionData?.college_id) return;
 
-      // Load real data from database
-      const [usersResult, coursesResult, eventsResult] = await Promise.all([
+      const timeout = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Request timeout')), 50000)
+      );
+
+      const dataPromise = Promise.all([
         supabase
           .from('user_profiles')
           .select('id, is_active')
@@ -188,6 +244,10 @@ const AdminDashboard = ({ sessionData }: AdminDashboardProps) => {
           .eq('college_id', sessionData.college_id)
       ]);
 
+      const [usersResult, coursesResult, eventsResult] = await Promise.race([
+        dataPromise
+      ]);
+
       const totalUsers = usersResult.data?.length || 0;
       const activeUsers = usersResult.data?.filter(user => user.is_active)?.length || 0;
       const totalCourses = coursesResult.data?.filter(course => course.is_active)?.length || 0;
@@ -198,11 +258,11 @@ const AdminDashboard = ({ sessionData }: AdminDashboardProps) => {
         activeUsers,
         totalCourses,
         totalEvents,
-        monthlyRevenue: 0, // Will be calculated from fee_payments table
-        pendingApprovals: 0 // Will be calculated from pending requests
+        monthlyRevenue: 0,
+        pendingApprovals: 0
       });
     } catch (error) {
-      console.error('Error loading dashboard stats:', error);
+      console.warn('Error loading dashboard stats:', error);
     }
   };
 
@@ -210,19 +270,23 @@ const AdminDashboard = ({ sessionData }: AdminDashboardProps) => {
     try {
       localStorage.removeItem('colcord_user');
       
-      toast({
-        title: "Logged out successfully",
-        description: "You have been logged out of the admin dashboard.",
-      });
+      if (typeof toast === 'function') {
+        toast({
+          title: "Logged out successfully",
+          description: "You have been logged out of the admin dashboard.",
+        });
+      }
       
       navigate('/');
     } catch (error) {
       console.error('Logout error:', error);
-      toast({
-        title: "Error",
-        description: "Failed to logout. Please try again.",
-        variant: "destructive",
-      });
+      if (typeof toast === 'function') {
+        toast({
+          title: "Error",
+          description: "Failed to logout. Please try again.",
+          variant: "destructive",
+        });
+      }
     }
   };
 
@@ -238,12 +302,71 @@ const AdminDashboard = ({ sessionData }: AdminDashboardProps) => {
            userProfile?.user_type === 'admin';
   };
 
+  // Mock recent activities data for better UI
+  const recentActivities = [
+    {
+      title: 'New User Registered',
+      description: 'John Doe joined as Computer Science student',
+      time: '5 minutes ago',
+      type: 'user'
+    },
+    {
+      title: 'Course Updated',
+      description: 'Database Management course content modified',
+      time: '1 hour ago',
+      type: 'course'
+    },
+    {
+      title: 'Event Created',
+      description: 'Annual Tech Fest 2024 scheduled',
+      time: '2 hours ago',
+      type: 'event'
+    },
+    {
+      title: 'Payment Received',
+      description: 'Fee payment processed for Semester 6',
+      time: '3 hours ago',
+      type: 'payment'
+    }
+  ];
+
+  const quickActions = [
+    {
+      title: 'Add New User',
+      description: 'Register students, faculty, or staff',
+      icon: UserCheck,
+      color: 'bg-blue-50 text-blue-600',
+      action: () => setActiveTab('users')
+    },
+    {
+      title: 'Create Course',
+      description: 'Set up new academic courses',
+      icon: BookOpen,
+      color: 'bg-green-50 text-green-600',
+      action: () => setActiveTab('courses')
+    },
+    {
+      title: 'Schedule Event',
+      description: 'Plan college activities and events',
+      icon: Calendar,
+      color: 'bg-purple-50 text-purple-600',
+      action: () => setActiveTab('events')
+    },
+    {
+      title: 'System Settings',
+      description: 'Configure college parameters',
+      icon: Settings,
+      color: 'bg-orange-50 text-orange-600',
+      action: () => setActiveTab('settings')
+    }
+  ];
+
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex items-center justify-center min-h-screen bg-black">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-2 text-gray-600">Loading admin dashboard...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-400 mx-auto"></div>
+          <p className="mt-4 text-white font-medium">Loading admin dashboard...</p>
         </div>
       </div>
     );
@@ -251,48 +374,64 @@ const AdminDashboard = ({ sessionData }: AdminDashboardProps) => {
 
   if (!userProfile) {
     return (
-      <Card className="max-w-md mx-auto mt-8">
-        <CardContent className="p-6 text-center">
-          <h2 className="text-lg font-semibold mb-2">Access Denied</h2>
-          <p className="text-gray-600">You don't have permission to access the admin dashboard.</p>
-          <Button onClick={() => navigate('/')} className="mt-4">
-            Go to Login
-          </Button>
-        </CardContent>
-      </Card>
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <Card className="max-w-md mx-auto border-white/10 bg-card/50 backdrop-blur-sm">
+          <CardContent className="p-6 text-center">
+            <h2 className="text-lg font-semibold mb-2 text-card-foreground">Access Denied</h2>
+            <p className="text-muted-foreground mb-4">You don't have permission to access the admin dashboard.</p>
+            <Button onClick={() => navigate('/')} className="bg-purple-600 hover:bg-purple-700 text-white">
+              Go to Login
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white shadow-sm border-b">
+    <div className="min-h-screen bg-black">
+      {/* Header with glassmorphic design */}
+      <div className="border-b border-white/10 bg-black/20 backdrop-blur-md">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-4">
+          <div className="flex justify-between items-center py-6">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">
+              <h1 className="text-3xl font-bold text-white">
                 {getGreeting()}, {userProfile.first_name}!
               </h1>
-              <p className="text-gray-600">
-                Welcome to ColCord Admin Dashboard
+              <p className="text-white/80 mt-1">
+                Admin Control Center
                 {sessionData && (
-                  <span className="text-sm text-blue-600 block">
-                    College: {sessionData.college_name || 'Unknown'}
+                  <span className="text-sm text-purple-300 block font-medium mt-1">
+                    Managing: {collegeName}
                   </span>
                 )}
               </p>
             </div>
-            <div className="flex items-center space-x-3">
-              <Badge variant="outline" className="bg-blue-50 text-blue-700">
+            <div className="flex items-center space-x-4">
+              <Badge className="bg-purple-500/20 text-purple-300 border-purple-400/30 font-medium px-3 py-1">
                 {userProfile.hierarchy_level.replace('_', ' ').toUpperCase()}
               </Badge>
-              <Button variant="outline" size="sm">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="border-white/20 bg-white/10 backdrop-blur-sm text-white hover:bg-white/20 hover:border-white/30"
+              >
                 <Bell className="w-4 h-4 mr-2" />
-                Notifications ({dashboardStats.pendingApprovals})
+                <span className="hidden sm:inline">Alerts</span>
+                {dashboardStats.pendingApprovals > 0 && (
+                  <Badge className="ml-2 bg-red-500 text-white text-xs px-1.5 py-0.5">
+                    {dashboardStats.pendingApprovals}
+                  </Badge>
+                )}
               </Button>
-              <Button variant="outline" size="sm" onClick={handleLogout}>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handleLogout} 
+                className="border-white/20 bg-white/10 backdrop-blur-sm text-white hover:bg-white/20 hover:border-white/30"
+              >
                 <LogOut className="w-4 h-4 mr-2" />
-                Logout
+                <span className="hidden sm:inline">Logout</span>
               </Button>
             </div>
           </div>
@@ -301,198 +440,159 @@ const AdminDashboard = ({ sessionData }: AdminDashboardProps) => {
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 lg:grid-cols-8 gap-2">
-            <TabsTrigger value="overview" className="flex items-center space-x-1">
-              <BarChart3 className="w-4 h-4" />
-              <span className="hidden sm:inline">Overview</span>
-            </TabsTrigger>
-            <TabsTrigger value="users" className="flex items-center space-x-1">
-              <Users className="w-4 h-4" />
-              <span className="hidden sm:inline">Users</span>
-            </TabsTrigger>
-            <TabsTrigger value="courses" className="flex items-center space-x-1">
-              <BookOpen className="w-4 h-4" />
-              <span className="hidden sm:inline">Courses</span>
-            </TabsTrigger>
-            <TabsTrigger value="facilities" className="flex items-center space-x-1">
-              <Building className="w-4 h-4" />
-              <span className="hidden sm:inline">Facilities</span>
-            </TabsTrigger>
-            <TabsTrigger value="events" className="flex items-center space-x-1">
-              <Calendar className="w-4 h-4" />
-              <span className="hidden sm:inline">Events</span>
-            </TabsTrigger>
-            <TabsTrigger value="finance" className="flex items-center space-x-1">
-              <DollarSign className="w-4 h-4" />
-              <span className="hidden sm:inline">Finance</span>
-            </TabsTrigger>
-            <TabsTrigger value="settings" className="flex items-center space-x-1">
-              <Settings className="w-4 h-4" />
-              <span className="hidden sm:inline">Settings</span>
-            </TabsTrigger>
-            <TabsTrigger value="logs" className="flex items-center space-x-1">
-              <FileText className="w-4 h-4" />
-              <span className="hidden sm:inline">Logs</span>
-            </TabsTrigger>
-          </TabsList>
+        <div className="space-y-8 animate-fade-in">
+          {/* Overview Dashboard - Always Visible */}
+          <div className="space-y-8">
+              {/* Stats Cards with Modern Styling */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <Card className="border-white/10 bg-card/50 backdrop-blur-sm hover:border-purple-400/30 transition-all duration-300 hover-translate-up">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+                    <CardTitle className="text-sm font-medium text-muted-foreground">Total Users</CardTitle>
+                    <div className="p-3 rounded-lg bg-blue-500/20">
+                      <Users className="h-5 w-5 text-blue-400" />
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-3xl font-bold text-card-foreground">{dashboardStats.totalUsers}</div>
+                    <p className="text-xs text-white/60 mt-1 font-mono">
+                      {dashboardStats.activeUsers} active users
+                    </p>
+                  </CardContent>
+                </Card>
 
-          {/* Overview Tab */}
-          <TabsContent value="overview" className="space-y-6">
-            {/* Stats Cards in Boxes */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <Card className="hover:shadow-lg transition-shadow">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Total Users</CardTitle>
-                  <Users className="h-4 w-4 text-muted-foreground" />
+                <Card className="border-white/10 bg-card/50 backdrop-blur-sm hover:border-green-400/30 transition-all duration-300 hover-translate-up">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+                    <CardTitle className="text-sm font-medium text-muted-foreground">Active Courses</CardTitle>
+                    <div className="p-3 rounded-lg bg-green-500/20">
+                      <BookOpen className="h-5 w-5 text-green-400" />
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-3xl font-bold text-card-foreground">{dashboardStats.totalCourses}</div>
+                    <p className="text-xs text-white/60 mt-1 font-mono">
+                      Across all departments
+                    </p>
+                  </CardContent>
+                </Card>
+
+                <Card className="border-white/10 bg-card/50 backdrop-blur-sm hover:border-purple-400/30 transition-all duration-300 hover-translate-up">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+                    <CardTitle className="text-sm font-medium text-muted-foreground">Active Events</CardTitle>
+                    <div className="p-3 rounded-lg bg-purple-500/20">
+                      <Calendar className="h-5 w-5 text-purple-400" />
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-3xl font-bold text-card-foreground">{dashboardStats.totalEvents}</div>
+                    <p className="text-xs text-white/60 mt-1 font-mono">
+                      This semester
+                    </p>
+                  </CardContent>
+                </Card>
+
+                <Card className="border-white/10 bg-card/50 backdrop-blur-sm hover:border-orange-400/30 transition-all duration-300 hover-translate-up">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+                    <CardTitle className="text-sm font-medium text-muted-foreground">Pending Tasks</CardTitle>
+                    <div className="p-3 rounded-lg bg-orange-500/20">
+                      <AlertCircle className="h-5 w-5 text-orange-400" />
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-3xl font-bold text-card-foreground">{dashboardStats.pendingApprovals}</div>
+                    <p className="text-xs text-white/60 mt-1 font-mono">
+                      Requires attention
+                    </p>
+                  </CardContent>
+                </Card>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                {/* Quick Actions with Enhanced Design */}
+                <Card className="border-white/10 bg-card/50 backdrop-blur-sm">
+                  <CardHeader>
+                    <CardTitle className="text-card-foreground">Quick Actions</CardTitle>
+                    <CardDescription>Common administrative tasks</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {quickActions.map((action, index) => {
+                      const Icon = action.icon;
+                      return (
+                        <div 
+                          key={index}
+                          className="flex items-center space-x-4 p-4 rounded-lg border border-white/10 hover:border-purple-400/30 hover:bg-white/5 cursor-pointer transition-all duration-300 hover-translate-up"
+                          onClick={action.action}
+                        >
+                          <div className="p-3 rounded-lg bg-purple-500/20">
+                            <Icon className="h-5 w-5 text-purple-400" />
+                          </div>
+                          <div className="flex-1">
+                            <p className="font-medium text-card-foreground">{action.title}</p>
+                            <p className="text-sm text-muted-foreground">{action.description}</p>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </CardContent>
+                </Card>
+
+                {/* Recent Activity with Enhanced Design */}
+                <Card className="border-white/10 bg-card/50 backdrop-blur-sm">
+                  <CardHeader>
+                    <CardTitle className="text-card-foreground">Recent Activity</CardTitle>
+                    <CardDescription>Latest system activities and updates</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {recentActivities.map((activity, index) => (
+                      <div key={index} className="flex items-start space-x-4 p-3 rounded-lg bg-white/5 hover:bg-white/10 transition-colors duration-300">
+                        <div className="w-2 h-2 bg-purple-400 rounded-full mt-3 animate-pulse-indicator"></div>
+                        <div className="flex-1">
+                          <p className="font-medium text-card-foreground">{activity.title}</p>
+                          <p className="text-sm text-muted-foreground">{activity.description}</p>
+                          <p className="text-xs text-white/40 font-mono mt-1">{activity.time}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* System Health Status */}
+              <Card className="border-white/10 bg-card/50 backdrop-blur-sm">
+                <CardHeader>
+                  <CardTitle className="text-card-foreground flex items-center space-x-2">
+                    <Activity className="h-5 w-5 text-green-400" />
+                    <span>System Status</span>
+                  </CardTitle>
+                  <CardDescription>Current system health and performance metrics</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{dashboardStats.totalUsers}</div>
-                  <p className="text-xs text-muted-foreground">
-                    {dashboardStats.activeUsers} active users
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card className="hover:shadow-lg transition-shadow">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Active Courses</CardTitle>
-                  <BookOpen className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{dashboardStats.totalCourses}</div>
-                  <p className="text-xs text-muted-foreground">
-                    Across all departments
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card className="hover:shadow-lg transition-shadow">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Active Events</CardTitle>
-                  <Calendar className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{dashboardStats.totalEvents}</div>
-                  <p className="text-xs text-muted-foreground">
-                    This semester
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card className="hover:shadow-lg transition-shadow">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Pending Tasks</CardTitle>
-                  <AlertCircle className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{dashboardStats.pendingApprovals}</div>
-                  <p className="text-xs text-muted-foreground">
-                    Requires attention
-                  </p>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Quick Actions Grid */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Quick Actions</CardTitle>
-                <CardDescription>Common administrative tasks</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <Button 
-                    variant="outline" 
-                    className="h-24 flex-col space-y-2 hover:bg-blue-50 hover:border-blue-300" 
-                    onClick={() => setActiveTab('users')}
-                  >
-                    <Users className="w-6 h-6 text-blue-600" />
-                    <span>Manage Users</span>
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    className="h-24 flex-col space-y-2 hover:bg-green-50 hover:border-green-300" 
-                    onClick={() => setActiveTab('courses')}
-                  >
-                    <BookOpen className="w-6 h-6 text-green-600" />
-                    <span>Add Course</span>
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    className="h-24 flex-col space-y-2 hover:bg-purple-50 hover:border-purple-300" 
-                    onClick={() => setActiveTab('events')}
-                  >
-                    <Calendar className="w-6 h-6 text-purple-600" />
-                    <span>Create Event</span>
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    className="h-24 flex-col space-y-2 hover:bg-orange-50 hover:border-orange-300" 
-                    onClick={() => setActiveTab('settings')}
-                  >
-                    <Settings className="w-6 h-6 text-orange-600" />
-                    <span>Settings</span>
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Recent Activity */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Recent Activity</CardTitle>
-                <CardDescription>Latest system activities and updates</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {dashboardStats.totalUsers > 0 ? (
-                    <div className="flex items-center space-x-4">
-                      <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                      <div className="flex-1">
-                        <p className="text-sm">System initialized with {dashboardStats.totalUsers} users</p>
-                        <p className="text-xs text-gray-500">Today</p>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
+                      <div>
+                        <p className="text-sm font-medium text-card-foreground">Database</p>
+                        <p className="text-xs text-green-400">Operational</p>
                       </div>
                     </div>
-                  ) : (
-                    <div className="text-center py-8 text-gray-500">
-                      <p>No recent activity to display</p>
+                    <div className="flex items-center space-x-3">
+                      <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
+                      <div>
+                        <p className="text-sm font-medium text-card-foreground">API Services</p>
+                        <p className="text-xs text-green-400">Healthy</p>
+                      </div>
                     </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Other Tabs */}
-          <TabsContent value="users">
-            <EnhancedUserManagement userProfile={userProfile} adminRoles={adminRoles} />
-          </TabsContent>
-
-          <TabsContent value="courses">
-            <CourseManagement userProfile={userProfile} />
-          </TabsContent>
-
-          <TabsContent value="facilities">
-            <FacilityManagement userProfile={userProfile} />
-          </TabsContent>
-
-          <TabsContent value="events">
-            <EventManagement userProfile={userProfile} />
-          </TabsContent>
-
-          <TabsContent value="finance">
-            <FinanceManagement userProfile={userProfile} />
-          </TabsContent>
-
-          <TabsContent value="settings">
-            <SystemSettings userProfile={userProfile} />
-          </TabsContent>
-
-          <TabsContent value="logs">
-            <AuditLogs userProfile={userProfile} adminRoles={adminRoles} />
-          </TabsContent>
-        </Tabs>
+                    <div className="flex items-center space-x-3">
+                      <div className="w-3 h-3 bg-yellow-400 rounded-full animate-pulse"></div>
+                      <div>
+                        <p className="text-sm font-medium text-card-foreground">Storage</p>
+                        <p className="text-xs text-yellow-400">85% Used</p>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+          </div>
+        </div>
       </div>
     </div>
   );

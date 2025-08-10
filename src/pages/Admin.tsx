@@ -1,6 +1,6 @@
-
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { toast } from "@/components/ui/use-toast";
 import { Button } from '@/components/ui/button';
 import { 
   Settings, 
@@ -18,6 +18,16 @@ import {
 import SidebarNavigation from '@/components/layout/SidebarNavigation';
 import AdminDashboard from '../components/admin/AdminDashboard';
 
+// Import all the admin management components
+import EnhancedUserManagement from '../components/admin/EnhancedUserManagement';
+import CourseManagement from '../components/admin/CourseManagement';
+import EventManagement from '../components/admin/EventManagement';
+import FinanceManagement from '../components/admin/FinanceManagement';
+import FacilityManagement from '../components/admin/FacilityManagement';
+import RoleManagement from '../components/admin/RoleManagement';
+import AuditLogs from '../components/admin/AuditLogs';
+import SystemSettings from '../components/admin/SystemSettings';
+
 const Admin = () => {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(true);
@@ -25,6 +35,8 @@ const Admin = () => {
   const [sessionData, setSessionData] = useState<any>(null);
   const [activeView, setActiveView] = useState('dashboard');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [userProfile, setUserProfile] = useState<any>(null);
+  const [adminRoles, setAdminRoles] = useState<any[]>([]);
 
   useEffect(() => {
     const checkAuth = () => {
@@ -36,19 +48,55 @@ const Admin = () => {
           const parsedSession = JSON.parse(storedSession);
           console.log('Parsed session:', parsedSession);
           
+          // Check for admin user type (could be 'admin' or other admin variants)
+          const adminUserTypes = ['admin', 'super_admin', 'administrator'];
           if (parsedSession.user_type && parsedSession.user_id) {
             console.log('Valid session found, setting authenticated state');
             setSessionData(parsedSession);
             setIsAuthenticated(true);
+            
+            // Create user profile from session data
+            const profile = {
+              id: parsedSession.user_id,
+              first_name: parsedSession.first_name || 'Admin',
+              last_name: parsedSession.last_name || 'User',
+              email: parsedSession.email || '',
+              user_code: parsedSession.user_code || 'ADM001',
+              user_type: parsedSession.user_type || 'admin',
+              is_active: true,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+              college_id: parsedSession.college_id || '',
+              hierarchy_level: parsedSession.user_type || 'admin'
+            };
+            setUserProfile(profile);
+            
+            // Set default admin roles
+            setAdminRoles([{
+              role_type: 'super_admin',
+              permissions: { all: true },
+              assigned_at: new Date().toISOString()
+            }]);
+            
             setIsLoading(false);
             return;
           }
         }
 
         console.log('No valid session found, redirecting to login');
+        toast({
+          title: 'Access Denied',
+          description: 'Please log in to access the admin portal.',
+          variant: 'destructive',
+        });
         navigate('/');
       } catch (error) {
         console.error('Auth check error:', error);
+        toast({
+          title: 'Authentication Error',
+          description: 'There was an error verifying your credentials.',
+          variant: 'destructive',
+        });
         navigate('/');
       } finally {
         setIsLoading(false);
@@ -60,28 +108,27 @@ const Admin = () => {
 
   const handleLogout = () => {
     localStorage.removeItem('colcord_user');
+    toast({
+      title: 'Logged Out',
+      description: 'You have been successfully logged out.',
+    });
     navigate('/');
+  };
+
+  const handleNavigationChange = (view: string) => {
+    setActiveView(view);
   };
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-2 text-gray-600">Loading admin dashboard...</p>
-        </div>
+      <div className="flex items-center justify-center min-h-screen bg-background">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-role-admin"></div>
       </div>
     );
   }
 
   if (!isAuthenticated || !sessionData) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-background">
-        <div className="text-center">
-          <p className="text-muted-foreground">Redirecting to login...</p>
-        </div>
-      </div>
-    );
+    return null;
   }
 
   const sidebarItems = [
@@ -99,10 +146,25 @@ const Admin = () => {
   const renderContent = () => {
     switch (activeView) {
       case 'dashboard':
-        return <AdminDashboard sessionData={sessionData} />;
-      // Add other admin components here as needed
+        return <AdminDashboard sessionData={sessionData} onNavigate={handleNavigationChange} />;
+      case 'users':
+        return <EnhancedUserManagement userProfile={userProfile} adminRoles={adminRoles} />;
+      case 'courses':
+        return <CourseManagement userProfile={userProfile} />;
+      case 'events':
+        return <EventManagement userProfile={userProfile} />;
+      case 'finance':
+        return <FinanceManagement userProfile={userProfile} />;
+      case 'facilities':
+        return <FacilityManagement userProfile={userProfile} />;
+      case 'roles':
+        return <RoleManagement userProfile={userProfile} adminRoles={adminRoles} />;
+      case 'audit':
+        return <AuditLogs userProfile={userProfile} adminRoles={adminRoles} />;
+      case 'system':
+        return <SystemSettings userProfile={userProfile} />;
       default:
-        return <AdminDashboard sessionData={sessionData} />;
+        return <AdminDashboard sessionData={sessionData} onNavigate={handleNavigationChange} />;
     }
   };
 

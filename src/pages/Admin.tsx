@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { toast } from "@/components/ui/use-toast";
 import { Button } from '@/components/ui/button';
 import { 
   Settings, 
@@ -17,6 +16,7 @@ import {
 } from 'lucide-react';
 import SidebarNavigation from '@/components/layout/SidebarNavigation';
 import AdminDashboard from '../components/admin/AdminDashboard';
+import { supabase } from '@/integrations/supabase/client';
 
 // Import all the admin management components
 import EnhancedUserManagement from '../components/admin/EnhancedUserManagement';
@@ -48,8 +48,6 @@ const Admin = () => {
           const parsedSession = JSON.parse(storedSession);
           console.log('Parsed session:', parsedSession);
           
-          // Check for admin user type (could be 'admin' or other admin variants)
-          const adminUserTypes = ['admin', 'super_admin', 'administrator'];
           if (parsedSession.user_type && parsedSession.user_id) {
             console.log('Valid session found, setting authenticated state');
             setSessionData(parsedSession);
@@ -84,19 +82,9 @@ const Admin = () => {
         }
 
         console.log('No valid session found, redirecting to login');
-        toast({
-          title: 'Access Denied',
-          description: 'Please log in to access the admin portal.',
-          variant: 'destructive',
-        });
         navigate('/');
       } catch (error) {
         console.error('Auth check error:', error);
-        toast({
-          title: 'Authentication Error',
-          description: 'There was an error verifying your credentials.',
-          variant: 'destructive',
-        });
         navigate('/');
       } finally {
         setIsLoading(false);
@@ -106,12 +94,9 @@ const Admin = () => {
     checkAuth();
   }, [navigate]);
 
-  const handleLogout = () => {
+  const handleLogout = async() => {
+    await supabase.auth.signOut();
     localStorage.removeItem('colcord_user');
-    toast({
-      title: 'Logged Out',
-      description: 'You have been successfully logged out.',
-    });
     navigate('/');
   };
 
@@ -121,14 +106,23 @@ const Admin = () => {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-background">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-role-admin"></div>
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-2 text-gray-600">Loading admin dashboard...</p>
+        </div>
       </div>
     );
   }
 
   if (!isAuthenticated || !sessionData) {
-    return null;
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-background">
+        <div className="text-center">
+          <p className="text-muted-foreground">Redirecting to login...</p>
+        </div>
+      </div>
+    );
   }
 
   const sidebarItems = [

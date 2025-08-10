@@ -268,6 +268,7 @@ const AdminDashboard = ({ sessionData }: AdminDashboardProps) => {
 
   const handleLogout = async () => {
     try {
+      await supabase.auth.signOut();
       localStorage.removeItem('colcord_user');
       
       if (typeof toast === 'function') {

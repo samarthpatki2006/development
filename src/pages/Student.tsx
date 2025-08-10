@@ -28,6 +28,7 @@ import CommunicationCenter from '@/components/student/CommunicationCenter';
 import PaymentsFees from '@/components/student/PaymentsFees';
 import HostelFacility from '@/components/student/HostelFacility';
 import SupportHelp from '@/components/student/SupportHelp';
+import { supabase } from '@/integrations/supabase/client';
 
 const Student = () => {
   const [activeView, setActiveView] = useState('dashboard');
@@ -152,7 +153,8 @@ const Student = () => {
               <Button 
                 variant="ghost" 
                 size="icon"
-                onClick={() => {
+                onClick={async() => {
+                  await supabase.auth.signOut();
                   localStorage.removeItem('colcord_user');
                   window.location.href = '/';
                 }}

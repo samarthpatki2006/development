@@ -11,6 +11,7 @@ import AttendanceTracking from '@/components/parent/AttendanceTracking';
 import PaymentsFees from '@/components/parent/PaymentsFees';
 import ParentCommunication from '@/components/parent/ParentCommunication';
 import EventsMeetings from '@/components/parent/EventsMeetings';
+import { supabase } from '@/integrations/supabase/client';
 
 const Parent = () => {
   const [activeView, setActiveView] = useState('dashboard');
@@ -51,7 +52,8 @@ const Parent = () => {
     checkUser();
   }, [navigate]);
 
-  const handleLogout = () => {
+  const handleLogout = async() => {
+    await supabase.auth.signOut();
     localStorage.removeItem('colcord_user');
     toast({
       title: 'Logged Out',

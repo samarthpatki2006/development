@@ -17,7 +17,7 @@ interface UserProfile {
   last_name: string | null;
   email: string | null;
   user_code: string;
-  user_type: 'student' | 'teacher' | 'admin' | 'staff' | 'parent' | 'alumni' | 'super_admin';
+  user_type: 'student' | 'faculty' | 'admin' | 'staff' | 'parent' | 'alumni' | 'super_admin';
   is_active: boolean | null;
   created_at: string | null;
   updated_at: string | null;

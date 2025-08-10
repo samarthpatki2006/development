@@ -15,7 +15,7 @@ interface SidebarNavigationProps {
   items: SidebarItem[];
   activeItem: string;
   onItemClick: (itemId: string) => void;
-  userType: 'student' | 'teacher' | 'parent' | 'alumni' | 'admin';
+  userType: 'student' | 'faculty' | 'parent' | 'alumni' | 'admin';
   collapsed?: boolean;
 }
 
@@ -29,7 +29,7 @@ const SidebarNavigation = ({
   const getRoleColor = (userType: string) => {
     switch (userType) {
       case 'student': return 'role-student';
-      case 'teacher': return 'role-teacher';
+      case 'faculty': return 'role-teacher';
       case 'parent': return 'role-parent';
       case 'alumni': return 'role-alumni';
       case 'admin': return 'role-admin';

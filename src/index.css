@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -7,66 +8,66 @@ Built for India, Global Standards. Deep black dominance with precise white accen
 All colors MUST be HSL. Typography follows system font hierarchy.
 */
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
-
 @layer base {
   :root {
     /* Core Background System - Deep Black Dominance */
     --background: 0 0% 0%;
     --foreground: 0 0% 100%;
 
-    /* Card System - White Opacity Layers */
-    --card: 0 0% 100% / 0.05;
+    /* Card System - Improved visibility while maintaining minimalism */
+    --card: 0 0% 100% / 0.08;
     --card-foreground: 0 0% 100%;
 
     /* Popover & Modal System */
-    --popover: 0 0% 0%;
+    --popover: 0 0% 5%;
     --popover-foreground: 0 0% 100%;
 
     /* Primary Action System - Pure White */
     --primary: 0 0% 100%;
     --primary-foreground: 0 0% 0%;
 
-    /* Secondary System - White Opacity */
-    --secondary: 0 0% 100% / 0.1;
+    /* Secondary System - Enhanced visibility */
+    --secondary: 0 0% 100% / 0.12;
     --secondary-foreground: 0 0% 100%;
 
-    /* Muted System - Reduced Opacity */
-    --muted: 0 0% 100% / 0.05;
-    --muted-foreground: 0 0% 100% / 0.6;
+    /* Muted System - Better readability */
+    --muted: 0 0% 100% / 0.08;
+    --muted-foreground: 0 0% 100% / 0.7;
 
-    /* Accent System */
-    --accent: 0 0% 100% / 0.1;
+    /* Accent System - Slightly more visible */
+    --accent: 0 0% 100% / 0.12;
     --accent-foreground: 0 0% 100%;
 
     /* Destructive System */
     --destructive: 0 75% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    /* Border & Input System - Sharp & Precise */
-    --border: 0 0% 100% / 0.1;
-    --input: 0 0% 100% / 0.05;
+    /* Border & Input System - Enhanced visibility */
+    --border: 0 0% 100% / 0.15;
+    --input: 0 0% 100% / 0.08;
     --ring: 0 0% 100% / 0.4;
 
     /* Sharp Industrial Radius */
     --radius: 0.125rem;
 
-    /* Sidebar System - Industrial Precision */
-    --sidebar-background: 0 0% 0%;
-    --sidebar-foreground: 0 0% 100% / 0.6;
+    /* Sidebar System - Enhanced contrast */
+    --sidebar-background: 0 0% 2%;
+    --sidebar-foreground: 0 0% 100% / 0.7;
     --sidebar-primary: 0 0% 100%;
     --sidebar-primary-foreground: 0 0% 0%;
-    --sidebar-accent: 0 0% 100% / 0.05;
+    --sidebar-accent: 0 0% 100% / 0.08;
     --sidebar-accent-foreground: 0 0% 100%;
-    --sidebar-border: 0 0% 100% / 0.1;
+    --sidebar-border: 0 0% 100% / 0.15;
     --sidebar-ring: 0 0% 100% / 0.4;
 
-    /* Custom Opacity Variants */
+    /* Custom Opacity Variants - Improved visibility */
+    --white-70: 0 0% 100% / 0.7;
     --white-60: 0 0% 100% / 0.6;
     --white-40: 0 0% 100% / 0.4;
     --white-20: 0 0% 100% / 0.2;
+    --white-15: 0 0% 100% / 0.15;
     --white-10: 0 0% 100% / 0.1;
-    --white-05: 0 0% 100% / 0.05;
+    --white-08: 0 0% 100% / 0.08;
 
     /* Animation & Transition Timing */
     --transition-standard: 300ms;
@@ -74,34 +75,34 @@ All colors MUST be HSL. Typography follows system font hierarchy.
     --easing-smooth: cubic-bezier(0.4, 0, 0.2, 1);
   }
 
-  /* Dark mode uses the same system - already optimized for deep black */
+  /* Dark mode uses the same enhanced system */
   .dark {
     --background: 0 0% 0%;
     --foreground: 0 0% 100%;
-    --card: 0 0% 100% / 0.05;
+    --card: 0 0% 100% / 0.08;
     --card-foreground: 0 0% 100%;
-    --popover: 0 0% 0%;
+    --popover: 0 0% 5%;
     --popover-foreground: 0 0% 100%;
     --primary: 0 0% 100%;
     --primary-foreground: 0 0% 0%;
-    --secondary: 0 0% 100% / 0.1;
+    --secondary: 0 0% 100% / 0.12;
     --secondary-foreground: 0 0% 100%;
-    --muted: 0 0% 100% / 0.05;
-    --muted-foreground: 0 0% 100% / 0.6;
-    --accent: 0 0% 100% / 0.1;
+    --muted: 0 0% 100% / 0.08;
+    --muted-foreground: 0 0% 100% / 0.7;
+    --accent: 0 0% 100% / 0.12;
     --accent-foreground: 0 0% 100%;
     --destructive: 0 75% 60%;
     --destructive-foreground: 0 0% 100%;
-    --border: 0 0% 100% / 0.1;
-    --input: 0 0% 100% / 0.05;
+    --border: 0 0% 100% / 0.15;
+    --input: 0 0% 100% / 0.08;
     --ring: 0 0% 100% / 0.4;
-    --sidebar-background: 0 0% 0%;
-    --sidebar-foreground: 0 0% 100% / 0.6;
+    --sidebar-background: 0 0% 2%;
+    --sidebar-foreground: 0 0% 100% / 0.7;
     --sidebar-primary: 0 0% 100%;
     --sidebar-primary-foreground: 0 0% 0%;
-    --sidebar-accent: 0 0% 100% / 0.05;
+    --sidebar-accent: 0 0% 100% / 0.08;
     --sidebar-accent-foreground: 0 0% 100%;
-    --sidebar-border: 0 0% 100% / 0.1;
+    --sidebar-border: 0 0% 100% / 0.15;
     --sidebar-ring: 0 0% 100% / 0.4;
   }
 }
@@ -150,6 +151,17 @@ All colors MUST be HSL. Typography follows system font hierarchy.
   /* Industrial Grid System */
   .container-asymmetric {
     @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+  }
+
+  /* Enhanced visibility utilities */
+  .card-subtle {
+    background: hsl(var(--card));
+    border: 1px solid hsl(var(--border));
+  }
+
+  .content-area {
+    background: hsl(var(--muted));
+    border: 1px solid hsl(var(--border));
   }
 
   /* Custom animations for industrial precision */

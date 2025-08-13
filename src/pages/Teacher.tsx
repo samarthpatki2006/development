@@ -22,6 +22,8 @@ import SidebarNavigation from '@/components/layout/SidebarNavigation';
 import TeacherDashboard from '@/components/teacher/TeacherDashboard';
 import TeacherSchedule from '@/components/teacher/TeacherSchedule';
 import TeacherCalendarAttendance from '@/components/teacher/TeacherCalendarAttendance';
+import AttendanceTracking from '@/components/teacher/AttendanceTracking/AttendanceTracking';
+import EnhancedAttendanceTracker from '@/components/teacher/AttendanceTracking/EnhancedAttendanceTracker';
 import TeacherCourses from '@/components/teacher/TeacherCourses';
 import TeacherGradebook from '@/components/teacher/TeacherGradebook';
 import TeacherCommunication from '@/components/teacher/TeacherCommunication';
@@ -98,6 +100,8 @@ const Teacher = () => {
     { id: 'dashboard', label: 'Dashboard', icon: GraduationCap },
     { id: 'schedule', label: 'Schedule & Timetable', icon: Calendar },
     { id: 'attendance', label: 'Attendance Management', icon: Users },
+    { id: 'attendance-tracking', label: 'Attendance Tracking', icon: ClipboardList },
+    { id: 'enhanced-attendance', label: 'Enhanced Attendance Tracker', icon: ClipboardList },
     { id: 'courses', label: 'Course & Content', icon: BookOpen },
     { id: 'gradebook', label: 'Assignments & Evaluation', icon: ClipboardList },
     { id: 'events', label: 'Events & Calendar', icon: Calendar },
@@ -117,6 +121,10 @@ const Teacher = () => {
         return <TeacherSchedule teacherData={teacherData} />;
       case 'attendance':
         return <TeacherCalendarAttendance teacherData={teacherData} />;
+      case 'attendance-tracking':
+        return <AttendanceTracking teacherData={teacherData} />;
+      case 'enhanced-attendance':
+        return <EnhancedAttendanceTracker teacherData={teacherData} />;
       case 'courses':
         return <TeacherCourses teacherData={teacherData} />;
       case 'gradebook':

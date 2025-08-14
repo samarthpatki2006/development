@@ -40,9 +40,11 @@ const HostelFacility: React.FC<HostelFacilityProps> = ({ studentData }) => {
   const [selectedHostel, setSelectedHostel] = useState<any>(null);
   const [hostelRooms, setHostelRooms] = useState<any[]>([]);
   const [applications, setApplications] = useState<any[]>([]);
+  const [currentAllocation, setCurrentAllocation] = useState<any>(null);
   const [facilities, setFacilities] = useState<any[]>([]);
   const [facilityRequests, setFacilityRequests] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState('hostels');
   const { toast } = useToast();
 
   // Format currency in INR
@@ -57,15 +59,20 @@ const HostelFacility: React.FC<HostelFacilityProps> = ({ studentData }) => {
   // Get badge color based on status
   const getStatusColor = (status: string): "default" | "secondary" | "destructive" | "outline" => {
     switch (status?.toLowerCase()) {
-      case 'approved':
       case 'allocated':
+      case 'approved':
       case 'available':
+      case 'resolved':
         return 'default';
+      case 'submitted':
       case 'pending':
       case 'under_review':
+      case 'in_progress':
         return 'secondary';
       case 'rejected':
+      case 'withdrawn':
       case 'unavailable':
+      case 'cancelled':
         return 'destructive';
       default:
         return 'outline';
@@ -80,6 +87,19 @@ const HostelFacility: React.FC<HostelFacilityProps> = ({ studentData }) => {
   const fetchHostelData = async () => {
     try {
       setLoading(true);
+      
+      console.log('fetchHostelData called, studentData:', studentData);
+      
+      // If no student data provided, use mock data
+      const currentStudent = studentData || {
+        id: 'student_123',
+        name: 'John Doe',
+        student_id: 'STU2024001',
+        class: '12th Grade',
+        section: 'A'
+      };
+      
+      console.log('Using student data:', currentStudent);
 
       // Fetch hostels - using existing facilities table for now as a workaround
       const { data: hostelsData } = await supabase
@@ -102,20 +122,22 @@ const HostelFacility: React.FC<HostelFacilityProps> = ({ studentData }) => {
 
       setHostels(hostelData);
 
-      // Fetch applications
-      if (studentData?.id) {
-        const { data: applicationsData } = await supabase
-          .from('user_profiles')
-          .select('*')
-          .eq('id', studentData.id)
-          .limit(1);
+      // Fetch/Load applications from localStorage (simulating database)
+      const studentId = currentStudent?.id;
+      if (studentId) {
+        const savedApplications = localStorage.getItem(`hostel_applications_${studentId}`);
+        const applicationsData = savedApplications ? JSON.parse(savedApplications) : [];
+        console.log('Loaded applications for student', studentId, ':', applicationsData.length, applicationsData);
+        setApplications(applicationsData);
 
-        // Simulate application data
-        setApplications([]);
+        // Check for current allocation
+        const currentAlloc = applicationsData.find((app: any) => app.status === 'allocated');
+        setCurrentAllocation(currentAlloc || null);
+        console.log('Current allocation:', currentAlloc);
       }
 
       // Fetch facility requests - using existing data structure
-      if (studentData?.id) {
+      if (studentId) {
         const { data: requestsData } = await supabase
           .from('facilities')
           .select('*')
@@ -124,7 +146,7 @@ const HostelFacility: React.FC<HostelFacilityProps> = ({ studentData }) => {
         // Simulate facility requests
         const mockRequests = requestsData?.slice(0, 3).map((facility: any, index: number) => ({
           id: `req_${index + 1}`,
-          student_id: studentData.id,
+          student_id: studentId,
           facility_id: facility.id,
           request_type: ['maintenance', 'booking', 'complaint'][index % 3],
           title: `Request for ${facility.facility_name}`,
@@ -185,18 +207,147 @@ const HostelFacility: React.FC<HostelFacilityProps> = ({ studentData }) => {
 
   const applyForHostel = async (roomId: string, preferredRoomType: string, comments: string) => {
     try {
-      // In a real app, this would create an application in the database
+      // Use current student data or mock data
+      const currentStudent = studentData || {
+        id: 'student_123',
+        name: 'John Doe',
+        student_id: 'STU2024001',
+        class: '12th Grade',
+        section: 'A'
+      };
+      
+      if (!currentStudent?.id) {
+        console.error('No student data available');
+        return;
+      }
+
+      console.log('Applying for hostel:', { studentId: currentStudent.id, hostel: selectedHostel?.hostel_name });
+
+      // Create new application
+      const newApplication = {
+        id: `app_${Date.now()}`,
+        student_id: currentStudent.id,
+        hostel_id: selectedHostel?.id || '',
+        hostel_name: selectedHostel?.hostel_name || '',
+        room_id: roomId === 'no-preference' ? null : roomId,
+        preferred_room_type: preferredRoomType,
+        comments: comments,
+        status: 'submitted',
+        application_date: new Date().toISOString(),
+        submitted_at: new Date().toISOString()
+      };
+
+      console.log('New application:', newApplication);
+
+      // Get existing applications
+      const savedApplications = localStorage.getItem(`hostel_applications_${currentStudent.id}`);
+      const existingApplications = savedApplications ? JSON.parse(savedApplications) : [];
+
+      console.log('Existing applications:', existingApplications.length);
+
+      // Check if already has an active application
+      const hasActiveApplication = existingApplications.some((app: any) => 
+        ['submitted', 'under_review', 'approved'].includes(app.status)
+      );
+
+      if (hasActiveApplication) {
+        toast({
+          title: "Application Already Exists",
+          description: "You already have an active hostel application. Please wait for it to be processed.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Add new application
+      const updatedApplications = [...existingApplications, newApplication];
+      localStorage.setItem(`hostel_applications_${currentStudent.id}`, JSON.stringify(updatedApplications));
+
+      console.log('Saved updated applications:', updatedApplications.length);
+      console.log('localStorage key:', `hostel_applications_${currentStudent.id}`);
+      
+      setApplications(updatedApplications);
+
       toast({
         title: "Application Submitted",
-        description: "Your hostel application has been submitted successfully.",
+        description: `Your application for ${selectedHostel?.hostel_name} has been submitted successfully.`,
       });
 
-      // Refresh applications
-      fetchHostelData();
+      console.log('Application submitted successfully, switching to Applications tab');
+      // Switch to applications tab to show the result
+      setActiveTab('applications');
+
+      // Simulate automatic status updates for demo purposes
+      setTimeout(() => {
+        updateApplicationStatus(newApplication.id, 'under_review');
+      }, 2000);
+
     } catch (error) {
       toast({
         title: "Error",
         description: "Failed to submit application",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const updateApplicationStatus = (applicationId: string, newStatus: string) => {
+    if (!studentData?.id) return;
+
+    const savedApplications = localStorage.getItem(`hostel_applications_${studentData.id}`);
+    const existingApplications = savedApplications ? JSON.parse(savedApplications) : [];
+
+    const updatedApplications = existingApplications.map((app: any) => {
+      if (app.id === applicationId) {
+        const updatedApp = { ...app, status: newStatus, updated_at: new Date().toISOString() };
+        
+        // If allocated, add allocation details
+        if (newStatus === 'allocated') {
+          updatedApp.allocated_room = `Room ${Math.floor(Math.random() * 100) + 1}`;
+          updatedApp.allocated_at = new Date().toISOString();
+          setCurrentAllocation(updatedApp);
+        }
+        
+        return updatedApp;
+      }
+      return app;
+    });
+
+    localStorage.setItem(`hostel_applications_${studentData.id}`, JSON.stringify(updatedApplications));
+    setApplications(updatedApplications);
+
+    toast({
+      title: "Status Updated",
+      description: `Your application status has been updated to: ${newStatus}`,
+    });
+  };
+
+  const withdrawApplication = async (applicationId: string) => {
+    try {
+      if (!studentData?.id) return;
+
+      const savedApplications = localStorage.getItem(`hostel_applications_${studentData.id}`);
+      const existingApplications = savedApplications ? JSON.parse(savedApplications) : [];
+
+      const updatedApplications = existingApplications.map((app: any) => {
+        if (app.id === applicationId && ['submitted', 'under_review'].includes(app.status)) {
+          return { ...app, status: 'withdrawn', withdrawn_at: new Date().toISOString() };
+        }
+        return app;
+      });
+
+      localStorage.setItem(`hostel_applications_${studentData.id}`, JSON.stringify(updatedApplications));
+      setApplications(updatedApplications);
+
+      toast({
+        title: "Application Withdrawn",
+        description: "Your hostel application has been withdrawn successfully.",
+      });
+
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to withdraw application",
         variant: "destructive",
       });
     }
@@ -244,7 +395,17 @@ const HostelFacility: React.FC<HostelFacilityProps> = ({ studentData }) => {
         </Badge>
       </div>
 
-      <Tabs defaultValue="hostels" className="w-full">
+      {/* Debug info - remove in production */}
+      {process.env.NODE_ENV === 'development' && (
+        <div className="text-xs text-gray-500 bg-gray-50 p-2 rounded">
+          Debug: {applications.length} applications loaded for student {studentData?.id}
+          {applications.length > 0 && (
+            <span> | Latest: {applications[applications.length - 1]?.status}</span>
+          )}
+        </div>
+      )}
+
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="hostels">
             <Building className="h-4 w-4 mr-2" />
@@ -253,6 +414,11 @@ const HostelFacility: React.FC<HostelFacilityProps> = ({ studentData }) => {
           <TabsTrigger value="applications">
             <Bed className="h-4 w-4 mr-2" />
             My Applications
+            {applications.length > 0 && (
+              <Badge variant="secondary" className="ml-1 text-xs">
+                {applications.length}
+              </Badge>
+            )}
           </TabsTrigger>
           <TabsTrigger value="facilities">
             <Wrench className="h-4 w-4 mr-2" />
@@ -367,7 +533,12 @@ const HostelFacility: React.FC<HostelFacilityProps> = ({ studentData }) => {
                 <CardHeader>
                   <div className="flex justify-between items-center">
                     <CardTitle>Available Rooms</CardTitle>
-                    <HostelApplicationDialog onApply={applyForHostel} rooms={hostelRooms} />
+                    <HostelApplicationDialog 
+                      onApply={applyForHostel} 
+                      rooms={hostelRooms} 
+                      hasActiveApplication={applications.some(app => ['submitted', 'under_review', 'approved'].includes(app.status))}
+                      hasAllocation={!!currentAllocation}
+                    />
                   </div>
                 </CardHeader>
                 <CardContent>
@@ -432,6 +603,44 @@ const HostelFacility: React.FC<HostelFacilityProps> = ({ studentData }) => {
         </TabsContent>
 
         <TabsContent value="applications" className="space-y-6">
+          {/* Current Hostel Allocation */}
+          {currentAllocation && (
+            <Card className="border-green-200 bg-green-50">
+              <CardHeader>
+                <CardTitle className="text-green-800 flex items-center gap-2">
+                  <CheckCircle className="h-5 w-5" />
+                  Current Hostel Allocation
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <p className="font-semibold text-green-800">{currentAllocation.hostel_name}</p>
+                    <p className="text-sm text-green-600">
+                      {currentAllocation.allocated_room || 'Room assignment pending'}
+                    </p>
+                    <p className="text-xs text-green-500 mt-1">
+                      Allocated: {new Date(currentAllocation.allocated_at || currentAllocation.updated_at).toLocaleDateString()}
+                    </p>
+                  </div>
+                  <div className="flex justify-end">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => {
+                        setSelectedHostel(null);
+                        setActiveTab('hostels');
+                      }}
+                      className="text-green-700 border-green-300 hover:bg-green-100"
+                    >
+                      Apply for Room Change
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           <Card>
             <CardHeader>
               <CardTitle>My Hostel Applications</CardTitle>
@@ -448,19 +657,83 @@ const HostelFacility: React.FC<HostelFacilityProps> = ({ studentData }) => {
               ) : (
                 <div className="space-y-4">
                   {applications.map((application: any) => (
-                    <div key={application.id} className="border rounded-lg p-4">
-                      <div className="flex justify-between items-start mb-3">
-                        <div>
-                          <p className="font-medium">Application #{application.id.slice(-8)}</p>
-                          <p className="text-sm text-gray-600">
-                            Applied: {new Date(application.application_date).toLocaleDateString()}
-                          </p>
+                    <Card key={application.id} className="border">
+                      <CardContent className="p-4">
+                        <div className="flex justify-between items-start mb-3">
+                          <div>
+                            <p className="font-medium">Application #{application.id.slice(-8)}</p>
+                            <p className="text-sm font-semibold text-blue-600">{application.hostel_name}</p>
+                            <p className="text-sm text-gray-600">
+                              Applied: {new Date(application.application_date).toLocaleDateString()}
+                            </p>
+                            <p className="text-sm text-gray-600">
+                              Preferred Room: {application.preferred_room_type}
+                            </p>
+                            {application.comments && (
+                              <p className="text-sm text-gray-500 italic mt-1">"{application.comments}"</p>
+                            )}
+                          </div>
+                          <div className="text-right">
+                            <Badge variant={getStatusColor(application.status)} className="mb-2">
+                              {application.status.replace('_', ' ').toUpperCase()}
+                            </Badge>
+                            
+                            {/* Action buttons */}
+                            <div className="flex gap-2 mt-2">
+                              {['submitted', 'under_review'].includes(application.status) && (
+                                <Button
+                                  variant="destructive"
+                                  size="sm"
+                                  onClick={() => withdrawApplication(application.id)}
+                                >
+                                  Withdraw
+                                </Button>
+                              )}
+                              
+                              {application.status === 'submitted' && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => updateApplicationStatus(application.id, 'under_review')}
+                                >
+                                  Simulate Review
+                                </Button>
+                              )}
+                              
+                              {application.status === 'under_review' && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => updateApplicationStatus(application.id, Math.random() > 0.3 ? 'allocated' : 'rejected')}
+                                >
+                                  Simulate Decision
+                                </Button>
+                              )}
+                            </div>
+                          </div>
                         </div>
-                        <Badge variant={getStatusColor(application.status)}>
-                          {application.status}
-                        </Badge>
-                      </div>
-                    </div>
+                        
+                        {/* Status timeline */}
+                        <div className="mt-4 pt-3 border-t">
+                          <div className="flex flex-wrap gap-4 text-sm text-gray-500">
+                            <span>Submitted: {new Date(application.submitted_at).toLocaleDateString()}</span>
+                            {application.updated_at && application.updated_at !== application.submitted_at && (
+                              <span>Updated: {new Date(application.updated_at).toLocaleDateString()}</span>
+                            )}
+                            {application.allocated_at && (
+                              <span className="text-green-600 font-medium">
+                                Allocated: {new Date(application.allocated_at).toLocaleDateString()}
+                              </span>
+                            )}
+                            {application.withdrawn_at && (
+                              <span className="text-red-600 font-medium">
+                                Withdrawn: {new Date(application.withdrawn_at).toLocaleDateString()}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
                   ))}
                 </div>
               )}
@@ -577,7 +850,9 @@ const HostelFacility: React.FC<HostelFacilityProps> = ({ studentData }) => {
 const HostelApplicationDialog: React.FC<{
   onApply: (roomId: string, preferredRoomType: string, comments: string) => void;
   rooms: any[];
-}> = ({ onApply, rooms }) => {
+  hasActiveApplication: boolean;
+  hasAllocation: boolean;
+}> = ({ onApply, rooms, hasActiveApplication, hasAllocation }) => {
   const [selectedRoom, setSelectedRoom] = useState('');
   const [preferredRoomType, setPreferredRoomType] = useState('shared');
   const [comments, setComments] = useState('');
@@ -594,14 +869,18 @@ const HostelApplicationDialog: React.FC<{
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button>
+        <Button disabled={hasActiveApplication && !hasAllocation}>
           <Plus className="h-4 w-4 mr-2" />
-          Apply for Hostel
+          {hasAllocation ? 'Apply for Room Change' : 
+           hasActiveApplication ? 'Application Pending' : 
+           'Apply for Hostel'}
         </Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Hostel Application</DialogTitle>
+          <DialogTitle>
+            {hasAllocation ? 'Room Change Application' : 'Hostel Application'}
+          </DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
           <div>
@@ -649,6 +928,9 @@ const HostelApplicationDialog: React.FC<{
             <p className="text-sm text-blue-800">
               <strong>Note:</strong> Your application will be reviewed by the hostel administration. 
               You will be notified of the status via email and on this portal.
+              {hasAllocation && (
+                <><br /><strong>Room Change:</strong> This will be processed as a room change request for your current hostel allocation.</>
+              )}
             </p>
           </div>
 

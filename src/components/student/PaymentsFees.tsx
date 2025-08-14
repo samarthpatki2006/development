@@ -153,10 +153,10 @@ const PaymentsFees: React.FC<PaymentsFeesProps> = ({ studentData }) => {
         <h2 className="text-2xl font-bold">Payments & Fees</h2>
         <div className="flex space-x-4">
           <Badge variant="outline" className="text-lg px-3 py-1">
-            Pending: ${totalPending.toFixed(2)}
+            Pending: {totalPending.toFixed(2)}
           </Badge>
           <Badge variant="default" className="text-lg px-3 py-1">
-            Paid: ${totalPaid.toFixed(2)}
+            Paid: {totalPaid.toFixed(2)}
           </Badge>
         </div>
       </div>

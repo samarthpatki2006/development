@@ -44,13 +44,32 @@ const NavigationWrapper = ({ children }: NavigationWrapperProps) => {
   }, [currentPath, navigate]);
 
   const handleAuthStateChange = async (session: Session | null) => {
+    // Check for mock user data (development mode)
+    const mockUserData = localStorage.getItem('colcord_user');
+    
     // Handle unauthenticated users
-    if (!session) {
-      // Clear any legacy localStorage data
-      localStorage.removeItem('colcord_user');
-      
+    if (!session && !mockUserData) {
       if (currentPath !== '/') {
         navigate('/');
+      }
+      return;
+    }
+
+    // Handle mock user data (skip login functionality)
+    if (!session && mockUserData) {
+      try {
+        const userData = JSON.parse(mockUserData);
+        const correctRoute = USER_ROUTE_MAP[userData.user_type as keyof typeof USER_ROUTE_MAP];
+        
+        if (correctRoute && currentPath !== correctRoute) {
+          navigate(correctRoute);
+        }
+      } catch (error) {
+        console.error('Error parsing mock user data:', error);
+        localStorage.removeItem('colcord_user');
+        if (currentPath !== '/') {
+          navigate('/');
+        }
       }
       return;
     }

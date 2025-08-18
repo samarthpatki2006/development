@@ -14,7 +14,8 @@ import {
   Moon,
   Sun,
   Settings,
-  User
+  User,
+  Sparkle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import SidebarNavigation from '@/components/layout/SidebarNavigation';
@@ -29,6 +30,8 @@ import PaymentsFees from '@/components/student/PaymentsFees';
 import HostelFacility from '@/components/student/HostelFacility';
 import SupportHelp from '@/components/student/SupportHelp';
 import { supabase } from '@/integrations/supabase/client';
+import QuizTaker from '@/components/student/QuizTaker';
+import StudentGrades from '@/components/student/StudentGrades';
 
 const Student = () => {
   const [activeView, setActiveView] = useState('dashboard');
@@ -59,7 +62,8 @@ const Student = () => {
     { id: 'schedule', label: 'Schedule', icon: Clock },
     { id: 'attendance', label: 'Attendance', icon: Calendar },
     { id: 'courses', label: 'Courses', icon: BookOpen },
-    { id: 'assignments', label: 'Assignments', icon: FileText },
+    { id: 'quizzes', label: 'Quizzes', icon: Sparkle },
+    { id: 'gradebook', label: 'Gradebook', icon: FileText },
     { id: 'events', label: 'Events', icon: Bell },
     { id: 'communication', label: 'Communication', icon: MessageSquare },
     { id: 'payments', label: 'Payments', icon: CreditCard },
@@ -77,8 +81,10 @@ const Student = () => {
         return <AttendanceOverview studentData={studentData} />;
       case 'courses':
         return <CoursesLearningSnapshot studentData={studentData} />;
-      case 'assignments':
-        return <MyCourses studentData={studentData} />;
+      case 'quizzes':
+        return <QuizTaker />;
+      case 'gradebook':
+        return <StudentGrades />;
       case 'events':
         return <CalendarAttendance studentData={studentData} />;
       case 'communication':

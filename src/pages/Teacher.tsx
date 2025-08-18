@@ -23,7 +23,6 @@ import TeacherDashboard from '@/components/teacher/TeacherDashboard';
 import TeacherSchedule from '@/components/teacher/TeacherSchedule';
 import TeacherCalendarAttendance from '@/components/teacher/TeacherCalendarAttendance';
 import TeacherCourses from '@/components/teacher/TeacherCourses';
-import TeacherGradebook from '@/components/teacher/TeacherGradebook';
 import TeacherCommunication from '@/components/teacher/TeacherCommunication';
 import TeacherDocuments from '@/components/teacher/TeacherDocuments';
 import TeacherPerformance from '@/components/teacher/TeacherPerformance';
@@ -32,6 +31,7 @@ import TeacherEvents from '@/components/teacher/TeacherEvents';
 import TeacherParentInteraction from '@/components/teacher/TeacherParentInteraction';
 import TeacherSupport from '@/components/teacher/TeacherSupport';
 import { supabase } from '@/integrations/supabase/client';
+import GradeManager from '@/components/teacher/GradeManager';
 
 const Teacher = () => {
   const [activeView, setActiveView] = useState('dashboard');
@@ -99,7 +99,7 @@ const Teacher = () => {
     { id: 'schedule', label: 'Schedule & Timetable', icon: Calendar },
     { id: 'attendance', label: 'Attendance Management', icon: Users },
     { id: 'courses', label: 'Course & Content', icon: BookOpen },
-    { id: 'gradebook', label: 'Assignments & Evaluation', icon: ClipboardList },
+    { id: 'gradebook', label: 'Quizzes & Evaluation', icon: ClipboardList },
     { id: 'events', label: 'Events & Calendar', icon: Calendar },
     { id: 'performance', label: 'Student Performance', icon: TrendingUp },
     { id: 'communication', label: 'Communication', icon: MessageSquare },
@@ -120,7 +120,7 @@ const Teacher = () => {
       case 'courses':
         return <TeacherCourses teacherData={teacherData} />;
       case 'gradebook':
-        return <TeacherGradebook teacherData={teacherData} />;
+        return <GradeManager teacherData={teacherData} />;
       case 'events':
         return <TeacherEvents teacherData={teacherData} />;
       case 'performance':

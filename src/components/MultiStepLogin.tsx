@@ -439,6 +439,36 @@ const MultiStepLogin = () => {
     resetForm();
   };
 
+  const handleSkipLogin = (role: 'admin' | 'teacher' | 'student') => {
+    // Create mock user data for development/testing
+    const mockUserData = {
+      user_id: `mock-${role}-id`,
+      user_type: role === 'teacher' ? 'faculty' : role,
+      first_name: role === 'admin' ? 'Admin' : role === 'teacher' ? 'Teacher' : 'Student',
+      last_name: 'User',
+      college_id: 'mock-college-id',
+      user_code: `${role.toUpperCase()}001`,
+      email: `${role}@example.com`
+    };
+
+    // Store mock user data
+    localStorage.setItem('colcord_user', JSON.stringify(mockUserData));
+
+    // Navigate to appropriate dashboard
+    const routes = {
+      'admin': '/admin',
+      'teacher': '/teacher',
+      'student': '/student'
+    };
+
+    navigate(routes[role]);
+    
+    toast({
+      title: 'Development Mode',
+      description: `Logged in as ${role} for testing purposes`,
+    });
+  };
+
   return (
     <div className="min-h-screen bg-background flex items-center justify-center px-4">
       {/* Background Grid Pattern */}
@@ -724,15 +754,47 @@ const MultiStepLogin = () => {
           </CardContent>
           
           <div className="px-6 pb-6 space-y-4">
-            {/* Toggle between Login and Signup */}
-            <div className="text-center">
-              <Button
-                variant="ghost"
-                onClick={toggleMode}
-                className="text-sm text-muted-foreground hover:text-foreground underline-offset-4 hover:underline"
-              >
-                {isSignUp ? 'Already have an account? Login' : "Don't have an account? Sign up"}
-              </Button>
+            {/* Skip Login Buttons for Development */}
+            <div className="space-y-3">
+              <div className="text-center">
+                <p className="text-xs text-muted-foreground mb-3">Development Mode - Skip Login</p>
+                <div className="flex gap-2 justify-center">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleSkipLogin('admin')}
+                    className="text-xs"
+                  >
+                    Skip as Admin
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleSkipLogin('teacher')}
+                    className="text-xs"
+                  >
+                    Skip as Teacher
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleSkipLogin('student')}
+                    className="text-xs"
+                  >
+                    Skip as Student
+                  </Button>
+                </div>
+              </div>
+              
+              <div className="text-center">
+                <Button
+                  variant="ghost"
+                  onClick={toggleMode}
+                  className="text-sm text-muted-foreground hover:text-foreground underline-offset-4 hover:underline"
+                >
+                  {isSignUp ? 'Already have an account? Login' : "Don't have an account? Sign up"}
+                </Button>
+              </div>
             </div>
             
             <div className="text-center">

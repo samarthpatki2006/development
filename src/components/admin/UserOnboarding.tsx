@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -27,7 +26,7 @@ interface UserOnboardingRecord {
   onboarding_completed: boolean;
   created_at: string;
   updated_at: string;
-  user?: {
+  user_profiles?: {
     first_name: string;
     last_name: string;
     email: string;
@@ -69,59 +68,53 @@ const UserOnboarding = ({ userProfile }: { userProfile: UserProfile }) => {
 
   useEffect(() => {
     loadOnboardingData();
+    
+    // Set up periodic check for onboarding status updates
+    const interval = setInterval(() => {
+      checkOnboardingStatus();
+    }, 30000); // Check every 30 seconds
+    
+    return () => clearInterval(interval);
   }, []);
+
+  useEffect(() => {
+    // Check onboarding status when records change
+    if (onboardingRecords.length > 0) {
+      checkOnboardingStatus();
+    }
+  }, [onboardingRecords.length]);
 
   const loadOnboardingData = async () => {
     try {
-      // Mock onboarding data
-      const mockData: UserOnboardingRecord[] = [
-        {
-          id: '1',
-          user_id: '1',
-          college_id: userProfile.college_id,
-          temp_password: 'TempPass123',
-          welcome_email_sent: true,
-          welcome_email_delivered: true,
-          welcome_email_opened: false,
-          welcome_email_failed: false,
-          first_login_completed: false,
-          password_reset_required: true,
-          onboarding_completed: false,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-          user: {
-            first_name: 'John',
-            last_name: 'Doe',
-            email: 'john.doe@student.edu',
-            user_code: 'STU001',
-            user_type: 'student'
-          }
-        },
-        {
-          id: '2',
-          user_id: '2',
-          college_id: userProfile.college_id,
-          temp_password: 'TempPass456',
-          welcome_email_sent: true,
-          welcome_email_delivered: true,
-          welcome_email_opened: true,
-          welcome_email_failed: false,
-          first_login_completed: true,
-          password_reset_required: false,
-          onboarding_completed: true,
-          created_at: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-          updated_at: new Date().toISOString(),
-          user: {
-            first_name: 'Jane',
-            last_name: 'Smith',
-            email: 'jane.smith@teacher.edu',
-            user_code: 'TCH001',
-            user_type: 'teacher'
-          }
-        }
-      ];
+      setIsLoading(true);
       
-      setOnboardingRecords(mockData);
+      // Fetch onboarding records with user profiles
+      const { data, error } = await supabase
+        .from('user_onboarding')
+        .select(`
+          *,
+          user_profiles (
+            first_name,
+            last_name,
+            email,
+            user_code,
+            user_type
+          )
+        `)
+        .eq('college_id', userProfile.college_id)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error loading onboarding data:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load onboarding data.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      setOnboardingRecords(data || []);
     } catch (error) {
       console.error('Error loading onboarding data:', error);
       toast({
@@ -146,7 +139,7 @@ const UserOnboarding = ({ userProfile }: { userProfile: UserProfile }) => {
     }[userType] || 'U';
     
     const sequence = Math.floor(Math.random() * 9999) + 1;
-    return `COLL${typePrefix}${year}${sequence.toString().padStart(4, '0')}`;
+    return `${typePrefix}${year}${sequence.toString().padStart(4, '0')}`;
   };
 
   const generateTempPassword = (): string => {
@@ -160,48 +153,120 @@ const UserOnboarding = ({ userProfile }: { userProfile: UserProfile }) => {
 
   const handleAddUser = async () => {
     try {
+      if (!newUserForm.first_name || !newUserForm.last_name || !newUserForm.email) {
+        toast({
+          title: "Error",
+          description: "Please fill in all required fields.",
+          variant: "destructive",
+        });
+        return;
+      }
+
       const userCode = generateUserCode(newUserForm.user_type);
       const tempPassword = generateTempPassword();
 
-      // Simulate user creation and onboarding record
-      const newOnboardingRecord: UserOnboardingRecord = {
-        id: Date.now().toString(),
-        user_id: Date.now().toString(),
-        college_id: userProfile.college_id,
-        temp_password: tempPassword,
-        welcome_email_sent: false,
-        welcome_email_delivered: false,
-        welcome_email_opened: false,
-        welcome_email_failed: false,
-        first_login_completed: false,
-        password_reset_required: true,
-        onboarding_completed: false,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        user: {
-          ...newUserForm,
-          email: newUserForm.email,
-          user_code: userCode
+      // First, create auth user with temporary password
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: newUserForm.email,
+        password: tempPassword,
+        options: {
+          data: {
+            first_name: newUserForm.first_name,
+            last_name: newUserForm.last_name,
+            user_type: newUserForm.user_type,
+            college_id: userProfile.college_id,
+            user_code: userCode
+          }
         }
-      };
+      });
 
-      // Simulate sending welcome email
-      setTimeout(() => {
-        newOnboardingRecord.welcome_email_sent = true;
-        newOnboardingRecord.welcome_email_delivered = true;
-        setOnboardingRecords(prev => prev.map(record => 
-          record.id === newOnboardingRecord.id ? newOnboardingRecord : record
-        ));
-      }, 2000);
+      if (authError) {
+        console.error('Auth error:', authError);
+        toast({
+          title: "Error",
+          description: authError.message || "Failed to create user account.",
+          variant: "destructive",
+        });
+        return;
+      }
 
-      setOnboardingRecords([newOnboardingRecord, ...onboardingRecords]);
-      setIsAddUserDialogOpen(false);
+      if (!authData.user) {
+        toast({
+          title: "Error",
+          description: "Failed to create user account.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Create user profile
+      const { error: profileError } = await supabase
+        .from('user_profiles')
+        .insert({
+          id: authData.user.id,
+          college_id: userProfile.college_id,
+          user_code: userCode,
+          user_type: newUserForm.user_type,
+          first_name: newUserForm.first_name,
+          last_name: newUserForm.last_name,
+          email: newUserForm.email,
+          is_active: true
+        });
+
+      if (profileError) {
+        console.error('Profile error:', profileError);
+        toast({
+          title: "Error",
+          description: "Failed to create user profile.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Create onboarding record
+      const { data: onboardingData, error: onboardingError } = await supabase
+        .from('user_onboarding')
+        .insert({
+          user_id: authData.user.id,
+          college_id: userProfile.college_id,
+          temp_password: tempPassword,
+          welcome_email_sent: false,
+          welcome_email_delivered: false,
+          welcome_email_opened: false,
+          welcome_email_failed: false,
+          first_login_completed: false,
+          password_reset_required: true,
+          onboarding_completed: false
+        })
+        .select()
+        .single();
+
+      if (onboardingError) {
+        console.error('Onboarding error:', onboardingError);
+        toast({
+          title: "Error",
+          description: "Failed to create onboarding record.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Send welcome email (simulate for now)
+      setTimeout(async () => {
+        await handleSendWelcomeEmail(onboardingData.id);
+      }, 1000);
+
+      // Reset form and close dialog
       setNewUserForm({
         first_name: '',
         last_name: '',
         email: '',
         user_type: 'student'
       });
+      setIsAddUserDialogOpen(false);
+
+      // Reload data
+      await loadOnboardingData();
 
       toast({
         title: "Success",
@@ -217,32 +282,49 @@ const UserOnboarding = ({ userProfile }: { userProfile: UserProfile }) => {
     }
   };
 
+  const handleSendWelcomeEmail = async (onboardingId: string) => {
+    try {
+      // Update onboarding record to mark email as sent
+      const { error } = await supabase
+        .from('user_onboarding')
+        .update({
+          welcome_email_sent: true,
+          welcome_email_delivered: false,
+          welcome_email_failed: false,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', onboardingId);
+
+      if (error) {
+        console.error('Error updating email status:', error);
+        return;
+      }
+
+      // Simulate email delivery after 2 seconds
+      setTimeout(async () => {
+        const { error: deliveryError } = await supabase
+          .from('user_onboarding')
+          .update({
+            welcome_email_delivered: true,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', onboardingId);
+
+        if (!deliveryError) {
+          await loadOnboardingData();
+        }
+      }, 2000);
+
+      await loadOnboardingData();
+    } catch (error) {
+      console.error('Error sending welcome email:', error);
+    }
+  };
+
   const handleResendWelcomeEmail = async (recordId: string) => {
     try {
-      const updatedRecords = onboardingRecords.map(record => {
-        if (record.id === recordId) {
-          return {
-            ...record,
-            welcome_email_sent: true,
-            welcome_email_delivered: false,
-            welcome_email_failed: false,
-            updated_at: new Date().toISOString()
-          };
-        }
-        return record;
-      });
+      await handleSendWelcomeEmail(recordId);
       
-      setOnboardingRecords(updatedRecords);
-      
-      // Simulate email delivery
-      setTimeout(() => {
-        setOnboardingRecords(prev => prev.map(record => 
-          record.id === recordId 
-            ? { ...record, welcome_email_delivered: true }
-            : record
-        ));
-      }, 1500);
-
       toast({
         title: "Success",
         description: "Welcome email sent successfully.",
@@ -254,6 +336,87 @@ const UserOnboarding = ({ userProfile }: { userProfile: UserProfile }) => {
         description: "Failed to resend welcome email.",
         variant: "destructive",
       });
+    }
+  };
+
+  const handleMarkOnboardingCompleted = async (recordId: string) => {
+    try {
+      const { error } = await supabase
+        .from('user_onboarding')
+        .update({
+          first_login_completed: true,
+          password_reset_required: false,
+          onboarding_completed: true,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', recordId);
+
+      if (error) {
+        console.error('Error updating onboarding status:', error);
+        toast({
+          title: "Error",
+          description: "Failed to update onboarding status.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      await loadOnboardingData();
+      
+      toast({
+        title: "Success",
+        description: "Onboarding marked as completed.",
+      });
+    } catch (error) {
+      console.error('Error completing onboarding:', error);
+      toast({
+        title: "Error",
+        description: "Failed to complete onboarding.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleMarkEmailOpened = async (recordId: string) => {
+    try {
+      const { error } = await supabase
+        .from('user_onboarding')
+        .update({
+          welcome_email_opened: true,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', recordId);
+
+      if (error) {
+        console.error('Error updating email opened status:', error);
+        return;
+      }
+
+      await loadOnboardingData();
+    } catch (error) {
+      console.error('Error marking email as opened:', error);
+    }
+  };
+
+  // Function to automatically check and update onboarding status
+  const checkOnboardingStatus = async () => {
+    try {
+      // Get all pending onboarding records
+      const pendingRecords = onboardingRecords.filter(record => !record.onboarding_completed);
+      
+      for (const record of pendingRecords) {
+        if (record.user_id) {
+          // Check if user has logged in by querying auth.users or checking last sign in
+          const { data: userData, error: userError } = await supabase.auth.admin.getUserById(record.user_id);
+          
+          if (!userError && userData.user && userData.user.last_sign_in_at) {
+            // User has logged in, mark onboarding as completed
+            await handleMarkOnboardingCompleted(record.id);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error checking onboarding status:', error);
     }
   };
 
@@ -385,8 +548,8 @@ const UserOnboarding = ({ userProfile }: { userProfile: UserProfile }) => {
                     <Button variant="outline" onClick={() => setIsBulkImportDialogOpen(false)}>
                       Cancel
                     </Button>
-                    <Button>
-                      Import Users
+                    <Button disabled>
+                      Import Users (Coming Soon)
                     </Button>
                   </div>
                 </DialogContent>
@@ -408,28 +571,31 @@ const UserOnboarding = ({ userProfile }: { userProfile: UserProfile }) => {
                   </DialogHeader>
                   <div className="grid grid-cols-2 gap-4 py-4">
                     <div>
-                      <Label htmlFor="first_name">First Name</Label>
+                      <Label htmlFor="first_name">First Name *</Label>
                       <Input
                         id="first_name"
                         value={newUserForm.first_name}
                         onChange={(e) => setNewUserForm({...newUserForm, first_name: e.target.value})}
+                        required
                       />
                     </div>
                     <div>
-                      <Label htmlFor="last_name">Last Name</Label>
+                      <Label htmlFor="last_name">Last Name *</Label>
                       <Input
                         id="last_name"
                         value={newUserForm.last_name}
                         onChange={(e) => setNewUserForm({...newUserForm, last_name: e.target.value})}
+                        required
                       />
                     </div>
                     <div className="col-span-2">
-                      <Label htmlFor="email">Email</Label>
+                      <Label htmlFor="email">Email *</Label>
                       <Input
                         id="email"
                         type="email"
                         value={newUserForm.email}
                         onChange={(e) => setNewUserForm({...newUserForm, email: e.target.value})}
+                        required
                       />
                     </div>
                     <div className="col-span-2">
@@ -498,16 +664,16 @@ const UserOnboarding = ({ userProfile }: { userProfile: UserProfile }) => {
                           <TableCell>
                             <div>
                               <div className="font-medium">
-                                {record.user?.first_name} {record.user?.last_name}
+                                {record.user_profiles?.first_name} {record.user_profiles?.last_name}
                               </div>
-                              <div className="text-sm text-gray-500">{record.user?.email}</div>
+                              <div className="text-sm text-gray-500">{record.user_profiles?.email}</div>
                               <Badge variant="outline" className="text-xs mt-1 capitalize">
-                                {record.user?.user_type}
+                                {record.user_profiles?.user_type}
                               </Badge>
                             </div>
                           </TableCell>
                           <TableCell className="font-mono text-sm">
-                            {record.user?.user_code}
+                            {record.user_profiles?.user_code}
                           </TableCell>
                           <TableCell>
                             <div className="space-y-1">
@@ -531,11 +697,39 @@ const UserOnboarding = ({ userProfile }: { userProfile: UserProfile }) => {
                                   size="sm"
                                   variant="outline"
                                   onClick={() => handleResendWelcomeEmail(record.id)}
+                                  title="Resend Welcome Email"
                                 >
                                   <RefreshCw className="w-3 h-3" />
                                 </Button>
                               )}
-                              <Button size="sm" variant="outline">
+                              
+                              {record.welcome_email_delivered && !record.welcome_email_opened && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleMarkEmailOpened(record.id)}
+                                  title="Mark Email as Opened"
+                                >
+                                  <Mail className="w-3 h-3" />
+                                </Button>
+                              )}
+                              
+                              {record.welcome_email_opened && !record.onboarding_completed && (
+                                <Button
+                                  size="sm"
+                                  variant="default"
+                                  onClick={() => handleMarkOnboardingCompleted(record.id)}
+                                  title="Mark Onboarding as Completed"
+                                >
+                                  <CheckCircle className="w-3 h-3" />
+                                </Button>
+                              )}
+                              
+                              <Button 
+                                size="sm" 
+                                variant="outline"
+                                title="View Details"
+                              >
                                 <Eye className="w-3 h-3" />
                               </Button>
                             </div>

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,13 +6,17 @@ import { Calendar } from '@/components/ui/calendar';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   Calendar as CalendarIcon, 
   Clock, 
   CheckCircle, 
   XCircle, 
   AlertCircle,
-  FileText
+  FileText,
+  MapPin,
+  Users,
+  Star
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -22,9 +25,31 @@ interface CalendarAttendanceProps {
   studentData: any;
 }
 
+interface Event {
+  id: string;
+  event_name: string;
+  description: string;
+  event_type: string;
+  start_date: string;
+  end_date: string;
+  location: string;
+  max_participants: number;
+  organizer_id: string;
+  registration_required: boolean;
+  is_active: boolean;
+  created_at: string;
+  organizer?: {
+    first_name: string;
+    last_name: string;
+  };
+  participant_count?: number;
+  is_registered?: boolean;
+}
+
 const CalendarAttendance: React.FC<CalendarAttendanceProps> = ({ studentData }) => {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [todayClasses, setTodayClasses] = useState([]);
+  const [todayEvents, setTodayEvents] = useState<Event[]>([]);
   const [attendanceHistory, setAttendanceHistory] = useState([]);
   const [monthlyStats, setMonthlyStats] = useState({ present: 0, absent: 0, total: 0 });
   const [loading, setLoading] = useState(true);
@@ -32,6 +57,7 @@ const CalendarAttendance: React.FC<CalendarAttendanceProps> = ({ studentData }) 
 
   useEffect(() => {
     fetchTodayClasses();
+    fetchTodayEvents();
     fetchAttendanceHistory();
   }, [selectedDate, studentData]);
 
@@ -79,6 +105,95 @@ const CalendarAttendance: React.FC<CalendarAttendanceProps> = ({ studentData }) 
 
     } catch (error) {
       console.error('Error fetching today\'s classes:', error);
+    }
+  };
+
+  const fetchTodayEvents = async () => {
+    try {
+      const selectedDateStr = selectedDate.toISOString().split('T')[0];
+      
+      // First, let's fetch ALL active events for the college (to debug)
+      const { data: eventsData, error: eventsError } = await supabase
+        .from('events')
+        .select(`
+          *,
+          organizer:user_profiles!events_organizer_id_fkey(
+            first_name,
+            last_name
+          )
+        `)
+        .eq('college_id', studentData.college_id)
+        .eq('is_active', true)
+        .order('start_date');
+
+      if (eventsError) {
+        console.error('Error fetching events:', eventsError);
+        return;
+      }
+
+      console.log('All events from database:', eventsData);
+      console.log('Selected date:', selectedDateStr);
+
+      // Filter events that occur on the selected date (client-side filtering for now)
+      const eventsForSelectedDate = eventsData?.filter(event => {
+        const eventStartDate = new Date(event.start_date).toISOString().split('T')[0];
+        const eventEndDate = new Date(event.end_date).toISOString().split('T')[0];
+        
+        // Check if selected date is between start and end date (inclusive)
+        return selectedDateStr >= eventStartDate && selectedDateStr <= eventEndDate;
+      }) || [];
+
+      console.log('Filtered events for selected date:', eventsForSelectedDate);
+
+      // Get registration status and participant count for each event
+      const eventsWithDetails = await Promise.all(
+        eventsForSelectedDate.map(async (event) => {
+          try {
+            // Check if student is registered for this event
+            const { data: registrationData, error: regError } = await supabase
+              .from('event_registrations')
+              .select('*')
+              .eq('event_id', event.id)
+              .eq('user_id', studentData.user_id)
+              .maybeSingle();
+
+            if (regError && regError.code !== 'PGRST116') { // Ignore "no rows returned" error
+              console.error('Error checking registration for event', event.id, regError);
+            }
+
+            // Get participant count
+            const { count, error: countError } = await supabase
+              .from('event_registrations')
+              .select('*', { count: 'exact', head: true })
+              .eq('event_id', event.id);
+
+            if (countError) {
+              console.error('Error counting participants for event', event.id, countError);
+            }
+
+            console.log(`Event ${event.event_name}: registered=${!!registrationData}, count=${count}`);
+
+            return {
+              ...event,
+              is_registered: !!registrationData,
+              participant_count: count || 0
+            };
+          } catch (error) {
+            console.error('Error processing event', event.id, error);
+            return {
+              ...event,
+              is_registered: false,
+              participant_count: 0
+            };
+          }
+        })
+      );
+
+      console.log('Final events with details:', eventsWithDetails);
+      setTodayEvents(eventsWithDetails);
+
+    } catch (error) {
+      console.error('Error fetching today\'s events:', error);
     }
   };
 
@@ -155,6 +270,65 @@ const CalendarAttendance: React.FC<CalendarAttendanceProps> = ({ studentData }) 
     }
   };
 
+  const registerForEvent = async (eventId: string) => {
+    try {
+      const { error } = await supabase
+        .from('event_registrations')
+        .insert({
+          event_id: eventId,
+          user_id: studentData.user_id,
+          registration_date: new Date().toISOString(),
+          status: 'registered'
+        });
+
+      if (error) throw error;
+
+      toast({
+        title: 'Success',
+        description: 'Successfully registered for the event!',
+      });
+
+      // Refresh events data
+      fetchTodayEvents();
+
+    } catch (error) {
+      console.error('Error registering for event:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to register for event',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const unregisterFromEvent = async (eventId: string) => {
+    try {
+      const { error } = await supabase
+        .from('event_registrations')
+        .delete()
+        .eq('event_id', eventId)
+        .eq('user_id', studentData.user_id);
+
+      if (error) throw error;
+
+      toast({
+        title: 'Success',
+        description: 'Successfully unregistered from the event',
+      });
+
+      // Refresh events data
+      fetchTodayEvents();
+
+    } catch (error) {
+      console.error('Error unregistering from event:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to unregister from event',
+        variant: 'destructive',
+      });
+    }
+  };
+
   const submitAbsenceRequest = async (courseId: string, reason: string, requestType: string) => {
     try {
       // In a real implementation, this would create an absence request
@@ -194,6 +368,15 @@ const CalendarAttendance: React.FC<CalendarAttendanceProps> = ({ studentData }) 
     });
   };
 
+  const formatEventDateTime = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true
+    });
+  };
+
   const getAttendanceIcon = (status: string) => {
     switch (status) {
       case 'present':
@@ -205,6 +388,18 @@ const CalendarAttendance: React.FC<CalendarAttendanceProps> = ({ studentData }) 
       default:
         return <Clock className="h-5 w-5 text-gray-400" />;
     }
+  };
+
+  const getEventTypeColor = (type: string): string => {
+    const colors: Record<string, string> = {
+      'academic': 'bg-blue-100 text-blue-800',
+      'cultural': 'bg-purple-100 text-purple-800',
+      'sports': 'bg-green-100 text-green-800',
+      'orientation': 'bg-orange-100 text-orange-800',
+      'workshop': 'bg-indigo-100 text-indigo-800',
+      'seminar': 'bg-gray-100 text-gray-800'
+    };
+    return colors[type] || 'bg-gray-100 text-gray-800';
   };
 
   const getAttendancePercentage = () => {
@@ -263,11 +458,11 @@ const CalendarAttendance: React.FC<CalendarAttendanceProps> = ({ studentData }) 
           </CardContent>
         </Card>
 
-        {/* Today's Classes */}
+        {/* Today's Classes and Events */}
         <Card className="lg:col-span-2">
           <CardHeader>
             <CardTitle>
-              Classes for {selectedDate.toLocaleDateString('en-US', { 
+              Schedule for {selectedDate.toLocaleDateString('en-US', { 
                 weekday: 'long', 
                 year: 'numeric', 
                 month: 'long', 
@@ -276,59 +471,161 @@ const CalendarAttendance: React.FC<CalendarAttendanceProps> = ({ studentData }) 
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {todayClasses.length === 0 ? (
-              <p className="text-gray-500 text-center py-8">No classes scheduled for this day</p>
-            ) : (
-              <div className="space-y-4">
-                {todayClasses.map((classItem: any) => (
-                  <div key={classItem.id} className="border rounded-lg p-4">
-                    <div className="flex items-center justify-between mb-3">
-                      <div>
-                        <h4 className="font-semibold">{classItem.courses.course_name}</h4>
-                        <p className="text-sm text-gray-600">{classItem.courses.course_code}</p>
-                        <p className="text-sm text-gray-500">{classItem.room_location}</p>
+            <Tabs defaultValue="classes" className="w-full">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="classes">Classes ({todayClasses.length})</TabsTrigger>
+                <TabsTrigger value="events">Events ({todayEvents.length})</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="classes" className="space-y-4">
+                {todayClasses.length === 0 ? (
+                  <p className="text-gray-500 text-center py-8">No classes scheduled for this day</p>
+                ) : (
+                  <div className="space-y-4">
+                    {todayClasses.map((classItem: any) => (
+                      <div key={classItem.id} className="border rounded-lg p-4">
+                        <div className="flex items-center justify-between mb-3">
+                          <div>
+                            <h4 className="font-semibold">{classItem.courses.course_name}</h4>
+                            <p className="text-sm text-gray-600">{classItem.courses.course_code}</p>
+                            <p className="text-sm text-gray-500">{classItem.room_location}</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="font-medium">
+                              {formatTime(classItem.start_time)} - {formatTime(classItem.end_time)}
+                            </p>
+                            <div className="flex items-center justify-end mt-1">
+                              {getAttendanceIcon(classItem.attendance?.status)}
+                              <span className="ml-1 text-sm capitalize">
+                                {classItem.attendance?.status || 'Not marked'}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Attendance Actions */}
+                        {selectedDate.toDateString() === new Date().toDateString() && !classItem.attendance && (
+                          <div className="flex space-x-2 mt-3">
+                            <Button
+                              size="sm"
+                              onClick={() => markAttendance(classItem.id, classItem.course_id, 'present')}
+                              className="bg-green-600 hover:bg-green-700"
+                            >
+                              Mark Present
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => markAttendance(classItem.id, classItem.course_id, 'late')}
+                            >
+                              Mark Late
+                            </Button>
+                            <AbsenceRequestDialog 
+                              courseId={classItem.course_id}
+                              courseName={classItem.courses.course_name}
+                              onSubmit={submitAbsenceRequest}
+                            />
+                          </div>
+                        )}
                       </div>
-                      <div className="text-right">
-                        <p className="font-medium">
-                          {formatTime(classItem.start_time)} - {formatTime(classItem.end_time)}
-                        </p>
-                        <div className="flex items-center justify-end mt-1">
-                          {getAttendanceIcon(classItem.attendance?.status)}
-                          <span className="ml-1 text-sm capitalize">
-                            {classItem.attendance?.status || 'Not marked'}
-                          </span>
+                    ))}
+                  </div>
+                )}
+              </TabsContent>
+              
+              <TabsContent value="events" className="space-y-4">
+                {todayEvents.length === 0 ? (
+                  <p className="text-gray-500 text-center py-8">No events scheduled for this day</p>
+                ) : (
+                  <div className="space-y-4">
+                    {todayEvents.map((event) => (
+                      <div key={event.id} className="border rounded-lg p-4">
+                        <div className="flex items-start justify-between mb-3">
+                          <div className="flex-1">
+                            <div className="flex items-center space-x-2 mb-2">
+                              <h4 className="font-semibold">{event.event_name}</h4>
+                              <Badge className={getEventTypeColor(event.event_type)}>
+                                {event.event_type}
+                              </Badge>
+                              {event.is_registered && (
+                                <Badge variant="outline" className="bg-green-50 text-green-700">
+                                  <Star className="w-3 h-3 mr-1" />
+                                  Registered
+                                </Badge>
+                              )}
+                            </div>
+                            <p className="text-sm text-gray-600 mb-2">{event.description}</p>
+                            <div className="flex items-center space-x-4 text-sm text-gray-500">
+                              <div className="flex items-center space-x-1">
+                                <Clock className="w-4 h-4" />
+                                <span>
+                                  {formatEventDateTime(event.start_date)} - {formatEventDateTime(event.end_date)}
+                                </span>
+                              </div>
+                              <div className="flex items-center space-x-1">
+                                <MapPin className="w-4 h-4" />
+                                <span>{event.location}</span>
+                              </div>
+                              <div className="flex items-center space-x-1">
+                                <Users className="w-4 h-4" />
+                                <span>{event.participant_count}/{event.max_participants}</span>
+                              </div>
+                            </div>
+                            {event.organizer && (
+                              <p className="text-xs text-gray-400 mt-1">
+                                Organized by {event.organizer.first_name} {event.organizer.last_name}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Event Registration Actions */}
+                        <div className="flex space-x-2 mt-3">
+                          {event.registration_required ? (
+                            event.is_registered ? (
+                              <div className="flex space-x-2">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => unregisterFromEvent(event.id)}
+                                >
+                                  Unregister
+                                </Button>
+                                <Badge variant="outline" className="bg-green-50 text-green-700 flex items-center">
+                                  <CheckCircle className="w-3 h-3 mr-1" />
+                                  You're registered
+                                </Badge>
+                              </div>
+                            ) : (
+                              <div className="flex space-x-2 items-center">
+                                <Button
+                                  size="sm"
+                                  onClick={() => registerForEvent(event.id)}
+                                  disabled={event.participant_count >= event.max_participants}
+                                  className="bg-blue-600 hover:bg-blue-700"
+                                >
+                                  {event.participant_count >= event.max_participants ? 'Event Full' : 'Register Now'}
+                                </Button>
+                                {event.participant_count >= event.max_participants && (
+                                  <Badge variant="destructive">Full</Badge>
+                                )}
+                              </div>
+                            )
+                          ) : (
+                            <div className="flex space-x-2 items-center">
+                              <Badge variant="secondary">No Registration Required</Badge>
+                              <Badge variant="outline" className="bg-blue-50 text-blue-700">
+                                Open to All
+                              </Badge>
+                            </div>
+                          )}
                         </div>
                       </div>
-                    </div>
-
-                    {/* Attendance Actions */}
-                    {selectedDate.toDateString() === new Date().toDateString() && !classItem.attendance && (
-                      <div className="flex space-x-2 mt-3">
-                        <Button
-                          size="sm"
-                          onClick={() => markAttendance(classItem.id, classItem.course_id, 'present')}
-                          className="bg-green-600 hover:bg-green-700"
-                        >
-                          Mark Present
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => markAttendance(classItem.id, classItem.course_id, 'late')}
-                        >
-                          Mark Late
-                        </Button>
-                        <AbsenceRequestDialog 
-                          courseId={classItem.course_id}
-                          courseName={classItem.courses.course_name}
-                          onSubmit={submitAbsenceRequest}
-                        />
-                      </div>
-                    )}
+                    ))}
                   </div>
-                ))}
-              </div>
-            )}
+                )}
+              </TabsContent>
+            </Tabs>
           </CardContent>
         </Card>
       </div>

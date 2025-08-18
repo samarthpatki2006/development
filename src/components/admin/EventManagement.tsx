@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -60,46 +59,49 @@ const EventManagement = ({ userProfile }: { userProfile: UserProfile }) => {
 
   useEffect(() => {
     loadEvents();
-  }, []);
+  }, [userProfile.college_id]);
 
   const loadEvents = async () => {
     try {
-      // Mock events data
-      const mockEvents: Event[] = [
-        {
-          id: '1',
-          event_name: 'Annual Tech Fest',
-          description: 'Three-day technology festival with competitions and workshops',
-          event_type: 'academic',
-          start_date: '2024-09-15T09:00:00Z',
-          end_date: '2024-09-17T18:00:00Z',
-          location: 'Main Campus',
-          max_participants: 500,
-          organizer_id: '1',
-          registration_required: true,
-          is_active: true,
-          created_at: new Date().toISOString(),
-          organizer: { first_name: 'John', last_name: 'Doe' },
-          participant_count: 342
-        },
-        {
-          id: '2',
-          event_name: 'Cultural Night',
-          description: 'Evening of music, dance, and cultural performances',
-          event_type: 'cultural',
-          start_date: '2024-08-20T19:00:00Z',
-          end_date: '2024-08-20T22:00:00Z',
-          location: 'Main Auditorium',
-          max_participants: 300,
-          organizer_id: '2',
-          registration_required: false,
-          is_active: true,
-          created_at: new Date().toISOString(),
-          organizer: { first_name: 'Jane', last_name: 'Smith' },
-          participant_count: 287
-        }
-      ];
-      setEvents(mockEvents);
+      setIsLoading(true);
+      
+      // Fetch events with organizer details and participant count
+      const { data: eventsData, error: eventsError } = await supabase
+        .from('events')
+        .select(`
+          *,
+          organizer:user_profiles!events_organizer_id_fkey(
+            first_name,
+            last_name
+          )
+        `)
+        .eq('college_id', userProfile.college_id)
+        .order('start_date', { ascending: false });
+
+      if (eventsError) {
+        throw eventsError;
+      }
+
+      // Get participant count for each event
+      const eventsWithParticipantCount = await Promise.all(
+        (eventsData || []).map(async (event) => {
+          const { count, error: countError } = await supabase
+            .from('event_registrations')
+            .select('*', { count: 'exact', head: true })
+            .eq('event_id', event.id);
+
+          if (countError) {
+            console.error('Error counting participants for event', event.id, countError);
+          }
+
+          return {
+            ...event,
+            participant_count: count || 0
+          };
+        })
+      );
+
+      setEvents(eventsWithParticipantCount);
     } catch (error) {
       console.error('Error loading events:', error);
       toast({
@@ -114,18 +116,61 @@ const EventManagement = ({ userProfile }: { userProfile: UserProfile }) => {
 
   const handleAddEvent = async () => {
     try {
-      const newEvent: Event = {
-        id: Date.now().toString(),
-        ...eventForm,
-        organizer_id: userProfile.id,
-        is_active: true,
-        created_at: new Date().toISOString(),
-        organizer: { first_name: 'Current', last_name: 'User' },
+      // Validate required fields
+      if (!eventForm.event_name || !eventForm.event_type || !eventForm.start_date || 
+          !eventForm.end_date || !eventForm.location || !eventForm.description) {
+        toast({
+          title: "Validation Error",
+          description: "Please fill in all required fields.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Convert datetime-local format to ISO string
+      const startDate = new Date(eventForm.start_date).toISOString();
+      const endDate = new Date(eventForm.end_date).toISOString();
+
+      const { data: newEvent, error } = await supabase
+        .from('events')
+        .insert([
+          {
+            event_name: eventForm.event_name,
+            description: eventForm.description,
+            event_type: eventForm.event_type,
+            start_date: startDate,
+            end_date: endDate,
+            location: eventForm.location,
+            max_participants: eventForm.max_participants,
+            organizer_id: userProfile.id,
+            college_id: userProfile.college_id,
+            registration_required: eventForm.registration_required,
+            is_active: true
+          }
+        ])
+        .select(`
+          *,
+          organizer:user_profiles!events_organizer_id_fkey(
+            first_name,
+            last_name
+          )
+        `)
+        .single();
+
+      if (error) {
+        throw error;
+      }
+
+      // Add the new event to the list with participant count
+      const eventWithCount = {
+        ...newEvent,
         participant_count: 0
       };
 
-      setEvents([newEvent, ...events]);
+      setEvents([eventWithCount, ...events]);
       setIsAddDialogOpen(false);
+      
+      // Reset form
       setEventForm({
         event_name: '',
         description: '',
@@ -146,6 +191,36 @@ const EventManagement = ({ userProfile }: { userProfile: UserProfile }) => {
       toast({
         title: "Error",
         description: "Failed to create event.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleUpdateEventStatus = async (eventId: string, isActive: boolean) => {
+    try {
+      const { error } = await supabase
+        .from('events')
+        .update({ is_active: isActive })
+        .eq('id', eventId);
+
+      if (error) {
+        throw error;
+      }
+
+      // Update local state
+      setEvents(events.map(event => 
+        event.id === eventId ? { ...event, is_active: isActive } : event
+      ));
+
+      toast({
+        title: "Success",
+        description: `Event ${isActive ? 'activated' : 'deactivated'} successfully.`,
+      });
+    } catch (error) {
+      console.error('Error updating event status:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update event status.",
         variant: "destructive",
       });
     }
@@ -177,6 +252,11 @@ const EventManagement = ({ userProfile }: { userProfile: UserProfile }) => {
   const formatDateTime = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
+
+  const formatDateTimeLocal = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toISOString().slice(0, 16);
   };
 
   if (isLoading) {
@@ -222,7 +302,7 @@ const EventManagement = ({ userProfile }: { userProfile: UserProfile }) => {
                 </DialogHeader>
                 <div className="grid grid-cols-2 gap-4 py-4">
                   <div className="col-span-2">
-                    <Label htmlFor="event_name">Event Name</Label>
+                    <Label htmlFor="event_name">Event Name *</Label>
                     <Input
                       id="event_name"
                       value={eventForm.event_name}
@@ -231,7 +311,7 @@ const EventManagement = ({ userProfile }: { userProfile: UserProfile }) => {
                     />
                   </div>
                   <div>
-                    <Label htmlFor="event_type">Event Type</Label>
+                    <Label htmlFor="event_type">Event Type *</Label>
                     <Select value={eventForm.event_type} onValueChange={(value) => setEventForm({...eventForm, event_type: value})}>
                       <SelectTrigger>
                         <SelectValue placeholder="Select type" />
@@ -252,11 +332,11 @@ const EventManagement = ({ userProfile }: { userProfile: UserProfile }) => {
                       id="max_participants"
                       type="number"
                       value={eventForm.max_participants}
-                      onChange={(e) => setEventForm({...eventForm, max_participants: parseInt(e.target.value)})}
+                      onChange={(e) => setEventForm({...eventForm, max_participants: parseInt(e.target.value) || 100})}
                     />
                   </div>
                   <div>
-                    <Label htmlFor="start_date">Start Date & Time</Label>
+                    <Label htmlFor="start_date">Start Date & Time *</Label>
                     <Input
                       id="start_date"
                       type="datetime-local"
@@ -265,7 +345,7 @@ const EventManagement = ({ userProfile }: { userProfile: UserProfile }) => {
                     />
                   </div>
                   <div>
-                    <Label htmlFor="end_date">End Date & Time</Label>
+                    <Label htmlFor="end_date">End Date & Time *</Label>
                     <Input
                       id="end_date"
                       type="datetime-local"
@@ -274,7 +354,7 @@ const EventManagement = ({ userProfile }: { userProfile: UserProfile }) => {
                     />
                   </div>
                   <div className="col-span-2">
-                    <Label htmlFor="location">Location</Label>
+                    <Label htmlFor="location">Location *</Label>
                     <Input
                       id="location"
                       value={eventForm.location}
@@ -283,13 +363,23 @@ const EventManagement = ({ userProfile }: { userProfile: UserProfile }) => {
                     />
                   </div>
                   <div className="col-span-2">
-                    <Label htmlFor="description">Description</Label>
+                    <Label htmlFor="description">Description *</Label>
                     <Textarea
                       id="description"
                       value={eventForm.description}
                       onChange={(e) => setEventForm({...eventForm, description: e.target.value})}
                       placeholder="Event description and details"
                     />
+                  </div>
+                  <div className="col-span-2">
+                    <Label className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        checked={eventForm.registration_required}
+                        onChange={(e) => setEventForm({...eventForm, registration_required: e.target.checked})}
+                      />
+                      <span>Registration Required</span>
+                    </Label>
                   </div>
                 </div>
                 <div className="flex justify-end space-x-2">
@@ -353,6 +443,11 @@ const EventManagement = ({ userProfile }: { userProfile: UserProfile }) => {
                       <div>
                         <div className="font-medium">{event.event_name}</div>
                         <div className="text-sm text-gray-500 line-clamp-1">{event.description}</div>
+                        {event.organizer && (
+                          <div className="text-xs text-gray-400">
+                            by {event.organizer.first_name} {event.organizer.last_name}
+                          </div>
+                        )}
                       </div>
                     </TableCell>
                     <TableCell>
@@ -382,6 +477,9 @@ const EventManagement = ({ userProfile }: { userProfile: UserProfile }) => {
                         <Users className="w-3 h-3 text-gray-400" />
                         <span>{event.participant_count}/{event.max_participants}</span>
                       </div>
+                      {event.registration_required && (
+                        <div className="text-xs text-orange-600">Registration Required</div>
+                      )}
                     </TableCell>
                     <TableCell>
                       <Badge variant={event.is_active ? "default" : "secondary"}>
@@ -396,6 +494,15 @@ const EventManagement = ({ userProfile }: { userProfile: UserProfile }) => {
                         <Button size="sm" variant="outline">
                           <Users className="w-3 h-3" />
                         </Button>
+                        {userProfile.id === event.organizer_id && (
+                          <Button 
+                            size="sm" 
+                            variant={event.is_active ? "destructive" : "default"}
+                            onClick={() => handleUpdateEventStatus(event.id, !event.is_active)}
+                          >
+                            {event.is_active ? "Cancel" : "Activate"}
+                          </Button>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>
@@ -404,7 +511,7 @@ const EventManagement = ({ userProfile }: { userProfile: UserProfile }) => {
             </Table>
           </div>
 
-          {filteredEvents.length === 0 && (
+          {filteredEvents.length === 0 && !isLoading && (
             <div className="text-center py-8 text-gray-500">
               No events found matching your criteria.
             </div>

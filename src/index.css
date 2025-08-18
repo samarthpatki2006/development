@@ -119,7 +119,7 @@ All colors MUST be HSL. Typography follows system font hierarchy.
 
   /* Typography System - Massive Bold Impact */
   .text-hero {
-    @apply text-6xl md:text-7xl lg:text-8xl font-bold tracking-tight leading-none;
+    @apply text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight leading-none;
   }
 
   .text-section-header {

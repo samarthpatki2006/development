@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { BookOpen, FileText, Video, Download, ExternalLink, Clock, Award, TrendingUp } from 'lucide-react';
+import { BookOpen, FileText, Video, Download, ExternalLink, Clock, Award, TrendingUp, Trophy, Calculator } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import PermissionWrapper from '@/components/PermissionWrapper';
@@ -22,10 +22,138 @@ const CoursesLearningSnapshot: React.FC<CoursesLearningSnapshotProps> = ({ stude
   const [courseGrades, setCourseGrades] = useState<any[]>([]);
   const [learningProgress, setLearningProgress] = useState<any>({});
   const [loading, setLoading] = useState(true);
+  
+  // StudentGrades state
+  const [grades, setGrades] = useState<any[]>([]);
+  const [quizSubmissions, setQuizSubmissions] = useState<any[]>([]);
+  const [gradesLoading, setGradesLoading] = useState(false);
+  
   const { toast } = useToast();
+
+  // StudentGrades data fetching functions
+  const fetchGrades = async () => {
+    setGradesLoading(true);
+    try {
+      const { data: user } = await supabase.auth.getUser();
+      if (!user.user) {
+        setGrades([]);
+        return;
+      }
+
+      // Get grades first
+      const { data: gradesData } = await supabase
+        .from("grades")
+        .select("*")
+        .eq("student_id", user.user.id)
+        .order("updated_at", { ascending: false });
+
+      if (!gradesData || gradesData.length === 0) {
+        setGrades([]);
+        return;
+      }
+
+      // Then get class names for those grades
+      const classIds = gradesData.map(g => g.class_id);
+      const { data: classesData } = await supabase
+        .from("classes")
+        .select("id, name")
+        .in("id", classIds);
+
+      // Combine the data
+      const gradesWithClasses = gradesData.map(grade => ({
+        ...grade,
+        class_name: classesData?.find(c => c.id === grade.class_id)?.name || 'Unknown Class'
+      }));
+
+      setGrades(gradesWithClasses);
+    } catch (error) {
+      console.error('Error fetching grades:', error);
+      setGrades([]);
+    } finally {
+      setGradesLoading(false);
+    }
+  };
+
+  const fetchQuizSubmissions = async () => {
+    try {
+      const { data: user } = await supabase.auth.getUser();
+      if (!user.user) {
+        setQuizSubmissions([]);
+        return;
+      }
+
+      // Get quiz submissions first
+      const { data: submissions } = await supabase
+        .from("quiz_submissions")
+        .select("*")
+        .eq("student_id", user.user.id)
+        .not("score", "is", null)
+        .order("submitted_at", { ascending: false });
+
+      if (!submissions || submissions.length === 0) {
+        setQuizSubmissions([]);
+        return;
+      }
+
+      // Then get quiz details
+      const quizIds = submissions.map(s => s.quiz_id);
+      const { data: quizzesData } = await supabase
+        .from("quizzes")
+        .select("id, title, total_points, weightage, class_id")
+        .in("id", quizIds);
+
+      // Get class names
+      const classIds = quizzesData?.map(q => q.class_id).filter(Boolean) || [];
+      const { data: classesData } = await supabase
+        .from("classes")
+        .select("id, name")
+        .in("id", classIds);
+
+      // Combine all data
+      const submissionsWithDetails = submissions.map(submission => {
+        const quiz = quizzesData?.find(q => q.id === submission.quiz_id);
+        const className = classesData?.find(c => c.id === quiz?.class_id)?.name || 'Unknown Class';
+        
+        return {
+          ...submission,
+          quizzes: quiz ? {
+            ...quiz,
+            classes: { name: className }
+          } : null
+        };
+      });
+
+      setQuizSubmissions(submissionsWithDetails);
+    } catch (error) {
+      console.error('Error fetching quiz submissions:', error);
+      setQuizSubmissions([]);
+    }
+  };
+
+  // StudentGrades utility functions
+  const getGradeColor = (grade: string) => {
+    switch (grade?.toUpperCase()) {
+      case 'A': return 'text-green-400';
+      case 'B': return 'text-blue-400';
+      case 'C': return 'text-yellow-400';
+      case 'D': return 'text-orange-400';
+      case 'F': return 'text-red-400';
+      default: return 'text-muted-foreground';
+    }
+  };
+
+  const getScoreColor = (percentage: number) => {
+    if (percentage >= 90) return 'text-green-400';
+    if (percentage >= 80) return 'text-blue-400';
+    if (percentage >= 70) return 'text-yellow-400';
+    if (percentage >= 60) return 'text-orange-400';
+    return 'text-red-400';
+  };
 
   useEffect(() => {
     fetchEnrolledCourses();
+    fetchGrades();
+    fetchQuizSubmissions();
   }, [studentData]);
 
   useEffect(() => {
@@ -169,7 +297,7 @@ const CoursesLearningSnapshot: React.FC<CoursesLearningSnapshotProps> = ({ stude
     }
   };
 
-  const getGradeColor = (percentage: number) => {
+  const getOriginalGradeColor = (percentage: number) => {
     if (percentage >= 85) return 'text-green-600 bg-green-50';
     if (percentage >= 70) return 'text-blue-600 bg-blue-50';
     if (percentage >= 60) return 'text-yellow-600 bg-yellow-50';
@@ -192,6 +320,192 @@ const CoursesLearningSnapshot: React.FC<CoursesLearningSnapshotProps> = ({ stude
       return sum + points;
     }, 0);
     return (totalPoints / courseGrades.length).toFixed(2);
+  };
+
+  // StudentGrades Component JSX
+  const renderStudentGrades = () => {
+    if (gradesLoading) {
+      return (
+        <Card className="card-minimal">
+          <CardContent className="flex items-center justify-center py-8">
+            <div className="text-center">
+              <div className="w-8 h-8 border-2 border-accent border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
+              <p className="text-muted-foreground">Loading grades...</p>
+            </div>
+          </CardContent>
+        </Card>
+      );
+    }
+
+    return (
+      <div className="space-y-6">
+        {/* Overall Grades */}
+        <Card className="card-minimal glass-effect border-primary/20">
+          <CardHeader className="border-b border-primary/20">
+            <CardTitle className="flex items-center gap-2 text-primary">
+              <div className="w-8 h-8 bg-gradient-to-br from-primary/20 to-accent/20 rounded-lg flex items-center justify-center">
+                <Trophy className="w-5 h-5 text-primary" />
+              </div>
+              Course Grades
+              <Award className="w-4 h-4 text-accent ml-auto" />
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-6">
+            {!grades || grades.length === 0 ? (
+              <div className="text-center py-8">
+                <div className="w-16 h-16 bg-gradient-to-br from-primary/20 to-accent/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Trophy className="w-8 h-8 text-muted-foreground" />
+                </div>
+                <p className="text-muted-foreground">No course grades available yet.</p>
+                <p className="text-sm text-muted-foreground mt-2">Grades will appear here once your educator assigns them.</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {grades.map((grade) => (
+                  <Card key={grade.id} className="glass-effect border-l-4 border-l-accent">
+                    <CardContent className="p-4">
+                      <div className="flex justify-between items-start mb-4">
+                        <div>
+                          <h3 className="font-semibold text-lg text-foreground">{grade.class_name}</h3>
+                          <p className="text-sm text-muted-foreground">
+                            Last updated: {new Date(grade.updated_at).toLocaleDateString()}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className={`text-3xl font-bold ${getGradeColor(grade.overall_grade)}`}>
+                            {grade.overall_grade}
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            {grade.overall_score?.toFixed(1)}%
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Grade Breakdown */}
+                      {grade.grade_breakdown && typeof grade.grade_breakdown === 'object' && (
+                        <div className="space-y-3">
+                          <h4 className="font-medium text-foreground flex items-center gap-2">
+                            <Calculator className="w-4 h-4 text-accent" />
+                            Grade Breakdown
+                          </h4>
+                          
+                          {/* Quiz Scores */}
+                          {(grade.grade_breakdown as any)?.quiz_scores && Object.keys((grade.grade_breakdown as any).quiz_scores).length > 0 && (
+                            <div className="space-y-2">
+                              <p className="text-sm font-medium text-muted-foreground">Quiz Scores:</p>
+                              <div className="grid gap-2">
+                                {Object.entries((grade.grade_breakdown as any).quiz_scores).map(([quizId, quizData]: [string, any]) => (
+                                  <div key={quizId} className="flex justify-between items-center p-2 bg-background/30 rounded border border-primary/20">
+                                    <span className="text-sm text-foreground">{quizData.title}</span>
+                                    <div className="text-right">
+                                      <span className={`font-medium ${getScoreColor(quizData.percentage)}`}>
+                                        {quizData.score}/{quizData.total_points}
+                                      </span>
+                                      <span className="text-xs text-muted-foreground ml-2">
+                                        ({quizData.percentage?.toFixed(1)}% • {quizData.weightage}% weight)
+                                      </span>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Custom Assessments */}
+                          {(grade.grade_breakdown as any)?.custom_scores && Object.keys((grade.grade_breakdown as any).custom_scores).length > 0 && (
+                            <div className="space-y-2">
+                              <p className="text-sm font-medium text-muted-foreground">Additional Assessments:</p>
+                              <div className="grid gap-2">
+                                {Object.entries((grade.grade_breakdown as any).custom_scores).map(([key, score]: [string, any]) => (
+                                  <div key={key} className="flex justify-between items-center p-2 bg-background/30 rounded border border-primary/20">
+                                    <span className="text-sm text-foreground">
+                                      {(grade.grade_breakdown as any).custom_names?.[key] || 'Assessment'}
+                                    </span>
+                                    <div className="text-right">
+                                      <span className={`font-medium ${getScoreColor(score)}`}>
+                                        {score}%
+                                      </span>
+                                      <span className="text-xs text-muted-foreground ml-2">
+                                        ({(grade.grade_breakdown as any).custom_weightages?.[key]}% weight)
+                                      </span>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Individual Quiz Results */}
+        <Card className="card-minimal glass-effect border-primary/20">
+          <CardHeader className="border-b border-primary/20">
+            <CardTitle className="flex items-center gap-2 text-primary">
+              <div className="w-8 h-8 bg-gradient-to-br from-primary/20 to-accent/20 rounded-lg flex items-center justify-center">
+                <BookOpen className="w-5 h-5 text-primary" />
+              </div>
+              Quiz Results
+              <TrendingUp className="w-4 h-4 text-accent ml-auto" />
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-6">
+            {!quizSubmissions || quizSubmissions.length === 0 ? (
+              <div className="text-center py-8">
+                <div className="w-16 h-16 bg-gradient-to-br from-primary/20 to-accent/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <BookOpen className="w-8 h-8 text-muted-foreground" />
+                </div>
+                <p className="text-muted-foreground">No quiz results available yet.</p>
+                <p className="text-sm text-muted-foreground mt-2">Complete quizzes to see your results here.</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {quizSubmissions.map((submission) => {
+                  const percentage = submission.quizzes?.total_points > 0 
+                    ? (submission.score / submission.quizzes.total_points) * 100 
+                    : 0;
+                  
+                  return (
+                    <div key={submission.id} className="flex justify-between items-center p-3 glass-effect rounded border border-primary/20 hover:border-accent/40 transition-all">
+                      <div className="flex-1">
+                        <h4 className="font-medium text-foreground">{submission.quizzes?.title}</h4>
+                        <p className="text-sm text-muted-foreground">
+                          📚 {submission.quizzes?.classes?.name}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          Submitted: {new Date(submission.submitted_at).toLocaleDateString()}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <div className="bg-gradient-to-br from-primary/20 to-accent/20 rounded-lg p-2">
+                          <p className={`font-bold ${getScoreColor(percentage)}`}>
+                            {submission.score}/{submission.quizzes?.total_points}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {percentage.toFixed(1)}%
+                          </p>
+                        </div>
+                        {submission.quizzes?.weightage > 0 && (
+                          <p className="text-xs text-accent mt-1">
+                            Weight: {submission.quizzes.weightage}%
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    );
   };
 
   if (loading) {
@@ -405,44 +719,9 @@ const CoursesLearningSnapshot: React.FC<CoursesLearningSnapshotProps> = ({ stude
             </Card>
           </TabsContent>
 
-          {/* Grades */}
+          {/* Grades - Now uses StudentGrades component */}
           <TabsContent value="grades" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Grades - {selectedCourse?.course_name}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {courseGrades.length === 0 ? (
-                    <div className="text-center py-8 text-muted-foreground">
-                      No grades available for this course
-                    </div>
-                  ) : (
-                    courseGrades.map((grade, index) => {
-                      const percentage = Math.round((grade.marks_obtained / grade.max_marks) * 100);
-                      return (
-                        <div key={index} className="flex items-center justify-between p-4 border rounded-lg">
-                          <div>
-                            <p className="font-medium">{grade.grade_type}</p>
-                            <p className="text-sm text-muted-foreground">
-                              Recorded: {new Date(grade.recorded_at).toLocaleDateString()}
-                            </p>
-                          </div>
-                          <div className="text-right">
-                            <Badge className={getGradeColor(percentage)}>
-                              {grade.marks_obtained}/{grade.max_marks} ({percentage}%)
-                            </Badge>
-                            {grade.grade_letter && (
-                              <p className="text-sm font-medium mt-1">{grade.grade_letter}</p>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })
-                  )}
-                </div>
-              </CardContent>
-            </Card>
+            {renderStudentGrades()}
           </TabsContent>
         </Tabs>
       </div>

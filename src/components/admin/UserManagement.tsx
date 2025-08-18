@@ -234,12 +234,6 @@ const UserManagement = ({ userProfile, adminRoles }: UserManagementProps) => {
                 <SelectItem value="alumni">Alumni</SelectItem>
               </SelectContent>
             </Select>
-            {isSuperAdmin() && (
-              <Button className="w-full sm:w-auto">
-                <Plus className="w-4 h-4 mr-2" />
-                Add User
-              </Button>
-            )}
           </div>
 
           {/* Users Table */}

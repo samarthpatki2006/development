@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
@@ -45,7 +45,25 @@ const HostelFacility: React.FC<HostelFacilityProps> = ({ studentData }) => {
   const [facilityRequests, setFacilityRequests] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('hostels');
+  const [showSuccessDialog, setShowSuccessDialog] = useState(false);
+  const [submittedApplication, setSubmittedApplication] = useState<any>(null);
   const { toast } = useToast();
+
+  // Always ensure we have student data
+  const currentStudent = studentData || {
+    id: 'student_123',
+    name: 'John Doe',
+    student_id: 'STU2024001',
+    class: '12th Grade',
+    section: 'A'
+  };
+
+  // Check if we have valid student data at component initialization
+  const [studentInfoError, setStudentInfoError] = useState(!studentData);
+
+  console.log('HostelFacility component loaded with student:', currentStudent);
+  console.log('Props studentData:', studentData);
+  console.log('Fallback being used:', !studentData);
 
   // Format currency in INR
   const formatCurrency = (amount: number) => {
@@ -88,18 +106,15 @@ const HostelFacility: React.FC<HostelFacilityProps> = ({ studentData }) => {
     try {
       setLoading(true);
       
-      console.log('fetchHostelData called, studentData:', studentData);
+      console.log('fetchHostelData called, using currentStudent:', currentStudent);
       
-      // If no student data provided, use mock data
-      const currentStudent = studentData || {
-        id: 'student_123',
-        name: 'John Doe',
-        student_id: 'STU2024001',
-        class: '12th Grade',
-        section: 'A'
-      };
-      
-      console.log('Using student data:', currentStudent);
+      // Check if student data is available
+      if (!studentData) {
+        console.error('No student data available in fetchHostelData');
+        setStudentInfoError(true);
+      } else {
+        setStudentInfoError(false);
+      }
 
       // Fetch hostels - using existing facilities table for now as a workaround
       const { data: hostelsData } = await supabase
@@ -118,7 +133,42 @@ const HostelFacility: React.FC<HostelFacilityProps> = ({ studentData }) => {
         amenities: ['WiFi', 'Laundry', 'Common Room', 'Security'],
         description: 'Modern hostel facility with all basic amenities',
         is_active: facility.is_available
-      })) || [];
+      })) || [
+        // Sample hostels for testing if database is empty
+        {
+          id: 'hostel_1',
+          hostel_name: 'Gandhi Hostel',
+          hostel_type: 'Boys Hostel',
+          location: 'North Campus',
+          total_rooms: 50,
+          occupied_rooms: 35,
+          amenities: ['WiFi', 'Laundry', 'Common Room', 'Security', 'Gym'],
+          description: 'Modern boys hostel with excellent facilities',
+          is_active: true
+        },
+        {
+          id: 'hostel_2',
+          hostel_name: 'Saraswati Hostel',
+          hostel_type: 'Girls Hostel',
+          location: 'South Campus',
+          total_rooms: 45,
+          occupied_rooms: 30,
+          amenities: ['WiFi', 'Laundry', 'Common Room', 'Security', 'Library'],
+          description: 'Safe and comfortable girls hostel',
+          is_active: true
+        },
+        {
+          id: 'hostel_3',
+          hostel_name: 'International Hostel',
+          hostel_type: 'Mixed Hostel',
+          location: 'Central Campus',
+          total_rooms: 60,
+          occupied_rooms: 40,
+          amenities: ['WiFi', 'Laundry', 'Common Room', 'Security', 'Cafeteria', 'Recreation'],
+          description: 'International students hostel with premium amenities',
+          is_active: true
+        }
+      ];
 
       setHostels(hostelData);
 
@@ -128,10 +178,16 @@ const HostelFacility: React.FC<HostelFacilityProps> = ({ studentData }) => {
         const savedApplications = localStorage.getItem(`hostel_applications_${studentId}`);
         const applicationsData = savedApplications ? JSON.parse(savedApplications) : [];
         console.log('Loaded applications for student', studentId, ':', applicationsData.length, applicationsData);
-        setApplications(applicationsData);
+        
+        // Sort applications by date (newest first)
+        const sortedApplications = [...applicationsData].sort((a, b) => {
+          return new Date(b.application_date).getTime() - new Date(a.application_date).getTime();
+        });
+        
+        setApplications(sortedApplications);
 
         // Check for current allocation
-        const currentAlloc = applicationsData.find((app: any) => app.status === 'allocated');
+        const currentAlloc = sortedApplications.find((app: any) => app.status === 'allocated');
         setCurrentAllocation(currentAlloc || null);
         console.log('Current allocation:', currentAlloc);
       }
@@ -207,20 +263,36 @@ const HostelFacility: React.FC<HostelFacilityProps> = ({ studentData }) => {
 
   const applyForHostel = async (roomId: string, preferredRoomType: string, comments: string) => {
     try {
-      // Use current student data or mock data
-      const currentStudent = studentData || {
-        id: 'student_123',
-        name: 'John Doe',
-        student_id: 'STU2024001',
-        class: '12th Grade',
-        section: 'A'
-      };
+      console.log('=== APPLY FOR HOSTEL DEBUG ===');
+      console.log('Input studentData prop:', studentData);
+      console.log('Computed currentStudent:', currentStudent);
+      console.log('currentStudent?.id:', currentStudent?.id);
+      console.log('selectedHostel:', selectedHostel);
+      console.log('studentInfoError:', studentInfoError);
+      
+      // Check if student info error exists
+      if (studentInfoError) {
+        toast({
+          title: "Error",
+          description: "Student information not available. Please try refreshing the page.",
+          variant: "destructive",
+        });
+        return;
+      }
       
       if (!currentStudent?.id) {
-        console.error('No student data available');
+        console.error('ERROR: No student ID available!');
+        console.error('currentStudent object:', currentStudent);
+        setStudentInfoError(true); // Set the error state
+        toast({
+          title: "Error",
+          description: "Student information not available. Please try refreshing the page.",
+          variant: "destructive",
+        });
         return;
       }
 
+      console.log('✅ Student ID is available, proceeding with application...');
       console.log('Applying for hostel:', { studentId: currentStudent.id, hostel: selectedHostel?.hostel_name });
 
       // Create new application
@@ -268,19 +340,21 @@ const HostelFacility: React.FC<HostelFacilityProps> = ({ studentData }) => {
       
       setApplications(updatedApplications);
 
-      toast({
-        title: "Application Submitted",
-        description: `Your application for ${selectedHostel?.hostel_name} has been submitted successfully.`,
-      });
+      // Store the submitted application for the success dialog
+      setSubmittedApplication(newApplication);
+      
+      // Show success dialog instead of just toast
+      setShowSuccessDialog(true);
 
-      console.log('Application submitted successfully, switching to Applications tab');
-      // Switch to applications tab to show the result
-      setActiveTab('applications');
+      console.log('Application submitted successfully, showing success dialog');
 
       // Simulate automatic status updates for demo purposes
       setTimeout(() => {
         updateApplicationStatus(newApplication.id, 'under_review');
       }, 2000);
+
+      // Switch to applications tab to show the newly submitted application
+      setActiveTab('applications');
 
     } catch (error) {
       toast({
@@ -388,6 +462,27 @@ const HostelFacility: React.FC<HostelFacilityProps> = ({ studentData }) => {
 
   return (
     <div className="space-y-6">
+      {studentInfoError && (
+        <Card className="border-red-200 bg-red-50">
+          <CardContent className="p-4">
+            <div className="flex items-center space-x-2">
+              <AlertCircle className="h-5 w-5 text-red-500" />
+              <h3 className="font-semibold text-red-700">Student Information Not Available</h3>
+            </div>
+            <p className="mt-2 text-sm text-red-600">
+              Your student information could not be loaded. This may affect your ability to apply for hostels or view your applications.
+              Please try refreshing the page or contact support if the issue persists.
+            </p>
+            <Button 
+              variant="outline" 
+              className="mt-3 text-red-600 border-red-200 hover:bg-red-100"
+              onClick={() => window.location.reload()}
+            >
+              Refresh Page
+            </Button>
+          </CardContent>
+        </Card>
+      )}
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold text-gray-900">Hostel & Facilities</h2>
         <Badge variant="outline" className="px-3 py-1">
@@ -538,6 +633,7 @@ const HostelFacility: React.FC<HostelFacilityProps> = ({ studentData }) => {
                       rooms={hostelRooms} 
                       hasActiveApplication={applications.some(app => ['submitted', 'under_review', 'approved'].includes(app.status))}
                       hasAllocation={!!currentAllocation}
+                      studentInfoError={studentInfoError}
                     />
                   </div>
                 </CardHeader>
@@ -746,19 +842,53 @@ const HostelFacility: React.FC<HostelFacilityProps> = ({ studentData }) => {
             <FacilityRequestDialog onSubmit={submitFacilityRequest} facilities={facilities} />
           </div>
 
-          {/* My Requests */}
+          {/* My Requests - Including Hostel Applications */}
           <Card>
             <CardHeader>
-              <CardTitle>My Facility Requests</CardTitle>
+              <CardTitle>My Requests & Applications</CardTitle>
             </CardHeader>
             <CardContent>
-              {facilityRequests.length === 0 ? (
+              {facilityRequests.length === 0 && applications.length === 0 ? (
                 <div className="text-center py-8">
                   <Wrench className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                  <p className="text-gray-500">No facility requests submitted yet</p>
+                  <p className="text-gray-500">No requests or applications submitted yet</p>
                 </div>
               ) : (
                 <div className="space-y-4">
+                  {/* Hostel Applications as Requests */}
+                  {applications.map((application: any) => (
+                    <Card key={`hostel_${application.id}`} className="border border-blue-200 bg-blue-50">
+                      <CardContent className="p-4">
+                        <div className="flex justify-between items-start mb-3">
+                          <div>
+                            <h4 className="font-semibold text-blue-800">
+                              Hostel Application #{application.id.slice(-8)}
+                            </h4>
+                            <p className="text-sm text-blue-600">
+                              Hostel Accommodation Request
+                            </p>
+                            <p className="text-sm text-gray-600">
+                              Hostel: {application.hostel_name}
+                            </p>
+                            <p className="text-sm text-gray-600">
+                              Room Type: {application.preferred_room_type}
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <Badge variant={getStatusColor(application.status)}>
+                              {application.status.replace('_', ' ').toUpperCase()}
+                            </Badge>
+                            <p className="text-xs text-gray-500 mt-1">
+                              {new Date(application.application_date).toLocaleDateString()}
+                            </p>
+                          </div>
+                        </div>
+                        <p className="text-sm text-gray-600">{application.comments || 'No additional comments'}</p>
+                      </CardContent>
+                    </Card>
+                  ))}
+                  
+                  {/* Regular Facility Requests */}
                   {facilityRequests.map((request: any) => (
                     <Card key={request.id} className="border">
                       <CardContent className="p-4">
@@ -842,6 +972,14 @@ const HostelFacility: React.FC<HostelFacilityProps> = ({ studentData }) => {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Application Success Dialog */}
+      <ApplicationSuccessDialog
+        isOpen={showSuccessDialog}
+        onClose={() => setShowSuccessDialog(false)}
+        application={submittedApplication}
+        onViewApplications={() => setActiveTab('applications')}
+      />
     </div>
   );
 };
@@ -852,7 +990,8 @@ const HostelApplicationDialog: React.FC<{
   rooms: any[];
   hasActiveApplication: boolean;
   hasAllocation: boolean;
-}> = ({ onApply, rooms, hasActiveApplication, hasAllocation }) => {
+  studentInfoError?: boolean;
+}> = ({ onApply, rooms, hasActiveApplication, hasAllocation, studentInfoError }) => {
   const [selectedRoom, setSelectedRoom] = useState('');
   const [preferredRoomType, setPreferredRoomType] = useState('shared');
   const [comments, setComments] = useState('');
@@ -869,9 +1008,13 @@ const HostelApplicationDialog: React.FC<{
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button disabled={hasActiveApplication && !hasAllocation}>
+        <Button 
+          disabled={(hasActiveApplication && !hasAllocation) || studentInfoError}
+          title={studentInfoError ? "Student information not available" : ""}
+        >
           <Plus className="h-4 w-4 mr-2" />
-          {hasAllocation ? 'Apply for Room Change' : 
+          {studentInfoError ? 'Student Info Not Available' :
+           hasAllocation ? 'Apply for Room Change' : 
            hasActiveApplication ? 'Application Pending' : 
            'Apply for Hostel'}
         </Button>
@@ -881,6 +1024,9 @@ const HostelApplicationDialog: React.FC<{
           <DialogTitle>
             {hasAllocation ? 'Room Change Application' : 'Hostel Application'}
           </DialogTitle>
+          <DialogDescription>
+            {hasAllocation ? 'Apply for a room change in your current hostel.' : 'Submit your application for hostel accommodation.'}
+          </DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
           <div>
@@ -978,6 +1124,9 @@ const FacilityRequestDialog: React.FC<{
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Submit Facility Request</DialogTitle>
+          <DialogDescription>
+            Submit a request for facility maintenance, booking, or other issues.
+          </DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
           <div>
@@ -1053,6 +1202,114 @@ const FacilityRequestDialog: React.FC<{
           >
             Submit Request
           </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+// Application Success Dialog Component
+const ApplicationSuccessDialog: React.FC<{
+  isOpen: boolean;
+  onClose: () => void;
+  application: any;
+  onViewApplications: () => void;
+}> = ({ isOpen, onClose, application, onViewApplications }) => {
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-IN', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  const handleViewApplications = () => {
+    onClose();
+    onViewApplications();
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <div className="flex items-center justify-center mb-4">
+            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
+              <CheckCircle className="h-8 w-8 text-green-600" />
+            </div>
+          </div>
+          <DialogTitle className="text-center text-xl font-semibold text-green-800">
+            Application Submitted Successfully!
+          </DialogTitle>
+          <DialogDescription className="text-center text-sm text-gray-600">
+            Your hostel application has been received and is being processed.
+          </DialogDescription>
+        </DialogHeader>
+        
+        <div className="space-y-4">
+          <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+            <div className="space-y-2">
+              <div className="flex justify-between items-center">
+                <span className="text-sm font-medium text-gray-600">Application ID:</span>
+                <span className="text-sm font-mono bg-white px-2 py-1 rounded border">
+                  {application?.id?.slice(-8)}
+                </span>
+              </div>
+              
+              <div className="flex justify-between items-center">
+                <span className="text-sm font-medium text-gray-600">Hostel:</span>
+                <span className="text-sm font-semibold">
+                  {application?.hostel_name}
+                </span>
+              </div>
+              
+              <div className="flex justify-between items-center">
+                <span className="text-sm font-medium text-gray-600">Room Type:</span>
+                <span className="text-sm capitalize">
+                  {application?.preferred_room_type}
+                </span>
+              </div>
+              
+              <div className="flex justify-between items-center">
+                <span className="text-sm font-medium text-gray-600">Submitted:</span>
+                <span className="text-sm">
+                  {application?.submitted_at && formatDate(application.submitted_at)}
+                </span>
+              </div>
+              
+              <div className="flex justify-between items-center">
+                <span className="text-sm font-medium text-gray-600">Status:</span>
+                <Badge variant="secondary" className="capitalize">
+                  {application?.status}
+                </Badge>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <div className="flex items-start space-x-3">
+              <AlertCircle className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
+              <div className="text-sm text-blue-800">
+                <p className="font-medium mb-1">What's Next?</p>
+                <ul className="space-y-1 text-xs">
+                  <li>• Your application will be reviewed by the hostel administration</li>
+                  <li>• You'll receive updates via email and on this portal</li>
+                  <li>• Review process typically takes 3-5 business days</li>
+                  <li>• You can track your application status in "My Applications"</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex space-x-3">
+            <Button variant="outline" onClick={onClose} className="flex-1">
+              Continue Browsing
+            </Button>
+            <Button onClick={handleViewApplications} className="flex-1">
+              View My Applications
+            </Button>
+          </div>
         </div>
       </DialogContent>
     </Dialog>

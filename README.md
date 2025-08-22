@@ -30,7 +30,7 @@ Think: **Notion + Airdrop + Web Dev Swag = Colcord.**
 
 ```bash
 # 1. Clone the chaos
-git clone https://github.com/adithya1107/ColCord.git
+git clone https://github.com/adithya1107/prototype.git
 cd ColCord
 
 # 2. Install dependencies
@@ -89,6 +89,14 @@ Colcord is made by students, for students — so every contribution matters!
 **Adithya Adiga**  
 Full-time human, part-time bug hunter.  
 [GitHub](https://github.com/adithya1107) • [LinkedIn](https://linkedin.com/in/adithyaadiga)
+
+**Tanishq Kochar**  
+Debugging life, one line at a time. 
+[GitHub](https://github.com/Tanishq-Kochar) • [LinkedIn](https://www.linkedin.com/in/tanishq-kochar/)
+
+**Jeevith Gangadhara**  
+Living in dark mode, thriving in stack traces. 
+[GitHub](https://github.com/jeevithg090) • [LinkedIn](https://www.linkedin.com/in/jeevith-gangadhara-782b21311/)
 
 ---
 

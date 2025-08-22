@@ -5,6 +5,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { Session } from '@supabase/supabase-js';
 import MultiStepLogin from '@/components/MultiStepLogin';
 import CollegeBranding from '@/components/CollegeBranding';
+import { Button } from '@/components/ui/button';
+import { setupMockData, setupMockAdmin, setupMockParent, clearMockData } from '@/utils/mockData';
 
 // Default college configuration
 const DEFAULT_COLLEGE_CONFIG = {
@@ -54,6 +56,58 @@ const Index = () => {
             <div className="flex justify-center lg:justify-end">
               <MultiStepLogin />
             </div>
+          </div>
+          
+          {/* Development Tools */}
+          <div className="mt-8 p-4 bg-gray-100 rounded-lg">
+            <h3 className="text-lg font-semibold mb-4">Development Tools (Demo Mode)</h3>
+            <div className="flex flex-wrap gap-2">
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  setupMockData();
+                  navigate('/student');
+                }}
+              >
+                Demo Student Login
+              </Button>
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  setupMockAdmin();
+                  navigate('/admin');
+                }}
+              >
+                Demo Admin Login
+              </Button>
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  setupMockParent();
+                  navigate('/parent');
+                }}
+              >
+                Demo Parent Login
+              </Button>
+              <Button 
+                variant="secondary" 
+                onClick={() => navigate('/test-fees')}
+              >
+                Test Fee System
+              </Button>
+              <Button 
+                variant="destructive" 
+                onClick={() => {
+                  clearMockData();
+                  window.location.reload();
+                }}
+              >
+                Clear Demo Data
+              </Button>
+            </div>
+            <p className="text-sm text-gray-600 mt-2">
+              Click any demo button to bypass login and explore the application with sample data.
+            </p>
           </div>
         </div>
       </div>

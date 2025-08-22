@@ -26,7 +26,7 @@ import CoursesLearningSnapshot from '@/components/student/CoursesLearningSnapsho
 // import MyCourses from '@/components/student/MyCourses'; // Temporarily commented out
 import CalendarAttendance from '@/components/student/CalendarAttendance';
 import CommunicationCenter from '@/components/student/CommunicationCenter';
-import PaymentsFees from '@/components/student/PaymentsFees';
+import PaymentsFees from '@/components/student/PaymentsFeesIntegrated';
 import HostelFacility from '@/components/student/HostelFacility';
 import SupportHelp from '@/components/student/SupportHelp';
 import { supabase } from '@/integrations/supabase/client';

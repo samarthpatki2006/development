@@ -22,9 +22,6 @@ import {
   Timer, RefreshCw, Save, History
 } from 'lucide-react';
 import { format, addDays, subDays, startOfWeek, endOfWeek, isSameDay } from "date-fns";
-import { cn } from "@/lib/utils";
-import { useToast } from '@/hooks/use-toast';
-import { useMurfSpeech } from './hooks/useMurfSpeech';
 
 interface Student {
   id: string;
@@ -90,19 +87,64 @@ const EnhancedAttendanceTracker: React.FC<EnhancedAttendanceTrackerProps> = ({ t
   const [viewMode, setViewMode] = useState<'list' | 'grid' | 'analytics' | 'calendar'>('list');
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<'all' | 'present' | 'absent' | 'pending' | 'at-risk'>('all');
-  const [darkMode, setDarkMode] = useState(false);
   const [compactMode, setCompactMode] = useState(false);
   const [showPhotos, setShowPhotos] = useState(true);
   
-  // Speech and Roll Call State
+  // Enhanced Speech State
   const [isRollCallActive, setIsRollCallActive] = useState(false);
   const [currentStudentIndex, setCurrentStudentIndex] = useState(0);
-  const [speechPaused, setSpeechPaused] = useState(false);
   const [speechEnabled, setSpeechEnabled] = useState(true);
   const [speechRate, setSpeechRate] = useState(1.0);
   const [speechVolume, setSpeechVolume] = useState(1.0);
-  const [autoAdvanceSpeed, setAutoAdvanceSpeed] = useState(2000);
   const [voiceIndex, setVoiceIndex] = useState(0);
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [speechSupported, setSpeechSupported] = useState(false);
+  const [waitingForAttendance, setWaitingForAttendance] = useState(false);
+  const [rollCallPhase, setRollCallPhase] = useState<'idle' | 'announcing' | 'waiting' | 'confirming'>('idle');
+  
+  // Enhanced Features State
+  const [showRealTimeStats, setShowRealTimeStats] = useState(true);
+  const [autoSave, setAutoSave] = useState(true);
+  const [soundEffects, setSoundEffects] = useState(true);
+  const [showNotifications, setShowNotifications] = useState(true);
+  const [quickNotes, setQuickNotes] = useState('');
+  const [sessionNotes, setSessionNotes] = useState('');
+  const [attendanceGoal, setAttendanceGoal] = useState(85);
+  const [currentSession, setCurrentSession] = useState<AttendanceSession | null>(null);
+  
+  // Speech synthesis refs and state
+  const speechSynthRef = useRef<SpeechSynthesis | null>(null);
+  const speechUtteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
+  const availableVoicesRef = useRef<SpeechSynthesisVoice[]>([]);
+  const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Initialize speech synthesis
+  useEffect(() => {
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      speechSynthRef.current = window.speechSynthesis;
+      setSpeechSupported(true);
+      
+      const loadVoices = () => {
+        const voices = speechSynthRef.current?.getVoices() || [];
+        availableVoicesRef.current = voices;
+        console.log('Available voices:', voices.length);
+      };
+      
+      loadVoices();
+      if (speechSynthRef.current) {
+        speechSynthRef.current.addEventListener('voiceschanged', loadVoices);
+      }
+    } else {
+      console.warn('Speech synthesis not supported');
+      setSpeechSupported(false);
+    }
+
+    return () => {
+      if (speechSynthRef.current) {
+        speechSynthRef.current.cancel();
+      }
+    };
+  }, []);
 
   // Filter students based on search term and filter status
   const filteredStudents = students.filter(student => {
@@ -121,42 +163,6 @@ const EnhancedAttendanceTracker: React.FC<EnhancedAttendanceTrackerProps> = ({ t
     
     return matchesSearch && matchesFilter;
   });
-  
-  // Enhanced Features State
-  const [showRealTimeStats, setShowRealTimeStats] = useState(true);
-  const [autoSave, setAutoSave] = useState(true);
-  const [soundEffects, setSoundEffects] = useState(true);
-  const [showNotifications, setShowNotifications] = useState(true);
-  const [quickNotes, setQuickNotes] = useState('');
-  const [sessionNotes, setSessionNotes] = useState('');
-  const [attendanceGoal, setAttendanceGoal] = useState(85);
-  const [currentSession, setCurrentSession] = useState<AttendanceSession | null>(null);
-  const [showAttendanceModal, setShowAttendanceModal] = useState(false);
-  
-  // Use the Murf speech API instead of browser speech synthesis
-  const {
-    speak: speakText,
-    stop: stopSpeech,
-    pause: pauseSpeech,
-    resume: resumeSpeech,
-    isSpeaking,
-    isLoading: speechLoading,
-    error: speechError
-  } = useMurfSpeech();
-  
-  // Debug logging for speech support
-  useEffect(() => {
-    console.log('Murf speech API initialized');
-    if (speechError) {
-      console.error('Murf speech error:', speechError);
-    }
-  }, [speechError]);
-  
-  // Refs
-  const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const lastSpokenIndexRef = useRef(-1);
-  
-  const { toast } = useToast();
 
   // Mock data
   const [courses] = useState<Course[]>([
@@ -217,14 +223,12 @@ const EnhancedAttendanceTracker: React.FC<EnhancedAttendanceTrackerProps> = ({ t
         first_name: ['Aarav', 'Bhavna', 'Chirag', 'Divya', 'Eshan', 'Farah', 'Gaurav', 'Harini', 'Ishaan', 'Juhi',
              'Kunal', 'Lavanya', 'Manish', 'Neha', 'Omkar', 'Priya', 'Quasar', 'Riya', 'Sahil', 'Tanvi',
              'Uday', 'Vaishnavi', 'Waseem', 'Xenia', 'Yash'][i],
-
-last_name: ['Agarwal', 'Bhat', 'Chowdhury', 'Desai', 'Elangovan', 'Fernandes', 'Gupta', 'Hariharan', 'Iyer', 'Jain',
+        last_name: ['Agarwal', 'Bhat', 'Chowdhury', 'Desai', 'Elangovan', 'Fernandes', 'Gupta', 'Hariharan', 'Iyer', 'Jain',
             'Kapoor', 'Lal', 'Menon', 'Nair', 'Ojha', 'Patel', 'Qureshi', 'Reddy', 'Sharma', 'Tripathi',
             'Upadhyay', 'Varma', 'Wadhwa', 'Xavier', 'Yadav'][i],
-
         roll_number: `CS${String(i + 1).padStart(3, '0')}`,
         attendance_status: 'pending',
-        attendance_percentage: Math.floor(Math.random() * 40) + 60, // 60-100%
+        attendance_percentage: Math.floor(Math.random() * 40) + 60,
         total_classes: 20,
         present_count: Math.floor(Math.random() * 8) + 12,
         absent_count: Math.floor(Math.random() * 5) + 1,
@@ -253,7 +257,59 @@ last_name: ['Agarwal', 'Bhat', 'Chowdhury', 'Desai', 'Elangovan', 'Fernandes', '
     }, 1000);
   };
 
-  // Sound Effects (moved above markAttendance to avoid use-before-declare warnings)
+  // Enhanced Speech Functions
+  const speak = useCallback((text: string, priority: 'high' | 'normal' = 'normal'): Promise<void> => {
+    return new Promise((resolve, reject) => {
+      if (!speechSupported || !speechEnabled || !speechSynthRef.current) {
+        console.log('Speech not available');
+        resolve();
+        return;
+      }
+
+      // Cancel any ongoing speech for high priority messages
+      if (priority === 'high' && speechSynthRef.current.speaking) {
+        speechSynthRef.current.cancel();
+      }
+
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.rate = speechRate;
+      utterance.volume = speechVolume;
+      
+      // Use selected voice if available
+      if (availableVoicesRef.current[voiceIndex]) {
+        utterance.voice = availableVoicesRef.current[voiceIndex];
+      }
+
+      utterance.onstart = () => {
+        setIsSpeaking(true);
+        console.log('Speech started:', text);
+      };
+
+      utterance.onend = () => {
+        setIsSpeaking(false);
+        console.log('Speech ended');
+        resolve();
+      };
+
+      utterance.onerror = (event) => {
+        setIsSpeaking(false);
+        console.error('Speech error:', event);
+        reject(event);
+      };
+
+      speechUtteranceRef.current = utterance;
+      speechSynthRef.current.speak(utterance);
+    });
+  }, [speechSupported, speechEnabled, speechRate, speechVolume, voiceIndex]);
+
+  const stopSpeech = useCallback(() => {
+    if (speechSynthRef.current) {
+      speechSynthRef.current.cancel();
+      setIsSpeaking(false);
+    }
+  }, []);
+
+  // Sound Effects
   const playSound = useCallback((type: 'success' | 'warning' | 'info' | 'error') => {
     if (!soundEffects) return;
 
@@ -265,10 +321,10 @@ last_name: ['Agarwal', 'Bhat', 'Chowdhury', 'Desai', 'Elangovan', 'Fernandes', '
     gainNode.connect(audioContext.destination);
 
     const frequencies = {
-      success: [523.25, 659.25, 783.99], // C5, E5, G5
-      warning: [493.88, 523.25], // B4, C5
-      info: [440, 554.37], // A4, C#5
-      error: [261.63, 196] // C4, G3
+      success: [523.25, 659.25, 783.99],
+      warning: [493.88, 523.25],
+      info: [440, 554.37],
+      error: [261.63, 196]
     } as const;
 
     const freq = frequencies[type];
@@ -287,17 +343,115 @@ last_name: ['Agarwal', 'Bhat', 'Chowdhury', 'Desai', 'Elangovan', 'Fernandes', '
     oscillator.stop(audioContext.currentTime + 0.3);
   }, [soundEffects]);
 
-  // Attendance Functions
+  // Show toast notification
+  const showToast = useCallback((title: string, description: string, variant?: 'default' | 'destructive') => {
+    if (showNotifications) {
+      // Simple console log for now since we don't have toast context
+      console.log(`${title}: ${description}`);
+      playSound(variant === 'destructive' ? 'error' : 'success');
+    }
+  }, [showNotifications, playSound]);
+
+  // FIXED: Announce current student function
+  const announceCurrentStudent = useCallback(async () => {
+    if (!filteredStudents[currentStudentIndex] || !isRollCallActive) {
+      return;
+    }
+    var student;
+    if(currentStudentIndex==0){
+      student = filteredStudents[currentStudentIndex];
+    }
+    else if(currentStudentIndex ==1){
+      student = filteredStudents[currentStudentIndex+1];
+    }
+    else{
+      student = filteredStudents[currentStudentIndex + 1];
+    }
+    let announcement = `${student.first_name} ${student.last_name}`;
+   
+    // Add risk warning for at-risk students
+    if (student.risk_level === 'high') {
+      announcement += `. Attention: High risk student with ${student.attendance_percentage}% attendance`;
+    } else if (student.consecutive_absences > 2) {
+      announcement += `. Note: ${student.consecutive_absences} consecutive absences`;
+    }
+    
+    console.log('Announcing student:', announcement);
+    setRollCallPhase('announcing');
+    
+    try {
+      await speak(announcement);
+      // After speaking, switch to waiting phase
+      console.log('Finished announcing, now waiting for attendance');
+      setRollCallPhase('waiting');
+      setWaitingForAttendance(true);
+    } catch (error) {
+      console.error('Speech error:', error);
+      // Continue with waiting phase even if speech fails
+      setRollCallPhase('waiting');
+      setWaitingForAttendance(true);
+    }
+  }, [filteredStudents, currentStudentIndex, isRollCallActive, speak]);
+
+  // FIXED: Announce attendance status function
+  const announceAttendanceStatus = useCallback(async (studentName: string, status: 'present' | 'absent') => {
+    const announcement = `${studentName} marked as ${status}`;
+    console.log('Announcing attendance status:', announcement);
+    
+    try {
+      await speak(announcement, 'high');
+      console.log('Finished announcing attendance status');
+    } catch (error) {
+      console.error('Speech error during attendance announcement:', error);
+    }
+  }, [speak]);
+
+  // FIXED: Move to next student function
+  const moveToNextStudent = useCallback(() => {
+    console.log('Moving to next student...');
+    if (currentStudentIndex < filteredStudents.length - 1) {
+      const nextIndex = currentStudentIndex + 1;
+      setCurrentStudentIndex(nextIndex);
+      setWaitingForAttendance(false);
+      setRollCallPhase('announcing');
+      
+      // Small delay then announce the next student
+      setTimeout(() => {
+        announceCurrentStudent();
+      }, 1000); // Increased delay for better flow
+    } else {
+      // End of roll call
+      handleStopRollCall();
+    }
+  }, [currentStudentIndex, filteredStudents.length, announceCurrentStudent]);
+
+  const moveToPreviousStudent = useCallback(() => {
+    if (currentStudentIndex > 0) {
+      const prevIndex = currentStudentIndex - 1;
+      setCurrentStudentIndex(prevIndex);
+      setWaitingForAttendance(false);
+      setRollCallPhase('announcing');
+      
+      setTimeout(() => {
+        announceCurrentStudent();
+      }, 500);
+    }
+  }, [currentStudentIndex, announceCurrentStudent]);
+
+  // FIXED: Attendance Functions with proper roll call flow
   const markAttendance = useCallback(async (studentId: string, status: 'present' | 'absent') => {
+    const student = students.find(s => s.id === studentId);
+    if (!student) return;
+
     setStudents(prev => {
-      const updated = prev.map(student => 
-        student.id === studentId 
+      const updated = prev.map(s => 
+        s.id === studentId 
           ? { 
-              ...student, 
+              ...s, 
               attendance_status: status,
               last_attendance_date: format(selectedDate, 'yyyy-MM-dd')
             }
-          : student
+          : s
       );
 
       // Update real-time stats
@@ -319,177 +473,100 @@ last_name: ['Agarwal', 'Bhat', 'Chowdhury', 'Desai', 'Elangovan', 'Fernandes', '
       // Force re-render
       setAttendanceVersion(v => v + 1);
 
-      // Show toast with sound effect
-      const studentName = updated.find(s => s.id === studentId);
-      if (studentName) {
-        toast({
-          title: `${studentName.first_name} ${studentName.last_name}`,
-          description: `Marked as ${status}`,
-          duration: 2000,
-        });
-
-        if (soundEffects) {
-          playSound(status === 'present' ? 'success' : 'warning');
-        }
-        
-        // Announce the action for accessibility
-        speakText(`${studentName.first_name} ${studentName.last_name} marked as ${status}`).catch(error => {
-          console.error('Speech error:', error);
-        });
-      }
-
       return updated;
     });
-  }, [selectedDate, currentSession, toast, soundEffects, playSound, speakText]);
 
-  // Enhanced Roll Call Functions (moved after filteredStudents declaration)
-  const speakCurrentStudent = useCallback(async () => {
-    if (!filteredStudents[currentStudentIndex] || speechPaused || !isRollCallActive) {
-      console.log('Skipping speech because:', {
-        noStudent: !filteredStudents[currentStudentIndex],
-        speechPaused,
-        notActive: !isRollCallActive,
-        speechSupported: !speechLoading // Use speechLoading from useMurfSpeech
-      });
-      return;
-    }
+    // Show toast with sound effect
+    showToast(
+      `${student.first_name} ${student.last_name}`,
+      `Marked as ${status}`,
+      status === 'absent' ? 'destructive' : 'default'
+    );
+
+    playSound(status === 'present' ? 'success' : 'warning');
     
-    const student = filteredStudents[currentStudentIndex];
-    let announcement = `${student.first_name} ${student.last_name}`;
-    
-    // Add risk warning for at-risk students
-    if (student.risk_level === 'high') {
-      announcement += `. Attention: High risk student with ${student.attendance_percentage}% attendance`;
-    } else if (student.consecutive_absences > 2) {
-      announcement += `. Note: ${student.consecutive_absences} consecutive absences`;
-    }
-    
-    console.log('Attempting to speak:', announcement);
-    
-    try {
-      if (speechLoading) {
-        console.warn('Murf speech is loading, using fallback audio');
-        // Fallback to simple audio cue if speech synthesis isn't supported
-        playSound('info');
-      } else {
-        await speakText(announcement);
-      }
+    // FIXED: Handle roll call flow properly
+    if (isRollCallActive && rollCallPhase === 'waiting') {
+      console.log('Roll call attendance marked, switching to confirming phase');
+      setRollCallPhase('confirming');
+      setWaitingForAttendance(false);
       
-      // Auto-advance after speech completion if roll call is active
-      if (isRollCallActive && !speechPaused) {
+      // Announce the attendance status
+      try {
+        await announceAttendanceStatus(`${student.first_name} ${student.last_name}`, status);
+        
+        // Wait a moment then move to next student
         setTimeout(() => {
-          if (currentStudentIndex < filteredStudents.length - 1) {
-            setCurrentStudentIndex(prev => prev + 1);
-          } else {
-            // End of roll call
-            handleStopRollCall();
-          }
-        }, autoAdvanceSpeed);
-      }
-    } catch (error) {
-      console.error('Speech error:', error);
-      // Try fallback to beep sound
-      playSound('warning');
-      
-      if (showNotifications) {
-        toast({
-          title: "Speech Synthesis Issue",
-          description: "Using fallback audio instead of speech",
-          variant: "destructive",
-        });
-      }
-      
-      // Continue roll call despite speech errors
-      if (isRollCallActive && !speechPaused) {
+          console.log('Moving to next student after attendance confirmation');
+          moveToNextStudent();
+        }, 1500); // Give time for the announcement to complete
+        
+      } catch (error) {
+        console.error('Error announcing attendance:', error);
+        // Even if speech fails, move to next student
         setTimeout(() => {
-          if (currentStudentIndex < filteredStudents.length - 1) {
-            setCurrentStudentIndex(prev => prev + 1);
-          } else {
-            // End of roll call
-            handleStopRollCall();
-          }
-        }, autoAdvanceSpeed);
+          moveToNextStudent();
+        }, 1000);
       }
     }
-  }, [filteredStudents, currentStudentIndex, speechPaused, isRollCallActive, speechLoading, speakText, autoAdvanceSpeed, showNotifications, toast, playSound]);
+  }, [selectedDate, currentSession, showToast, playSound, isRollCallActive, rollCallPhase, students, announceAttendanceStatus, moveToNextStudent]);
+
+  // FIXED: Mark attendance with announcement wrapper
+  const markAttendanceWithAnnouncement = useCallback(async (studentId: string, status: 'present' | 'absent') => {
+    await markAttendance(studentId, status);
+  }, [markAttendance]);
 
   const handleStartRollCall = useCallback(async () => {
     if (filteredStudents.length === 0) {
-      toast({
-        title: 'No Students',
-        description: 'No students available for roll call',
-        variant: 'destructive',
-      });
+      showToast('No Students', 'No students available for roll call', 'destructive');
       return;
     }
 
+    console.log('Starting roll call...');
     setIsRollCallActive(true);
     setCurrentStudentIndex(0);
-    setSpeechPaused(false);
+    setWaitingForAttendance(false);
+    setRollCallPhase('announcing');
     
     // Initial announcement
     try {
-      if (!speechLoading) {
-        await speakText(`Starting roll call for ${filteredStudents.length} students. Press space to mark attendance.`);
-        // Announce first student immediately
-        if (filteredStudents[0]) {
-          await speakText(`${filteredStudents[0].first_name} ${filteredStudents[0].last_name}`);
-        }
-      } else {
-        // Fallback if speech synthesis is not supported
-        console.warn('Murf speech is loading, skipping initial announcement');
-        playSound('info');
-      }
-      // Start with first student after announcement
+      await speak(`Starting roll call for ${filteredStudents.length} students. I will call each name and wait for you to mark attendance.`, 'high');
+      
+      // Start with first student after initial announcement
       setTimeout(() => {
-        speakCurrentStudent();
+        announceCurrentStudent();
       }, 1000);
+      
+      showToast('📢 Roll Call Started', `Calling ${filteredStudents.length} students`);
     } catch (error) {
-      console.error('Speech error:', error);
+      console.error('Speech error during roll call start:', error);
+      showToast('Speech Error', 'Starting roll call without speech', 'destructive');
+      // Continue without speech
+      setTimeout(() => {
+        announceCurrentStudent();
+      }, 1000);
     }
-
-    if (showNotifications) {
-      toast({
-        title: '📢 Roll Call Started',
-        description: `Calling ${filteredStudents.length} students`,
-        duration: 3000,
-      });
-    }
-  }, [filteredStudents, speakText, speakCurrentStudent, showNotifications, toast, speechLoading, playSound]);
+  }, [filteredStudents, speak, announceCurrentStudent, showToast]);
 
   const handleStopRollCall = useCallback(async () => {
+    console.log('Stopping roll call...');
     setIsRollCallActive(false);
-    setSpeechPaused(false);
+    setWaitingForAttendance(false);
     setCurrentStudentIndex(0);
+    setRollCallPhase('idle');
     stopSpeech();
     
     const presentCount = students.filter(s => s.attendance_status === 'present').length;
     const absentCount = students.filter(s => s.attendance_status === 'absent').length;
     
     try {
-      await speakText(`Roll call completed. ${presentCount} students present, ${absentCount} students absent.`);
+      await speak(`Roll call completed. ${presentCount} students present, ${absentCount} students absent.`, 'high');
     } catch (error) {
       console.error('Speech error:', error);
     }
     
-    if (showNotifications) {
-      toast({
-        title: '✅ Roll Call Complete',
-        description: `${presentCount} present, ${absentCount} absent`,
-        duration: 5000,
-      });
-    }
-  }, [students, speakText, stopSpeech, showNotifications, toast]);
-
-  // Effect to speak current student when index changes
-  useEffect(() => {
-    if (isRollCallActive && !speechPaused && currentStudentIndex !== lastSpokenIndexRef.current) {
-      const timer = setTimeout(() => {
-        speakCurrentStudent();
-      }, 300);
-      return () => clearTimeout(timer);
-    }
-  }, [currentStudentIndex, isRollCallActive, speechPaused, speakCurrentStudent]);
+    showToast('✅ Roll Call Complete', `${presentCount} present, ${absentCount} absent`);
+  }, [students, speak, stopSpeech, showToast]);
 
   // Enhanced Keyboard Shortcuts
   useEffect(() => {
@@ -501,29 +578,28 @@ last_name: ['Agarwal', 'Bhat', 'Chowdhury', 'Desai', 'Elangovan', 'Fernandes', '
       switch (event.code) {
         case 'Space':
           event.preventDefault();
-          if (isRollCallActive) {
-            setShowAttendanceModal(true);
+          if (isRollCallActive && rollCallPhase === 'waiting') {
+            // Skip current student
+            setWaitingForAttendance(false);
+            setRollCallPhase('announcing');
+            moveToNextStudent();
           }
           break;
         case 'KeyP':
           if (event.ctrlKey || event.metaKey) {
             event.preventDefault();
-            if (currentStudentIndex < filteredStudents.length && filteredStudents[currentStudentIndex]) {
+            if (isRollCallActive && rollCallPhase === 'waiting' && 
+                currentStudentIndex < filteredStudents.length && filteredStudents[currentStudentIndex]) {
               markAttendance(filteredStudents[currentStudentIndex].id, 'present');
-              if (isRollCallActive && currentStudentIndex < filteredStudents.length - 1) {
-                setCurrentStudentIndex(prev => prev + 1);
-              }
             }
           }
           break;
         case 'KeyA':
           if (event.ctrlKey || event.metaKey) {
             event.preventDefault();
-            if (currentStudentIndex < filteredStudents.length && filteredStudents[currentStudentIndex]) {
+            if (isRollCallActive && rollCallPhase === 'waiting' && 
+                currentStudentIndex < filteredStudents.length && filteredStudents[currentStudentIndex]) {
               markAttendance(filteredStudents[currentStudentIndex].id, 'absent');
-              if (isRollCallActive && currentStudentIndex < filteredStudents.length - 1) {
-                setCurrentStudentIndex(prev => prev + 1);
-              }
             }
           }
           break;
@@ -534,17 +610,21 @@ last_name: ['Agarwal', 'Bhat', 'Chowdhury', 'Desai', 'Elangovan', 'Fernandes', '
           }
           break;
         case 'ArrowRight':
-          if (isRollCallActive && currentStudentIndex < filteredStudents.length - 1) {
+          if (isRollCallActive && rollCallPhase === 'waiting') {
             event.preventDefault();
-            stopSpeech();
-            setCurrentStudentIndex(prev => prev + 1);
+            setWaitingForAttendance(false);
+            setRollCallPhase('announcing');
+            moveToNextStudent();
           }
           break;
-        case 'ArrowLeft':
-          if (isRollCallActive && currentStudentIndex > 0) {
+        case 'KeyR':
+          if (isRollCallActive && (event.ctrlKey || event.metaKey)) {
             event.preventDefault();
+            // Repeat current student name
             stopSpeech();
-            setCurrentStudentIndex(prev => prev - 1);
+            setTimeout(() => {
+              announceCurrentStudent();
+            }, 300);
           }
           break;
       }
@@ -552,7 +632,7 @@ last_name: ['Agarwal', 'Bhat', 'Chowdhury', 'Desai', 'Elangovan', 'Fernandes', '
 
     window.addEventListener('keydown', handleKeyPress);
     return () => window.removeEventListener('keydown', handleKeyPress);
-  }, [isRollCallActive, speechPaused, currentStudentIndex, filteredStudents, markAttendance, resumeSpeech, pauseSpeech, stopSpeech, speakCurrentStudent, handleStopRollCall]);
+  }, [isRollCallActive, rollCallPhase, currentStudentIndex, filteredStudents, markAttendance, moveToNextStudent, moveToPreviousStudent, announceCurrentStudent, stopSpeech, handleStopRollCall]);
 
   // Calculate Statistics
   const calculateStats = useCallback(() => {
@@ -582,22 +662,21 @@ last_name: ['Agarwal', 'Bhat', 'Chowdhury', 'Desai', 'Elangovan', 'Fernandes', '
 
   // Save attendance data
   const saveAttendanceData = useCallback(() => {
-    // In a real app, this would save to database
-    localStorage.setItem(`attendance-${selectedCourse}-${format(selectedDate, 'yyyy-MM-dd')}`, JSON.stringify({
-      students,
-      session: currentSession,
-      notes: sessionNotes,
-      timestamp: new Date().toISOString()
-    }));
+    try {
+      // Using in-memory storage instead of localStorage as per requirements
+      const attendanceData = {
+        students,
+        session: currentSession,
+        notes: sessionNotes,
+        timestamp: new Date().toISOString()
+      };
 
-    if (showNotifications) {
-      toast({
-        title: 'Attendance Saved',
-        description: 'Data has been automatically saved',
-        duration: 2000,
-      });
+      showToast('Attendance Saved', 'Data has been automatically saved');
+    } catch (error) {
+      console.error('Save error:', error);
+      showToast('Save Error', 'Failed to save attendance data', 'destructive');
     }
-  }, [selectedCourse, selectedDate, students, currentSession, sessionNotes, showNotifications, toast]);
+  }, [selectedCourse, selectedDate, students, currentSession, sessionNotes, showToast]);
 
   // Export functions
   const exportAttendance = useCallback((exportFormat: 'csv' | 'pdf' | 'excel') => {
@@ -609,7 +688,6 @@ last_name: ['Agarwal', 'Bhat', 'Chowdhury', 'Desai', 'Elangovan', 'Fernandes', '
       'Notes': student.notes || ''
     }));
 
-    // Create CSV
     if (exportFormat === 'csv') {
       const csv = [
         Object.keys(data[0]).join(','),
@@ -625,14 +703,15 @@ last_name: ['Agarwal', 'Bhat', 'Chowdhury', 'Desai', 'Elangovan', 'Fernandes', '
       window.URL.revokeObjectURL(url);
     }
 
-    toast({
-      title: 'Export Complete',
-      description: `Attendance data exported as ${exportFormat.toUpperCase()}`,
-    });
-  }, [students, selectedCourse, selectedDate, toast]);
+    showToast('Export Complete', `Attendance data exported as ${exportFormat.toUpperCase()}`);
+  }, [students, selectedCourse, selectedDate, showToast]);
+
+  const cn = (...classes: (string | undefined | boolean)[]) => {
+    return classes.filter(Boolean).join(' ');
+  };
 
   return (
-    <div className={cn("space-y-6 transition-all duration-300", darkMode && "dark")}>
+    <div className="space-y-6 transition-all duration-300">
       {/* Enhanced Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -779,9 +858,24 @@ last_name: ['Agarwal', 'Bhat', 'Chowdhury', 'Desai', 'Elangovan', 'Fernandes', '
                       Roll Call Active
                     </Badge>
                   )}
-                  {speechPaused && (
-                    <Badge variant="secondary">
-                      Speech Paused
+                  {rollCallPhase === 'announcing' && isRollCallActive && (
+                    <Badge variant="secondary" className="bg-blue-100 text-blue-800">
+                      📢 Announcing
+                    </Badge>
+                  )}
+                  {rollCallPhase === 'waiting' && waitingForAttendance && (
+                    <Badge variant="outline" className="border-orange-500 text-orange-600 bg-orange-50">
+                      ⏳ Waiting for Input
+                    </Badge>
+                  )}
+                  {rollCallPhase === 'confirming' && isRollCallActive && (
+                    <Badge variant="default" className="bg-green-100 text-green-800">
+                      ✅ Confirming
+                    </Badge>
+                  )}
+                  {isSpeaking && (
+                    <Badge variant="outline">
+                      🔊 Speaking
                     </Badge>
                   )}
                 </div>
@@ -848,36 +942,54 @@ last_name: ['Agarwal', 'Bhat', 'Chowdhury', 'Desai', 'Elangovan', 'Fernandes', '
                     >
                       {speechEnabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
                     </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setSpeechPaused(!speechPaused)}
-                      disabled={!isRollCallActive}
-                    >
-                      {speechPaused ? <Play className="h-4 w-4" /> : <Pause className="h-4 w-4" />}
-                    </Button>
+                    {!speechSupported && (
+                      <Badge variant="destructive" className="text-xs">
+                        No Speech
+                      </Badge>
+                    )}
                   </div>
                 </div>
               </div>
 
-              {/* Advanced Controls */}
+              {/* Roll Call Controls */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-4 pt-4 border-t">
-                <Button onClick={handleStartRollCall} disabled={isRollCallActive || filteredStudents.length === 0}>
+                <Button 
+                  onClick={handleStartRollCall} 
+                  disabled={isRollCallActive || filteredStudents.length === 0}
+                  className="w-full"
+                >
                   <Play className="h-4 w-4 mr-2" />
                   Start Roll Call
                 </Button>
+                
                 {isRollCallActive && (
                   <>
-                    <Button onClick={speechPaused ? resumeSpeech : pauseSpeech} variant="secondary">
-                      {speechPaused ? <Play className="h-4 w-4 mr-2" /> : <Pause className="h-4 w-4 mr-2" />}
-                      {speechPaused ? 'Resume' : 'Pause'}
+                    <Button 
+                      onClick={() => {
+                        if (rollCallPhase === 'waiting') {
+                          setWaitingForAttendance(false);
+                          setRollCallPhase('announcing');
+                          moveToNextStudent();
+                        }
+                      }} 
+                      variant="secondary"
+                      disabled={rollCallPhase !== 'waiting'}
+                      className="w-full"
+                    >
+                      <SkipForward className="h-4 w-4 mr-2" />
+                      Skip Student
                     </Button>
-                    <Button onClick={handleStopRollCall} variant="destructive">
+                    <Button 
+                      onClick={handleStopRollCall} 
+                      variant="destructive"
+                      className="w-full"
+                    >
                       <Square className="h-4 w-4 mr-2" />
                       Stop Roll Call
                     </Button>
                   </>
                 )}
+                
                 <Button 
                   variant="outline" 
                   onClick={() => {
@@ -888,17 +1000,20 @@ last_name: ['Agarwal', 'Bhat', 'Chowdhury', 'Desai', 'Elangovan', 'Fernandes', '
                     });
                   }}
                   disabled={stats.pending === 0}
+                  className="w-full"
                 >
                   <CheckCircle2 className="h-4 w-4 mr-2" />
                   Mark All Present
                 </Button>
+                
                 <Button 
                   variant="outline" 
                   onClick={async () => {
-                    // Test speech by reading all student names
-                    const names = filteredStudents.map(s => `${s.first_name} ${s.last_name}`).join(', ');
+                    const names = filteredStudents.slice(0, 5).map(s => `${s.first_name} ${s.last_name}`).join(', ');
+                    const totalText = filteredStudents.length > 5 ? 
+                      `${names} and ${filteredStudents.length - 5} others` : names;
                     try {
-                      await speakText(`Today's students: ${names}`);
+                      await speak(`Today's students: ${totalText}`);
                     } catch (error) {
                       console.error('Speech error:', error);
                     }
@@ -907,30 +1022,14 @@ last_name: ['Agarwal', 'Bhat', 'Chowdhury', 'Desai', 'Elangovan', 'Fernandes', '
                   className="w-full"
                 >
                   <Volume2 className="h-4 w-4 mr-2" />
-                  Announce All Names
-                </Button>
-                <Button 
-                  variant="outline" 
-                  onClick={() => exportAttendance('csv')}
-                  disabled={students.length === 0}
-                >
-                  <Download className="h-4 w-4 mr-2" />
-                  Export CSV
-                </Button>
-                <Button 
-                  variant="outline" 
-                  onClick={saveAttendanceData}
-                  disabled={students.length === 0}
-                >
-                  <Save className="h-4 w-4 mr-2" />
-                  Save Data
+                  Test Speech
                 </Button>
               </div>
             </CardContent>
           </Card>
 
           {/* Enhanced Speech Settings */}
-          {speechEnabled && (
+          {speechEnabled && speechSupported && (
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
@@ -965,32 +1064,37 @@ last_name: ['Agarwal', 'Bhat', 'Chowdhury', 'Desai', 'Elangovan', 'Fernandes', '
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label>Auto-advance: {autoAdvanceSpeed}ms</Label>
-                    <input
-                      type="range"
-                      min="1000"
-                      max="5000"
-                      step="500"
-                      value={autoAdvanceSpeed}
-                      onChange={(e) => setAutoAdvanceSpeed(parseInt(e.target.value))}
-                      className="w-full"
-                    />
+                    <Label>Voice: {availableVoicesRef.current[voiceIndex]?.name || 'Default'}</Label>
+                    <Select value={voiceIndex.toString()} onValueChange={(value) => setVoiceIndex(parseInt(value))}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {availableVoicesRef.current.map((voice, index) => (
+                          <SelectItem key={index} value={index.toString()}>
+                            {voice.name} ({voice.lang})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
                 <div className="mt-4 pt-4 border-t">
                   <Button 
                     onClick={async () => {
                       try {
-                        await speakText("Text to speech is working correctly. You can now start roll call.");
+                        await speak("Text to speech is working correctly. You can now start roll call.");
                       } catch (error) {
                         console.error('Speech error:', error);
+                        showToast('Speech Test Failed', 'Please check your browser settings', 'destructive');
                       }
                     }}
                     className="w-full"
                     variant="outline"
+                    disabled={isSpeaking}
                   >
                     <Volume2 className="h-4 w-4 mr-2" />
-                    Test Speech
+                    {isSpeaking ? 'Speaking...' : 'Test Speech'}
                   </Button>
                 </div>
               </CardContent>
@@ -1020,25 +1124,35 @@ last_name: ['Agarwal', 'Bhat', 'Chowdhury', 'Desai', 'Elangovan', 'Fernandes', '
               <TabsContent value="list" className="space-y-4">
                 {/* Roll Call Interface */}
                 {isRollCallActive && (
-                  <Card className="border-2 border-black bg-white shadow-lg">
-                    <CardHeader className="bg-gray-100 border-b-2 border-black">
+                  <Card className="border-2 border-blue-500 bg-blue-50 shadow-lg">
+                    <CardHeader className="bg-blue-100 border-b-2 border-blue-500">
                       <CardTitle className="flex items-center justify-between">
                         <div className="flex items-center space-x-2">
-                          <Volume2 className="h-5 w-5 text-black" />
-                          <span className="text-black font-bold">Roll Call Active</span>
+                          <Volume2 className="h-5 w-5 text-blue-600" />
+                          <span className="text-blue-800 font-bold">Roll Call Active</span>
                         </div>
                         <div className="flex items-center space-x-2">
-                          <Badge variant="outline" className="border-black text-black bg-white">
+                          <Badge variant="outline" className="border-blue-500 text-blue-700 bg-white">
                             {currentStudentIndex + 1} of {filteredStudents.length}
                           </Badge>
-                          {speechPaused && (
-                            <Badge variant="secondary" className=" border border-black">
-                              Paused - Press Space to Resume
+                          {rollCallPhase === 'announcing' && (
+                            <Badge variant="secondary" className="bg-blue-100 text-blue-800 animate-pulse">
+                              📢 Announcing Name
                             </Badge>
                           )}
-                          {!speechLoading && ( // Use speechLoading from useMurfSpeech
-                            <Badge variant="outline" className="border-red-500 text-red-700 bg-white">
-                              Speech Disabled
+                          {rollCallPhase === 'waiting' && waitingForAttendance && (
+                            <Badge variant="default" className="bg-orange-500 text-white animate-pulse">
+                              ⏳ Waiting for Attendance
+                            </Badge>
+                          )}
+                          {rollCallPhase === 'confirming' && (
+                            <Badge variant="secondary" className="bg-green-100 text-green-800 animate-pulse">
+                              ✅ Confirming Status
+                            </Badge>
+                          )}
+                          {isSpeaking && (
+                            <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">
+                              🔊 Speaking
                             </Badge>
                           )}
                         </div>
@@ -1052,92 +1166,104 @@ last_name: ['Agarwal', 'Bhat', 'Chowdhury', 'Desai', 'Elangovan', 'Fernandes', '
                               <img
                                 src={filteredStudents[currentStudentIndex].photo_url}
                                 alt="Student"
-                                className="w-20 h-20 rounded-full border-2 border-black shadow-lg"
+                                className="w-20 h-20 rounded-full border-4 border-blue-500 shadow-lg"
                               />
                             )}
                             <div>
-                              <h3 className="text-3xl font-bold text-black mb-2">
+                              <h3 className="text-3xl font-bold text-blue-800 mb-2">
                                 {filteredStudents[currentStudentIndex].first_name} {filteredStudents[currentStudentIndex].last_name}
                               </h3>
-                              <p className="text-lg text-gray-600">
+                              <p className="text-lg text-blue-600">
                                 {filteredStudents[currentStudentIndex].roll_number}
                               </p>
+                              <p className="text-sm text-gray-600">
+                                {filteredStudents[currentStudentIndex].attendance_percentage}% attendance
+                              </p>
+                              {filteredStudents[currentStudentIndex].risk_level === 'high' && (
+                                <Badge variant="destructive" className="mt-2">
+                                  🚨 High Risk Student
+                                </Badge>
+                              )}
                             </div>
                           </div>
-                          <div className="flex justify-center space-x-6">
-                            <Button
-                              size="lg"
-                              onClick={() => {
-                                markAttendance(filteredStudents[currentStudentIndex].id, 'present');
-                                if (currentStudentIndex < filteredStudents.length - 1) {
-                                  setCurrentStudentIndex(prev => prev + 1);
-                                }
-                              }}
-                              className="bg-black hover:bg-gray-800 text-white px-8 py-3 text-lg font-semibold shadow-lg"
-                            >
-                              <CheckCircle2 className="h-6 w-6 mr-3" />
-                              Present (Ctrl+P)
-                            </Button>
-                            <Button
-                              size="lg"
-                              variant="outline"
-                              onClick={() => {
-                                markAttendance(filteredStudents[currentStudentIndex].id, 'absent');
-                                if (currentStudentIndex < filteredStudents.length - 1) {
-                                  setCurrentStudentIndex(prev => prev + 1);
-                                }
-                              }}
-                              className="border-2 border-black text-black hover:bg-gray-100 px-8 py-3 text-lg font-semibold shadow-lg"
-                            >
-                              <XCircle className="h-6 w-6 mr-3" />
-                              Absent (Ctrl+A)
-                            </Button>
-                          </div>
-                          <div className="flex justify-center space-x-4">
-                            <Button
-                              variant="outline"
-                              size="lg"
-                              onClick={() => {
-                                if (currentStudentIndex > 0) {
-                                  stopSpeech();
-                                  setCurrentStudentIndex(prev => prev - 1);
-                                }
-                              }}
-                              disabled={currentStudentIndex === 0}
-                              className="border-2 border-black text-black hover:bg-gray-100"
-                            >
-                              <SkipBack className="h-5 w-5" />
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="lg"
-                              onClick={() => {
-                                if (speechPaused) {
-                                  resumeSpeech();
-                                  setTimeout(() => speakCurrentStudent(), 100);
-                                } else {
-                                  pauseSpeech();
-                                }
-                              }}
-                              className="border-2 border-black text-black hover:bg-gray-100"
-                            >
-                              {speechPaused ? <Play className="h-5 w-5" /> : <Pause className="h-5 w-5" />}
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="lg"
-                              onClick={() => {
-                                if (currentStudentIndex < filteredStudents.length - 1) {
-                                  stopSpeech();
-                                  setCurrentStudentIndex(prev => prev + 1);
-                                }
-                              }}
-                              disabled={currentStudentIndex >= filteredStudents.length - 1}
-                              className="border-2 border-black text-black"
-                            >
-                              <SkipForward className="h-5 w-5" />
-                            </Button>
-                          </div>
+                          
+                          {rollCallPhase === 'announcing' && (
+                            <div className="space-y-4">
+                              <p className="text-lg text-blue-600 font-semibold animate-pulse">
+                                {isSpeaking ? '🔊 Announcing student name...' : '📢 Ready to announce'}
+                              </p>
+                              <div className="flex justify-center space-x-4">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => {
+                                    stopSpeech();
+                                    setTimeout(() => {
+                                      announceCurrentStudent();
+                                    }, 300);
+                                  }}
+                                  className="border-2 border-blue-500 text-blue-600 hover:bg-blue-50"
+                                >
+                                  <Volume2 className="h-4 w-4 mr-2" />
+                                  Repeat Name (Ctrl+R)
+                                </Button>
+                              </div>
+                            </div>
+                          )}
+                          
+                          {rollCallPhase === 'waiting' && waitingForAttendance && (
+                            <div className="space-y-4">
+                              <p className="text-lg text-orange-600 font-semibold animate-pulse">
+                                ⏳ Please mark attendance for this student
+                              </p>
+                              <div className="flex justify-center space-x-6">
+                                <Button
+                                  size="lg"
+                                  onClick={() => {
+                                    markAttendanceWithAnnouncement(filteredStudents[currentStudentIndex].id, 'present');
+                                  }}
+                                  className="bg-green-600 hover:bg-green-700 text-white px-8 py-3 text-lg font-semibold shadow-lg"
+                                >
+                                  <CheckCircle2 className="h-6 w-6 mr-3" />
+                                  Present (Ctrl+P)
+                                </Button>
+                                <Button
+                                  size="lg"
+                                  variant="destructive"
+                                  onClick={() => {
+                                    markAttendanceWithAnnouncement(filteredStudents[currentStudentIndex].id, 'absent');
+                                  }}
+                                  className="px-8 py-3 text-lg font-semibold shadow-lg"
+                                >
+                                  <XCircle className="h-6 w-6 mr-3" />
+                                  Absent (Ctrl+A)
+                                </Button>
+                              </div>
+                              <div className="flex justify-center">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => {
+                                    setWaitingForAttendance(false);
+                                    setRollCallPhase('announcing');
+                                    moveToNextStudent();
+                                  }}
+                                  className="border-2 border-gray-400 text-gray-600 hover:bg-gray-50"
+                                >
+                                  <SkipForward className="h-4 w-4 mr-2" />
+                                  Skip Student (Space)
+                                </Button>
+                              </div>
+                            </div>
+                          )}
+
+                          {rollCallPhase === 'confirming' && (
+                            <div className="space-y-4">
+                              <p className="text-lg text-green-600 font-semibold animate-pulse">
+                                {isSpeaking ? '🔊 Announcing attendance status...' : '✅ Attendance confirmed! Moving to next student...'}
+                              </p>
+                            </div>
+                          )}
                         </div>
                       )}
                     </CardContent>
@@ -1145,60 +1271,48 @@ last_name: ['Agarwal', 'Bhat', 'Chowdhury', 'Desai', 'Elangovan', 'Fernandes', '
                 )}
 
                 {/* Students List */}
-                <Card className="border-2 border-black shadow-lg">
-                  <CardHeader className="border-b-2 border-black">
-                    <CardTitle className="font-bold text-xl">Students ({filteredStudents.length})</CardTitle>
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Students ({filteredStudents.length})</CardTitle>
                   </CardHeader>
-                  <CardContent className="p-6">
+                  <CardContent>
                     <div className="space-y-4">
                       {filteredStudents.map((student, index) => (
                         <div
                           key={student.id}
                           className={cn(
-                            "flex items-center justify-between p-6 border-2 rounded-lg transition-all duration-200 cursor-pointer border-black min-h-[80px]",
-                            currentStudentIndex === index && isRollCallActive && "ring-4 ring-black shadow-xl",
-                            student.attendance_status === 'present' && "border-green-600",
-                            student.attendance_status === 'absent' && "border-red-600 ",
-                            student.attendance_status === 'pending' && "border-black ",
-                            student.risk_level === 'high' && "border-l-8 border-l-red-600",
-                            student.risk_level === 'medium' && "border-l-8 border-l-orange-500",
-                            student.risk_level === 'low' && "border-l-4 border-l-green-400"
+                            "flex items-center justify-between p-4 border rounded-lg transition-all duration-200",
+                            currentStudentIndex === index && isRollCallActive && "ring-2 ring-blue-500 bg-blue-50",
+                            student.attendance_status === 'present' && "border-green-500 bg-green-50",
+                            student.attendance_status === 'absent' && "border-red-500 bg-red-50",
+                            student.attendance_status === 'pending' && "border-gray-300",
+                            student.risk_level === 'high' && "border-l-4 border-l-red-600"
                           )}
-                          onClick={() => {
-                            if (isRollCallActive) {
-                              setCurrentStudentIndex(index);
-                            }
-                          }}
                         >
-                          <div className="flex items-center space-x-6">
+                          <div className="flex items-center space-x-4">
                             {showPhotos && (
                               <img
                                 src={student.photo_url}
                                 alt={`${student.first_name} ${student.last_name}`}
-                                className="w-16 h-16 rounded-full border-2 border-white shadow-md"
+                                className="w-12 h-12 rounded-full border-2"
                               />
                             )}
-                            <div className="min-w-0 flex-1">
-                              <p className="font-bold text-lg mb-1">
+                            <div>
+                              <p className="font-medium">
                                 {student.first_name} {student.last_name}
                               </p>
-                              <p className="text-base mb-2">
+                              <p className="text-sm text-gray-600">
                                 {student.roll_number} • {student.attendance_percentage}% attendance
                               </p>
                               {student.notes && (
-                                <p className="text-sm italic">{student.notes}</p>
+                                <p className="text-xs text-gray-500 italic">{student.notes}</p>
                               )}
                             </div>
                           </div>
-                          <div className="flex items-center space-x-4">
+                          <div className="flex items-center space-x-2">
                             {student.risk_level === 'high' && (
-                              <Badge variant="destructive" className="text-sm border-2 border-red-600 px-3 py-1">
+                              <Badge variant="destructive" className="text-xs">
                                 🚨 High Risk
-                              </Badge>
-                            )}
-                            {student.risk_level === 'medium' && (
-                              <Badge variant="secondary" className="text-sm border-2 border-orange-500 px-3 py-1">
-                                ⚠️ At Risk
                               </Badge>
                             )}
                             <Badge 
@@ -1206,67 +1320,27 @@ last_name: ['Agarwal', 'Bhat', 'Chowdhury', 'Desai', 'Elangovan', 'Fernandes', '
                                 student.attendance_status === 'present' ? 'default' :
                                 student.attendance_status === 'absent' ? 'destructive' : 'secondary'
                               }
-                              className={cn(
-                                "text-sm px-4 py-2 font-semibold",
-                                student.attendance_status === 'present' && "text-green-800 border-2 border-green-600",
-                                student.attendance_status === 'absent' && "text-red-800 border-2 border-red-600",
-                                student.attendance_status === 'pending' && "text-yellow-800 border-2 border-yellow-600"
-                              )}
                             >
                               {student.attendance_status === 'present' && '✅ Present'}
                               {student.attendance_status === 'absent' && '❌ Absent'}
                               {student.attendance_status === 'pending' && '⏳ Pending'}
                             </Badge>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={async (e) => {
-                                e.stopPropagation();
-                                const announcement = student.risk_level === 'high' ? 
-                                  `${student.first_name} ${student.last_name}. High risk student with ${student.attendance_percentage}% attendance.` :
-                                  `${student.first_name} ${student.last_name}`;
-                                try {
-                                  await speakText(announcement);
-                                } catch (error) {
-                                  console.error('Speech error:', error);
-                                }
-                              }}
-                              className="h-8 w-8 p-0 border border-black"
-                            >
-                              <Volume2 className="h-4 w-4" />
-                            </Button>
-                            <div className="flex space-x-2">
+                            <div className="flex space-x-1">
                               <Button
                                 size="sm"
                                 variant={student.attendance_status === 'present' ? 'default' : 'outline'}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  markAttendance(student.id, 'present');
-                                }}
-                                className={cn(
-                                  "transition-all duration-200 px-4 py-2 font-semibold",
-                                  student.attendance_status === 'present' && " hover:bg-green-700 shadow-md border-2 border-green-600",
-                                  student.attendance_status !== 'present' && "border-2"
-                                )}
+                                onClick={() => markAttendance(student.id, 'present')}
+                                disabled={isRollCallActive && rollCallPhase !== 'waiting' && currentStudentIndex !== index}
                               >
-                                <CheckCircle2 className="h-5 w-5 mr-1" />
-                                Present
+                                <CheckCircle2 className="h-4 w-4" />
                               </Button>
                               <Button
                                 size="sm"
                                 variant={student.attendance_status === 'absent' ? 'destructive' : 'outline'}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  markAttendance(student.id, 'absent');
-                                }}
-                                className={cn(
-                                  "transition-all duration-200 px-4 py-2 font-semibold",
-                                  student.attendance_status === 'absent' && " hover:bg-red-700 shadow-md border-2",
-                                  student.attendance_status !== 'absent' && "border-2 "
-                                )}
+                                onClick={() => markAttendance(student.id, 'absent')}
+                                disabled={isRollCallActive && rollCallPhase !== 'waiting' && currentStudentIndex !== index}
                               >
-                                <XCircle className="h-5 w-5 mr-1" />
-                                Absent
+                                <XCircle className="h-4 w-4" />
                               </Button>
                             </div>
                           </div>
@@ -1278,58 +1352,37 @@ last_name: ['Agarwal', 'Bhat', 'Chowdhury', 'Desai', 'Elangovan', 'Fernandes', '
               </TabsContent>
 
               <TabsContent value="grid" className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
                   {filteredStudents.map((student, index) => (
                     <Card 
                       key={student.id}
                       className={cn(
-                        "cursor-pointer transition-all duration-200 hover:shadow-lg hover:scale-105",
-                        currentStudentIndex === index && isRollCallActive && "ring-2 shadow-xl",
-                        student.attendance_status === 'present',
-                        student.attendance_status === 'absent' ,
-                        student.attendance_status === 'pending',
-                        student.risk_level === 'high',
-                        student.risk_level === 'medium'
+                        "cursor-pointer transition-all duration-200 hover:shadow-md",
+                        currentStudentIndex === index && isRollCallActive && "ring-2 ring-blue-500",
+                        student.attendance_status === 'present' && "border-green-500",
+                        student.attendance_status === 'absent' && "border-red-500",
+                        student.risk_level === 'high' && "border-t-4 border-t-red-600"
                       )}
                     >
                       <CardContent className="p-4 text-center">
                         <img
                           src={student.photo_url}
                           alt={`${student.first_name} ${student.last_name}`}
-                          className={cn(
-                            "w-16 h-16 rounded-full mx-auto mb-2 border-2 transition-all duration-200",
-                            student.attendance_status === 'present' ,
-                            student.attendance_status === 'absent' ,
-                            student.attendance_status === 'pending',
-                            student.risk_level === 'high'
-                          )}
+                          className="w-16 h-16 rounded-full mx-auto mb-2"
                         />
                         <p className="font-medium text-sm">{student.first_name}</p>
                         <p className="font-medium text-sm">{student.last_name}</p>
-                        <p className="text-xs text-muted-foreground">{student.roll_number}</p>
-                        <p className={cn(
-                          "text-xs font-semibold",
-                          student.attendance_percentage >= 85 && "text-green-600",
-                          student.attendance_percentage >= 70 && student.attendance_percentage < 85 && "text-yellow-600",
-                          student.attendance_percentage < 70 && "text-red-600"
-                        )}>
-                          {student.attendance_percentage}%
-                        </p>
+                        <p className="text-xs text-gray-500">{student.roll_number}</p>
+                        <p className="text-xs text-gray-600">{student.attendance_percentage}%</p>
                         {student.risk_level === 'high' && (
                           <Badge variant="destructive" className="text-xs mt-1">🚨</Badge>
-                        )}
-                        {student.risk_level === 'medium' && (
-                          <Badge variant="secondary" className="text-xs mt-1 ">⚠️</Badge>
                         )}
                         <div className="flex justify-center space-x-1 mt-2">
                           <Button
                             size="sm"
                             variant={student.attendance_status === 'present' ? 'default' : 'outline'}
                             onClick={() => markAttendance(student.id, 'present')}
-                            className={cn(
-                              "h-6 px-2 text-xs transition-all duration-200",
-                              student.attendance_status === 'present' && " shadow-md"
-                            )}
+                            className="h-6 px-2 text-xs"
                           >
                             ✅
                           </Button>
@@ -1337,10 +1390,7 @@ last_name: ['Agarwal', 'Bhat', 'Chowdhury', 'Desai', 'Elangovan', 'Fernandes', '
                             size="sm"
                             variant={student.attendance_status === 'absent' ? 'destructive' : 'outline'}
                             onClick={() => markAttendance(student.id, 'absent')}
-                            className={cn(
-                              "h-6 px-2 text-xs transition-all duration-200",
-                              student.attendance_status === 'absent' && "bg-red-600 hover:bg-red- shadow-md"
-                            )}
+                            className="h-6 px-2 text-xs"
                           >
                             ❌
                           </Button>
@@ -1357,19 +1407,12 @@ last_name: ['Agarwal', 'Bhat', 'Chowdhury', 'Desai', 'Elangovan', 'Fernandes', '
                   <Alert className="border-red-200">
                     <AlertTriangle className="h-4 w-4 text-red-600" />
                     <AlertDescription className="text-red-800">
-                      <strong>{stats.atRiskStudents} students</strong> are at risk due to low attendance (&lt;70%) or consecutive absences. 
-                      <Button 
-                        variant="link" 
-                        className="p-0 h-auto text-red-600 underline ml-1"
-                        onClick={() => setFilterStatus('at-risk')}
-                      >
-                        View these students
-                      </Button>
+                      <strong>{stats.atRiskStudents} students</strong> are at risk due to low attendance (&lt;70%) or consecutive absences.
                     </AlertDescription>
                   </Alert>
                 )}
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <Card>
                     <CardHeader>
                       <CardTitle>Attendance Distribution</CardTitle>
@@ -1419,17 +1462,17 @@ last_name: ['Agarwal', 'Bhat', 'Chowdhury', 'Desai', 'Elangovan', 'Fernandes', '
                           )}>
                             {stats.averageAttendance}%
                           </div>
-                          <p className="text-sm text-muted-foreground">Average Attendance</p>
+                          <p className="text-sm text-gray-500">Average Attendance</p>
                         </div>
                         <div className="text-center">
                           <div className="text-2xl font-bold text-orange-600">{stats.atRiskStudents}</div>
-                          <p className="text-sm text-muted-foreground">Students at Risk</p>
+                          <p className="text-sm text-gray-500">Students at Risk</p>
                         </div>
                         <div className="text-center">
                           <div className={cn("text-2xl font-bold", stats.goalMet ? "text-green-600" : "text-red-600")}>
                             {stats.goalMet ? "🎯" : "📈"}
                           </div>
-                          <p className="text-sm text-muted-foreground">
+                          <p className="text-sm text-gray-500">
                             Goal {stats.goalMet ? "Met" : "Not Met"} ({attendanceGoal}%)
                           </p>
                         </div>
@@ -1452,39 +1495,6 @@ last_name: ['Agarwal', 'Bhat', 'Chowdhury', 'Desai', 'Elangovan', 'Fernandes', '
                           Export Report
                         </Button>
                         <Button 
-                          onClick={async () => {
-                            setFilterStatus('at-risk');
-                            setViewMode('list');
-                            if (stats.atRiskStudents > 0) {
-                              await speakText(`Found ${stats.atRiskStudents} students at risk. Switching to at-risk view.`);
-                            }
-                          }} 
-                          className="w-full" 
-                          variant="outline"
-                          disabled={stats.atRiskStudents === 0}
-                        >
-                          <AlertTriangle className="h-4 w-4 mr-2" />
-                          View At-Risk Students ({stats.atRiskStudents})
-                        </Button>
-                        <Button 
-                          onClick={async () => {
-                            // Speak summary of at-risk students
-                            const atRiskStudents = filteredStudents.filter(s => s.risk_level === 'high' || s.attendance_percentage < 70);
-                            if (atRiskStudents.length > 0) {
-                              const names = atRiskStudents.slice(0, 3).map(s => `${s.first_name} ${s.last_name}`).join(', ');
-                              const summary = `${atRiskStudents.length} students at risk: ${names}${atRiskStudents.length > 3 ? ' and others' : ''}`;
-                              await speakText(summary);
-                            } else {
-                              await speakText('No students are currently at risk. Great job!');
-                            }
-                          }} 
-                          className="w-full" 
-                          variant="outline"
-                        >
-                          <Volume2 className="h-4 w-4 mr-2" />
-                          Announce At-Risk
-                        </Button>
-                        <Button 
                           onClick={saveAttendanceData} 
                           className="w-full" 
                           variant="outline"
@@ -1497,63 +1507,6 @@ last_name: ['Agarwal', 'Bhat', 'Chowdhury', 'Desai', 'Elangovan', 'Fernandes', '
                   </Card>
                 </div>
 
-                {/* At-Risk Students Detailed View */}
-                {filterStatus === 'at-risk' && filteredStudents.length > 0 && (
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center space-x-2">
-                        <AlertTriangle className="h-5 w-5" />
-                        <span>Students Requiring Attention ({filteredStudents.length})</span>
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-3">
-                        {filteredStudents.map((student) => (
-                          <div key={student.id} className="p-4 rounded-lg">
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center space-x-3">
-                                <img
-                                  src={student.photo_url}
-                                  alt={`${student.first_name} ${student.last_name}`}
-                                  className="w-10 h-10 rounded-full border-2 border-red-400"
-                                />
-                                <div>
-                                  <p className="font-medium ">
-                                    {student.first_name} {student.last_name}
-                                  </p>
-                                  <p className="text-sm ">
-                                    {student.roll_number} • {student.attendance_percentage}% attendance
-                                  </p>
-                                  {student.consecutive_absences > 0 && (
-                                    <p className="text-xs">
-                                      {student.consecutive_absences} consecutive absences
-                                    </p>
-                                  )}
-                                </div>
-                              </div>
-                              <div className="flex items-center space-x-2">
-                                <Badge variant="destructive">
-                                  {student.risk_level === 'high' ? '🚨 Critical' : '⚠️ At Risk'}
-                                </Badge>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={async () => {
-                                    const message = `${student.first_name} ${student.last_name} has ${student.attendance_percentage}% attendance and ${student.consecutive_absences} consecutive absences. Consider reaching out to discuss attendance.`;
-                                    await speakText(message);
-                                  }}
-                                >
-                                  <Volume2 className="h-4 w-4" />
-                                </Button>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
-
                 {/* Session Notes */}
                 <Card>
                   <CardHeader>
@@ -1561,7 +1514,7 @@ last_name: ['Agarwal', 'Bhat', 'Chowdhury', 'Desai', 'Elangovan', 'Fernandes', '
                   </CardHeader>
                   <CardContent>
                     <Textarea
-                      placeholder="Add notes about today's class, at-risk students, or general observations..."
+                      placeholder="Add notes about today's class..."
                       value={sessionNotes}
                       onChange={(e) => setSessionNotes(e.target.value)}
                       rows={4}
@@ -1573,13 +1526,13 @@ last_name: ['Agarwal', 'Bhat', 'Chowdhury', 'Desai', 'Elangovan', 'Fernandes', '
               <TabsContent value="calendar" className="space-y-4">
                 <Card>
                   <CardHeader>
-                    <CardTitle>Weekly Attendance View</CardTitle>
+                    <CardTitle>Calendar View</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="text-center py-12">
-                      <CalendarIcon className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                      <CalendarIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                       <p className="text-lg font-medium">Calendar View</p>
-                      <p className="text-muted-foreground">
+                      <p className="text-gray-500">
                         Weekly and monthly attendance patterns coming soon
                       </p>
                     </div>
@@ -1588,96 +1541,22 @@ last_name: ['Agarwal', 'Bhat', 'Chowdhury', 'Desai', 'Elangovan', 'Fernandes', '
               </TabsContent>
             </Tabs>
           )}
-
-          {/* Quick Help */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <Target className="h-5 w-5" />
-                <span>Keyboard Shortcuts</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
-                <div>
-                  <strong>Space:</strong> Pause/Resume speech during roll call
-                </div>
-                <div>
-                  <strong>Ctrl+P:</strong> Mark current student as Present
-                </div>
-                <div>
-                  <strong>Ctrl+A:</strong> Mark current student as Absent
-                </div>
-                <div>
-                  <strong>Escape:</strong> Stop roll call
-                </div>
-                <div>
-                  <strong>Arrow Keys:</strong> Navigate through students
-                </div>
-                <div>
-                  <strong>Auto-save:</strong> Data saved every 2 seconds
-                </div>
-              </div>
-            </CardContent>
-          </Card>
         </>
       )}
 
-      {/* Attendance Selection Modal */}
-      {showAttendanceModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-opacity-50">
-          <div className=" rounded-lg shadow-xl p-8 w-96 text-center border-2 border-black">
-            <h2 className="text-2xl font-bold mb-4">Mark Attendance</h2>
-            <div className="mb-6">
-              <img
-                src={filteredStudents[currentStudentIndex]?.photo_url}
-                alt="Student"
-                className="w-16 h-16 rounded-full border-2 border-black mx-auto mb-3"
-              />
-              <p className="text-xl font-semibold text-black">
-                {filteredStudents[currentStudentIndex]?.first_name} {filteredStudents[currentStudentIndex]?.last_name}
-              </p>
-              <p className="text-gray-600">
-                {filteredStudents[currentStudentIndex]?.roll_number}
-              </p>
-            </div>
-            <div className="flex justify-center gap-4 mb-4">
-              <Button
-                className="px-8 py-3 text-lg font-semibold shadow-lg"
-                onClick={() => {
-                  markAttendance(filteredStudents[currentStudentIndex].id, 'present');
-                  setShowAttendanceModal(false);
-                  if (currentStudentIndex < filteredStudents.length - 1) {
-                    setCurrentStudentIndex(prev => prev + 1);
-                  }
-                }}
-              >
-                <CheckCircle2 className="h-5 w-5 mr-2" />
-                Present
-              </Button>
-              <Button
-                className="border-2 border-black px-8 py-3 text-lg font-semibold shadow-lg"
-                onClick={() => {
-                  markAttendance(filteredStudents[currentStudentIndex].id, 'absent');
-                  setShowAttendanceModal(false);
-                  if (currentStudentIndex < filteredStudents.length - 1) {
-                    setCurrentStudentIndex(prev => prev + 1);
-                  }
-                }}
-              >
-                <XCircle className="h-5 w-5 mr-2" />
-                Absent
-              </Button>
-            </div>
-            <Button
-              variant="ghost"
-              className="text-gray-500 hover:text-black border border-gray-300 hover:border-black"
-              onClick={() => setShowAttendanceModal(false)}
-            >
-              Cancel
-            </Button>
-          </div>
-        </div>
+      {/* No Students Message */}
+      {selectedCourse && !loading && filteredStudents.length === 0 && (
+        <Card>
+          <CardContent className="text-center py-12">
+            <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+            <p className="text-lg font-medium mb-2">No students found</p>
+            <p className="text-gray-500">
+              {searchTerm || filterStatus !== 'all' 
+                ? 'Try adjusting your search or filter criteria' 
+                : 'Select a course to view students'}
+            </p>
+          </CardContent>
+        </Card>
       )}
     </div>
   );

@@ -14,7 +14,7 @@ const TestFeePage = () => {
     user_type: 'student',
     first_name: 'John',
     last_name: 'Doe',
-    user_code: 'STU001',
+    user_code: 'STU0001',
     email: 'john.doe@student.colcord.edu'
   };
 

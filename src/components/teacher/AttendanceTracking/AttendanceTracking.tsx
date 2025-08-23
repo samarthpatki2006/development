@@ -13,10 +13,9 @@ import { Student } from './types';
 import { useAttendanceData } from './hooks/useAttendanceData';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { useRealTimeAttendanceCalculations } from './hooks/useAttendanceCalculations';
-import { useMurfSpeech } from './hooks/useMurfSpeech';
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
-import { format } from "date-fns";
+
 import StudentList from './StudentList';
 import AttendanceStats from './AttendanceStats';
 import RollCallInterface from './RollCallInterface';
@@ -50,21 +49,8 @@ const AttendanceTracking: React.FC<AttendanceTrackingProps> = ({ teacherData }) 
   const [attendanceVersion, setAttendanceVersion] = useState<number>(0);
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [filterStatus, setFilterStatus] = useState<'all' | 'present' | 'absent' | 'pending'>('all');
-  const [speechPaused, setSpeechPaused] = useState<boolean>(false);
-  const [lastSpokenIndex, setLastSpokenIndex] = useState<number>(-1);
   const [viewMode, setViewMode] = useState<'grid' | 'list' | 'analytics'>('list');
   
-  // Use Murf speech API
-  const {
-    speak: speakText,
-    stop: stopSpeech,
-    pause: pauseSpeech,
-    resume: resumeSpeech,
-    isSpeaking,
-    isLoading: speechLoading,
-    error: speechError
-  } = useMurfSpeech();
-
   // Use the attendance data hook
   const {
     students,
@@ -140,90 +126,35 @@ const AttendanceTracking: React.FC<AttendanceTrackingProps> = ({ teacherData }) 
       
       // Force another re-render after database update
       setAttendanceVersion(prev => prev + 1);
-      
-      // Announce the action for accessibility
-      const student = students.find(s => s.id === studentId);
-      if (student) {
-        try {
-          await speakText(`${student.first_name} ${student.last_name} marked as ${status}`);
-        } catch (error) {
-          console.error('Speech error:', error);
-        }
-      }
     }
   };
 
-  // Roll call handlers with Murf speech
-  const handleRollCallStart = async () => {
+  // Roll call handlers
+  const handleRollCallStart = () => {
     setIsRollCallActive(true);
     setCurrentStudentIndex(0);
-    
-    // Announce roll call start
-    if (filteredStudents.length > 0) {
-      try {
-        await speakText(`Starting roll call for ${filteredStudents.length} students. Press space to mark attendance.`);
-        // Announce first student
-        if (filteredStudents[0]) {
-          setTimeout(async () => {
-            await speakText(`${filteredStudents[0].first_name} ${filteredStudents[0].last_name}`);
-          }, 2000);
-        }
-      } catch (error) {
-        console.error('Speech error:', error);
-      }
-    }
   };
 
   const handleRollCallPause = () => {
     setIsRollCallActive(false);
-    pauseSpeech();
   };
 
-  const handleRollCallStop = async () => {
+  const handleRollCallStop = () => {
     setIsRollCallActive(false);
     setCurrentStudentIndex(0);
-    stopSpeech();
-    
-    // Announce roll call completion
-    const presentCount = students.filter(s => s.attendance_status === 'present').length;
-    const absentCount = students.filter(s => s.attendance_status === 'absent').length;
-    
-    try {
-      await speakText(`Roll call completed. ${presentCount} students present, ${absentCount} students absent.`);
-    } catch (error) {
-      console.error('Speech error:', error);
-    }
   };
 
-  const handleNextStudent = async () => {
+  const handleNextStudent = () => {
     if (currentStudentIndex < students.length - 1) {
       const nextIndex = currentStudentIndex + 1;
       setCurrentStudentIndex(nextIndex);
-      
-      // Announce next student
-      if (isRollCallActive && filteredStudents[nextIndex]) {
-        try {
-          await speakText(`${filteredStudents[nextIndex].first_name} ${filteredStudents[nextIndex].last_name}`);
-        } catch (error) {
-          console.error('Speech error:', error);
-        }
-      }
     }
   };
 
-  const handlePreviousStudent = async () => {
+  const handlePreviousStudent = () => {
     if (currentStudentIndex > 0) {
       const prevIndex = currentStudentIndex - 1;
       setCurrentStudentIndex(prevIndex);
-      
-      // Announce previous student
-      if (isRollCallActive && filteredStudents[prevIndex]) {
-        try {
-          await speakText(`${filteredStudents[prevIndex].first_name} ${filteredStudents[prevIndex].last_name}`);
-        } catch (error) {
-          console.error('Speech error:', error);
-        }
-      }
     }
   };
 
@@ -244,14 +175,11 @@ const AttendanceTracking: React.FC<AttendanceTrackingProps> = ({ teacherData }) 
     return matchesSearch && matchesFilter;
   });
 
-  // Enhanced keyboard shortcuts with speech synchronization
+  // Keyboard shortcuts
   const handleSpacePress = () => {
     if (isRollCallActive && filteredStudents.length > 0 && currentStudentIndex < filteredStudents.length) {
       const currentStudent = filteredStudents[currentStudentIndex];
       if (currentStudent && currentStudent.attendance_status === 'pending') {
-        setSpeechPaused(true);
-        pauseSpeech();
-        setLastSpokenIndex(currentStudentIndex);
         setPendingStudentId(currentStudent.id);
         setShowConfirmDialog(true);
       }
@@ -262,37 +190,22 @@ const AttendanceTracking: React.FC<AttendanceTrackingProps> = ({ teacherData }) 
     if (showConfirmDialog) {
       setShowConfirmDialog(false);
       setPendingStudentId(null);
-      setSpeechPaused(false);
-      resumeSpeech();
-      // Resume speech from where it left off
-      if (lastSpokenIndex >= 0) {
-        setCurrentStudentIndex(lastSpokenIndex);
-      }
     }
   };
 
-  // Confirmation dialog handlers with speech synchronization
+  // Confirmation dialog handlers
   const handleConfirmAbsent = async () => {
     if (pendingStudentId && selectedCourse) {
       await markAttendance(pendingStudentId, 'absent', selectedCourse);
       setShowConfirmDialog(false);
       setPendingStudentId(null);
-      setSpeechPaused(false);
       
-      // Move to next student and resume speech
+      // Move to next student
       if (currentStudentIndex < filteredStudents.length - 1) {
         setCurrentStudentIndex(currentStudentIndex + 1);
-        // Announce next student
-        if (filteredStudents[currentStudentIndex + 1]) {
-          try {
-            await speakText(`${filteredStudents[currentStudentIndex + 1].first_name} ${filteredStudents[currentStudentIndex + 1].last_name}`);
-          } catch (error) {
-            console.error('Speech error:', error);
-          }
-        }
       } else {
         // End of list, stop roll call
-        await handleRollCallStop();
+        handleRollCallStop();
       }
     }
   };
@@ -302,22 +215,13 @@ const AttendanceTracking: React.FC<AttendanceTrackingProps> = ({ teacherData }) 
       await markAttendance(pendingStudentId, 'present', selectedCourse);
       setShowConfirmDialog(false);
       setPendingStudentId(null);
-      setSpeechPaused(false);
       
-      // Move to next student and resume speech
+      // Move to next student
       if (currentStudentIndex < filteredStudents.length - 1) {
         setCurrentStudentIndex(currentStudentIndex + 1);
-        // Announce next student
-        if (filteredStudents[currentStudentIndex + 1]) {
-          try {
-            await speakText(`${filteredStudents[currentStudentIndex + 1].first_name} ${filteredStudents[currentStudentIndex + 1].last_name}`);
-          } catch (error) {
-            console.error('Speech error:', error);
-          }
-        }
       } else {
         // End of list, stop roll call
-        await handleRollCallStop();
+        handleRollCallStop();
       }
     }
   };
@@ -335,8 +239,7 @@ const AttendanceTracking: React.FC<AttendanceTrackingProps> = ({ teacherData }) 
     setIsRollCallActive(false);
     setShowConfirmDialog(false);
     setPendingStudentId(null);
-    stopSpeech();
-  }, [selectedCourse, stopSpeech]);
+  }, [selectedCourse]);
 
   return (
     <div className="space-y-6">
@@ -410,7 +313,7 @@ const AttendanceTracking: React.FC<AttendanceTrackingProps> = ({ teacherData }) 
                     {filteredStudents.length} students
                   </Badge>
                   <Badge variant="outline">
-                    {format(selectedDate, "MMM dd, yyyy")}
+                    {selectedDate.toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' })}
                   </Badge>
                 </div>
               </CardTitle>
@@ -430,7 +333,12 @@ const AttendanceTracking: React.FC<AttendanceTrackingProps> = ({ teacherData }) 
                         )}
                       >
                         <CalendarDays className="mr-2 h-4 w-4" />
-                        {selectedDate ? format(selectedDate, "PPP") : <span>Pick a date</span>}
+                        {selectedDate ? selectedDate.toLocaleDateString('en-US', { 
+                          weekday: 'long', 
+                          year: 'numeric', 
+                          month: 'long', 
+                          day: 'numeric' 
+                        }) : <span>Pick a date</span>}
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0">
@@ -735,7 +643,7 @@ const AttendanceTracking: React.FC<AttendanceTrackingProps> = ({ teacherData }) 
                       </div>
                       <div className="flex justify-between text-sm">
                         <span>Class Date:</span>
-                        <span className="font-semibold">{format(selectedDate, "MMM dd")}</span>
+                        <span className="font-semibold">{selectedDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
                       </div>
                       <div className="flex justify-between text-sm">
                         <span>Status:</span>
@@ -776,4 +684,3 @@ const AttendanceTracking: React.FC<AttendanceTrackingProps> = ({ teacherData }) 
 };
 
 export default AttendanceTracking;
-

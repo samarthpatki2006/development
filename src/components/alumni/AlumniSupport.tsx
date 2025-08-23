@@ -212,7 +212,7 @@ const AlumniSupport = ({ user }: AlumniSupportProps) => {
                 <Phone className="h-5 w-5 text-blue-600" />
                 <div>
                   <p className="font-medium">Alumni Office</p>
-                  <p className="text-gray-600">+1 (555) 123-4567</p>
+                  <p className="text-gray-600">+91 93110 13848</p>
                   <p className="text-sm text-gray-500">Mon-Fri, 9:00 AM - 5:00 PM</p>
                 </div>
               </div>
@@ -221,7 +221,7 @@ const AlumniSupport = ({ user }: AlumniSupportProps) => {
                 <Mail className="h-5 w-5 text-blue-600" />
                 <div>
                   <p className="font-medium">Email Support</p>
-                  <p className="text-gray-600">alumni@college.edu</p>
+                  <p className="text-gray-600">team@colcord.co.in</p>
                   <p className="text-sm text-gray-500">Response within 24-48 hours</p>
                 </div>
               </div>
@@ -230,7 +230,7 @@ const AlumniSupport = ({ user }: AlumniSupportProps) => {
                 <Users className="h-5 w-5 text-blue-600" />
                 <div>
                   <p className="font-medium">Alumni Relations</p>
-                  <p className="text-gray-600">relations@college.edu</p>
+                  <p className="text-gray-600">team@colcord.co.in</p>
                   <p className="text-sm text-gray-500">Events and networking support</p>
                 </div>
               </div>
@@ -239,7 +239,7 @@ const AlumniSupport = ({ user }: AlumniSupportProps) => {
                 <DollarSign className="h-5 w-5 text-blue-600" />
                 <div>
                   <p className="font-medium">Development Office</p>
-                  <p className="text-gray-600">giving@college.edu</p>
+                  <p className="text-gray-600">team@colcord.co.in</p>
                   <p className="text-sm text-gray-500">Donations and fundraising</p>
                 </div>
               </div>

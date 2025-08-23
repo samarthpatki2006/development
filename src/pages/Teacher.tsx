@@ -236,7 +236,7 @@ const Teacher = () => {
     { id: 'courses', label: 'Course & Quiz', icon: BookOpen },
     { id: 'gradebook', label: 'Grading', icon: ClipboardList },
     { id: 'extra-classes', label: 'Extra Classes', icon: PlusCircleIcon },
-    { id: 'events', label: 'Events & Calendar', icon: Calendar },
+    { id: 'events', label: 'Events', icon: Calendar },
     { id: 'performance', label: 'Student Performance', icon: TrendingUp },
     { id: 'communication', label: 'Communication', icon: MessageSquare },
     { id: 'parent-interaction', label: 'Parent Interaction', icon: Users },

@@ -437,24 +437,6 @@ const CalendarAttendance: React.FC<CalendarAttendanceProps> = ({ studentData }) 
               className="rounded-md border"
             />
             
-            {/* Monthly Stats */}
-            <div className="mt-4 space-y-2">
-              <h4 className="font-semibold">This Month</h4>
-              <div className="grid grid-cols-3 gap-2 text-center">
-                <div className="bg-green-50 p-2 rounded">
-                  <p className="text-green-600 font-bold">{monthlyStats.present}</p>
-                  <p className="text-xs text-green-600">Present</p>
-                </div>
-                <div className="bg-red-50 p-2 rounded">
-                  <p className="text-red-600 font-bold">{monthlyStats.absent}</p>
-                  <p className="text-xs text-red-600">Absent</p>
-                </div>
-                <div className="bg-gray-50 p-2 rounded">
-                  <p className="text-gray-600 font-bold">{monthlyStats.total}</p>
-                  <p className="text-xs text-gray-600">Total</p>
-                </div>
-              </div>
-            </div>
           </CardContent>
         </Card>
 
@@ -462,7 +444,7 @@ const CalendarAttendance: React.FC<CalendarAttendanceProps> = ({ studentData }) 
         <Card className="lg:col-span-2">
           <CardHeader>
             <CardTitle>
-              Schedule for {selectedDate.toLocaleDateString('en-US', { 
+              Events for {selectedDate.toLocaleDateString('en-US', { 
                 weekday: 'long', 
                 year: 'numeric', 
                 month: 'long', 
@@ -471,67 +453,7 @@ const CalendarAttendance: React.FC<CalendarAttendanceProps> = ({ studentData }) 
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <Tabs defaultValue="classes" className="w-full">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="classes">Classes ({todayClasses.length})</TabsTrigger>
-                <TabsTrigger value="events">Events ({todayEvents.length})</TabsTrigger>
-              </TabsList>
-              
-              <TabsContent value="classes" className="space-y-4">
-                {todayClasses.length === 0 ? (
-                  <p className="text-gray-500 text-center py-8">No classes scheduled for this day</p>
-                ) : (
-                  <div className="space-y-4">
-                    {todayClasses.map((classItem: any) => (
-                      <div key={classItem.id} className="border rounded-lg p-4">
-                        <div className="flex items-center justify-between mb-3">
-                          <div>
-                            <h4 className="font-semibold">{classItem.courses.course_name}</h4>
-                            <p className="text-sm text-gray-600">{classItem.courses.course_code}</p>
-                            <p className="text-sm text-gray-500">{classItem.room_location}</p>
-                          </div>
-                          <div className="text-right">
-                            <p className="font-medium">
-                              {formatTime(classItem.start_time)} - {formatTime(classItem.end_time)}
-                            </p>
-                            <div className="flex items-center justify-end mt-1">
-                              {getAttendanceIcon(classItem.attendance?.status)}
-                              <span className="ml-1 text-sm capitalize">
-                                {classItem.attendance?.status || 'Not marked'}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Attendance Actions */}
-                        {selectedDate.toDateString() === new Date().toDateString() && !classItem.attendance && (
-                          <div className="flex space-x-2 mt-3">
-                            <Button
-                              size="sm"
-                              onClick={() => markAttendance(classItem.id, classItem.course_id, 'present')}
-                              className="bg-green-600 hover:bg-green-700"
-                            >
-                              Mark Present
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => markAttendance(classItem.id, classItem.course_id, 'late')}
-                            >
-                              Mark Late
-                            </Button>
-                            <AbsenceRequestDialog 
-                              courseId={classItem.course_id}
-                              courseName={classItem.courses.course_name}
-                              onSubmit={submitAbsenceRequest}
-                            />
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </TabsContent>
+            <Tabs defaultValue="events" className="w-full">
               
               <TabsContent value="events" className="space-y-4">
                 {todayEvents.length === 0 ? (
@@ -548,7 +470,7 @@ const CalendarAttendance: React.FC<CalendarAttendanceProps> = ({ studentData }) 
                                 {event.event_type}
                               </Badge>
                               {event.is_registered && (
-                                <Badge variant="outline" className="bg-green-50 text-green-700">
+                                <Badge variant="outline" className=" text-green-700">
                                   <Star className="w-3 h-3 mr-1" />
                                   Registered
                                 </Badge>
@@ -630,40 +552,6 @@ const CalendarAttendance: React.FC<CalendarAttendanceProps> = ({ studentData }) 
         </Card>
       </div>
 
-      {/* Attendance History */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Attendance History</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {attendanceHistory.length === 0 ? (
-            <p className="text-gray-500 text-center py-4">No attendance records found</p>
-          ) : (
-            <div className="space-y-3">
-              {attendanceHistory.map((record: any) => (
-                <div key={record.id} className="flex items-center justify-between p-3 border rounded-lg">
-                  <div className="flex items-center space-x-3">
-                    {getAttendanceIcon(record.status)}
-                    <div>
-                      <h4 className="font-medium">{record.courses.course_name}</h4>
-                      <p className="text-sm text-gray-600">{record.courses.course_code}</p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-medium">{new Date(record.class_date).toLocaleDateString()}</p>
-                    <Badge variant={
-                      record.status === 'present' ? 'default' :
-                      record.status === 'late' ? 'secondary' : 'destructive'
-                    }>
-                      {record.status}
-                    </Badge>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
     </div>
   );
 };

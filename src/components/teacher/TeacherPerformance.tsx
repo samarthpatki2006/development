@@ -260,7 +260,7 @@ const TeacherPerformance = ({ teacherData }: TeacherPerformanceProps) => {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <Card>
             <CardContent className="p-4 text-center">
-              <Users className="h-8 w-8 text-blue-500 mx-auto mb-2" />
+              <Users className="h-8 w-8 mx-auto mb-2" />
               <p className="text-2xl font-bold">{classAnalytics.totalStudents || 0}</p>
               <p className="text-sm text-muted-foreground">Total Students</p>
             </CardContent>
@@ -268,7 +268,7 @@ const TeacherPerformance = ({ teacherData }: TeacherPerformanceProps) => {
           
           <Card>
             <CardContent className="p-4 text-center">
-              <BarChart3 className="h-8 w-8 text-green-500 mx-auto mb-2" />
+              <BarChart3 className="h-8 w-8 mx-auto mb-2" />
               <p className="text-2xl font-bold">{classAnalytics.averageGrade || 0}%</p>
               <p className="text-sm text-muted-foreground">Class Average</p>
             </CardContent>
@@ -276,7 +276,7 @@ const TeacherPerformance = ({ teacherData }: TeacherPerformanceProps) => {
           
           <Card>
             <CardContent className="p-4 text-center">
-              <Award className="h-8 w-8 text-yellow-500 mx-auto mb-2" />
+              <Award className="h-8 w-8 mx-auto mb-2" />
               <p className="text-2xl font-bold">{classAnalytics.highPerformers || 0}</p>
               <p className="text-sm text-muted-foreground">High Performers</p>
             </CardContent>
@@ -284,7 +284,7 @@ const TeacherPerformance = ({ teacherData }: TeacherPerformanceProps) => {
           
           <Card>
             <CardContent className="p-4 text-center">
-              <AlertTriangle className="h-8 w-8 text-red-500 mx-auto mb-2" />
+              <AlertTriangle className="h-8 w-8 mx-auto mb-2" />
               <p className="text-2xl font-bold">{classAnalytics.atRiskCount || 0}</p>
               <p className="text-sm text-muted-foreground">At-Risk Students</p>
             </CardContent>
@@ -316,7 +316,7 @@ const TeacherPerformance = ({ teacherData }: TeacherPerformanceProps) => {
                 const isAtRisk = perf?.averageGrade < 60 || perf?.attendanceRate < 70;
                 
                 return (
-                  <Card key={student.student_id} className={`p-4 ${isAtRisk ? 'border-red-200 bg-red-50' : ''}`}>
+                  <Card key={student.student_id} className={`p-4 ${isAtRisk ? 'border-red-200' : ''}`}>
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-3">
@@ -371,9 +371,9 @@ const TeacherPerformance = ({ teacherData }: TeacherPerformanceProps) => {
                         </div>
 
                         {isAtRisk && (
-                          <div className="mt-3 p-3 bg-red-100 rounded-lg">
-                            <p className="text-sm font-medium text-red-800 mb-2">Intervention Suggestions:</p>
-                            <ul className="text-sm text-red-700 space-y-1">
+                          <div className="mt-3 p-3 rounded-lg">
+                            <p className="text-sm font-medium mb-2">Intervention Suggestions:</p>
+                            <ul className="text-sm space-y-1">
                               {getInterventionSuggestions(student).map((suggestion, index) => (
                                 <li key={index} className="flex items-center gap-2">
                                   <Target className="h-3 w-3" />

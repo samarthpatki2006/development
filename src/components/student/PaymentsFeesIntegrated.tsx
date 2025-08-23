@@ -491,7 +491,7 @@ const PaymentsFees: React.FC<PaymentsFeesProps> = ({ studentData }) => {
             <CardContent>
               <div className="space-y-4">
                 {feeReminders.map((reminder) => (
-                  <div key={reminder.id} className="border rounded-lg p-4 border-orange-200 bg-orange-50">
+                  <div key={reminder.id} className="border rounded-lg p-4">
                     <div className="flex items-center justify-between">
                       <div>
                         <h3 className="font-semibold">
@@ -534,9 +534,9 @@ const PaymentsFees: React.FC<PaymentsFeesProps> = ({ studentData }) => {
           </DialogHeader>
           {selectedFee && (
             <div className="space-y-4">
-              <div className="border rounded-lg p-4 bg-gray-50">
+              <div className="border rounded-lg p-4">
                 <h3 className="font-semibold capitalize">{selectedFee.fee_type} Fee</h3>
-                <p className="text-sm text-gray-600">{selectedFee.description}</p>
+                <p className="text-sm ">{selectedFee.description}</p>
                 <div className="mt-2 space-y-1">
                   <div className="flex justify-between">
                     <span>Total Fee:</span>

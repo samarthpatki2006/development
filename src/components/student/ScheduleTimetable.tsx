@@ -150,8 +150,8 @@ const ScheduleTimetable: React.FC<ScheduleTimetableProps> = ({ studentData }) =>
         <Tabs defaultValue="weekly" className="space-y-4">
           <TabsList>
             <TabsTrigger value="weekly">Weekly View</TabsTrigger>
-            <TabsTrigger value="daily">Daily View</TabsTrigger>
             <TabsTrigger value="calendar">Calendar View</TabsTrigger>
+            <TabsTrigger value="daily">Daily View</TabsTrigger>
           </TabsList>
 
           {/* Weekly View */}

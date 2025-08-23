@@ -474,7 +474,7 @@ const MultiStepLogin = () => {
       {/* Background Grid Pattern */}
       <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.05)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.05)_1px,transparent_1px)] bg-[size:20px_20px]"></div>
       
-      <div className="relative z-10 w-full max-w-md">
+      <div className="relative z-10 w-full max-w-md min-w-[400px]">
         {/* Hero Section */}
         <div className="text-center mb-macro-md animate-fade-in-up">
           <h1 className="text-hero text-foreground mb-4">
@@ -492,8 +492,9 @@ const MultiStepLogin = () => {
           )}
         </div>
 
-        <Card className="border-border bg-card backdrop-blur-sm">
-          <CardHeader className="pb-4">
+        {/* Fixed height and width card container */}
+        <Card className="border-border bg-card backdrop-blur-sm h-[300px] w-full flex flex-col">
+          <CardHeader className="pb-4 flex-shrink-0">
             <CardTitle className="text-section-header text-center text-card-foreground">
               {!isSignUp ? (
                 <>
@@ -509,7 +510,9 @@ const MultiStepLogin = () => {
               )}
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-6">
+          
+          {/* Content area with fixed height and flex-grow */}
+          <CardContent className="flex-grow flex flex-col justify-center px-6">
             {/* Login Flow */}
             {!isSignUp && step === 1 && (
               <div className="space-y-4 animate-fade-in">
@@ -602,7 +605,7 @@ const MultiStepLogin = () => {
             )}
 
             {/* Signup Flow */}
-            {isSignUp && step === 1 && (
+            {/* {isSignUp && step === 1 && (
               <div className="space-y-4 animate-fade-in">
                 <div className="space-y-2">
                   <Label htmlFor="signupCollegeCode" className="text-sm font-medium text-foreground">
@@ -750,12 +753,13 @@ const MultiStepLogin = () => {
                   ) : 'Create Account'}
                 </Button>
               </div>
-            )}
+            )} */}
           </CardContent>
           
-          <div className="px-6 pb-6 space-y-4">
+          {/* Footer section with fixed height */}
+          <div className="px-6 pb-6 space-y-4 flex-shrink-0">
             {/* Skip Login Buttons for Development */}
-            <div className="space-y-3">
+            {/* <div className="space-y-3">
               <div className="text-center">
                 <p className="text-xs text-muted-foreground mb-3">Development Mode - Skip Login</p>
                 <div className="flex gap-2 justify-center">
@@ -796,14 +800,16 @@ const MultiStepLogin = () => {
                 </Button>
               </div>
             </div>
-            
+             */}
             <div className="text-center">
-              <Link 
-                to="#" 
+              <a 
+                href="https://colcord.co.in/contact" 
+                target="_blank"
+                rel="noopener noreferrer"
                 className="text-sm text-muted-foreground hover:text-foreground transition-colors duration-300 underline-offset-4 hover:underline focus-ring rounded-sm"
               >
                 Need assistance? Contact support
-              </Link>
+              </a>
             </div>
           </div>
         </Card>

@@ -469,7 +469,7 @@ const TeacherRecognition = ({ teacherData }: TeacherRecognitionProps) => {
                       </DialogHeader>
                       <div className="space-y-4">
                         <select
-                          className="w-full p-2 border rounded"
+                          className="w-full p-2 border rounded bg-black"
                           value={newApplication.type}
                           onChange={(e) => setNewApplication({...newApplication, type: e.target.value})}
                         >
@@ -501,6 +501,7 @@ const TeacherRecognition = ({ teacherData }: TeacherRecognitionProps) => {
                           type="date"
                           placeholder="Application deadline"
                           value={newApplication.deadline}
+                          className='text-white'
                           onChange={(e) => setNewApplication({...newApplication, deadline: e.target.value})}
                         />
                         

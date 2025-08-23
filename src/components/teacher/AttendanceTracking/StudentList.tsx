@@ -237,21 +237,6 @@ const StudentList: React.FC<StudentListProps> = ({
             </div>
           ))}
         </div>
-
-        {/* Demo data indicator */}
-        {students.some(s => s.id.startsWith('demo-student-')) && (
-          <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-            <div className="flex items-center space-x-2">
-              <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
-              <p className="text-sm text-blue-800 font-medium">
-                Demo Data Active
-              </p>
-            </div>
-            <p className="text-xs text-blue-700 mt-1">
-              You are currently viewing sample data for testing purposes. Real attendance data will be saved to the database.
-            </p>
-          </div>
-        )}
       </CardContent>
     </Card>
   );

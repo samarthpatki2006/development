@@ -239,7 +239,7 @@ const TeacherCalendarAttendance = ({ teacherData }: TeacherCalendarAttendancePro
   return (
     <div className="space-y-6">
       {/* Weekly Schedule */}
-      <Card>
+      {/* <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Calendar className="h-5 w-5" />
@@ -284,7 +284,7 @@ const TeacherCalendarAttendance = ({ teacherData }: TeacherCalendarAttendancePro
             })}
           </div>
         </CardContent>
-      </Card>
+      </Card> */}
 
       {/* Absence Requests */}
       <Card>
@@ -348,7 +348,7 @@ const TeacherCalendarAttendance = ({ teacherData }: TeacherCalendarAttendancePro
       </Card>
 
       {/* Attendance Marking Modal */}
-      <Dialog open={showAttendanceModal} onOpenChange={setShowAttendanceModal}>
+      {/* <Dialog open={showAttendanceModal} onOpenChange={setShowAttendanceModal}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>
@@ -409,7 +409,7 @@ const TeacherCalendarAttendance = ({ teacherData }: TeacherCalendarAttendancePro
             </div>
           </div>
         </DialogContent>
-      </Dialog>
+      </Dialog> */}
     </div>
   );
 };

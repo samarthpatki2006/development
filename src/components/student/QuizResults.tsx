@@ -10,6 +10,7 @@ const QuizResults = () => {
   const [detailedResult, setDetailedResult] = useState(null);
   const [loading, setLoading] = useState(true);
   const [detailLoading, setDetailLoading] = useState(false);
+  const [error, setError] = useState(null);
 
   // Fetch quiz submissions on component mount
   useEffect(() => {
@@ -28,21 +29,51 @@ const QuizResults = () => {
   const fetchSubmissions = async () => {
     try {
       setLoading(true);
-      const { data: user } = await supabase.auth.getUser();
-      if (!user.user) {
+      setError(null);
+      
+      const { data: user, error: userError } = await supabase.auth.getUser();
+      
+      if (userError) {
+        console.error("Error getting user:", userError);
+        setError("Failed to authenticate user");
         setSubmissions([]);
         return;
       }
 
+      if (!user.user) {
+        setError("User not authenticated");
+        setSubmissions([]);
+        return;
+      }
+
+      console.log("Fetching submissions for user:", user.user.id);
+
+      // First, let's check if the user exists in user_profiles
+      const { data: profile, error: profileError } = await supabase
+        .from("user_profiles")
+        .select("id, user_type")
+        .eq("id", user.user.id)
+        .single();
+
+      if (profileError) {
+        console.error("Error fetching user profile:", profileError);
+        setError("User profile not found");
+        setSubmissions([]);
+        return;
+      }
+
+      console.log("User profile:", profile);
+
+      // Fetch quiz submissions with proper joins
       const { data, error } = await supabase
         .from("quiz_submissions")
         .select(`
           *,
-          quizzes(
+          quizzes!inner(
             id,
             quiz_name,
-            total_possible,
-            courses(
+            total_possible:weightage,
+            courses!inner(
               id,
               course_name
             )
@@ -53,15 +84,90 @@ const QuizResults = () => {
 
       if (error) {
         console.error("Error fetching submissions:", error);
-        setSubmissions([]);
+        // Try a simpler query if the complex one fails
+        const { data: simpleData, error: simpleError } = await supabase
+          .from("quiz_submissions")
+          .select("*")
+          .eq("student_id", user.user.id)
+          .order("submitted_at", { ascending: false });
+
+        if (simpleError) {
+          console.error("Error with simple query:", simpleError);
+          setError("Failed to load quiz results");
+          setSubmissions([]);
+        } else {
+          console.log("Simple query results:", simpleData);
+          // If we have simple data, we'll need to fetch quiz and course info separately
+          if (simpleData && simpleData.length > 0) {
+            const enrichedData = await enrichSubmissionsData(simpleData);
+            setSubmissions(enrichedData || []);
+          } else {
+            setSubmissions([]);
+          }
+        }
       } else {
+        console.log("Quiz submissions data:", data);
         setSubmissions(data || []);
       }
     } catch (error) {
-      console.error("Error fetching submissions:", error);
+      console.error("Error in fetchSubmissions:", error);
+      setError("An unexpected error occurred");
       setSubmissions([]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const enrichSubmissionsData = async (submissions) => {
+    try {
+      const enrichedSubmissions = [];
+      
+      for (const submission of submissions) {
+        // Fetch quiz info
+        const { data: quizData, error: quizError } = await supabase
+          .from("quizzes")
+          .select(`
+            id,
+            quiz_name,
+            weightage,
+            course_id,
+            courses(
+              id,
+              course_name
+            )
+          `)
+          .eq("id", submission.quiz_id)
+          .single();
+
+        if (!quizError && quizData) {
+          enrichedSubmissions.push({
+            ...submission,
+            quizzes: {
+              ...quizData,
+              total_possible: quizData.weightage || submission.total_possible
+            }
+          });
+        } else {
+          // If we can't fetch quiz data, still include the submission
+          enrichedSubmissions.push({
+            ...submission,
+            quizzes: {
+              id: submission.quiz_id,
+              quiz_name: "Unknown Quiz",
+              total_possible: submission.total_possible,
+              courses: {
+                id: null,
+                course_name: "Unknown Course"
+              }
+            }
+          });
+        }
+      }
+      
+      return enrichedSubmissions;
+    } catch (error) {
+      console.error("Error enriching submissions:", error);
+      return submissions;
     }
   };
 
@@ -70,6 +176,8 @@ const QuizResults = () => {
 
     try {
       setDetailLoading(true);
+      setError(null);
+      
       const { data: questions, error } = await supabase
         .from("quiz_questions")
         .select("*")
@@ -78,6 +186,7 @@ const QuizResults = () => {
 
       if (error) {
         console.error("Error fetching questions:", error);
+        setError("Failed to load quiz details");
         setDetailedResult(null);
       } else {
         setDetailedResult({
@@ -88,6 +197,7 @@ const QuizResults = () => {
       }
     } catch (error) {
       console.error("Error fetching detailed result:", error);
+      setError("An unexpected error occurred while loading details");
       setDetailedResult(null);
     } finally {
       setDetailLoading(false);
@@ -95,6 +205,7 @@ const QuizResults = () => {
   };
 
   const getScoreColor = (score, total) => {
+    if (!score || !total) return "text-gray-600";
     const percentage = (score / total) * 100;
     if (percentage >= 90) return "text-green-600";
     if (percentage >= 70) return "text-blue-600";
@@ -103,11 +214,12 @@ const QuizResults = () => {
   };
 
   const getScoreBadge = (score, total) => {
+    if (!score || !total) return { label: "Ungraded", color: "" };
     const percentage = (score / total) * 100;
-    if (percentage >= 90) return { label: "Excellent", color: "bg-green-100 text-green-800" };
-    if (percentage >= 70) return { label: "Good", color: "bg-blue-100 text-blue-800" };
-    if (percentage >= 50) return { label: "Average", color: "bg-yellow-100 text-yellow-800" };
-    return { label: "Needs Improvement", color: "bg-red-100 text-red-800" };
+    if (percentage >= 90) return { label: "Excellent", color: "" };
+    if (percentage >= 70) return { label: "Good", color: "" };
+    if (percentage >= 50) return { label: "Average", color: "" };
+    return { label: "Needs Improvement", color: "" };
   };
 
   if (selectedResult && detailedResult && !detailLoading) {
@@ -119,7 +231,7 @@ const QuizResults = () => {
           <div className="flex justify-between items-center">
             <CardTitle className="flex items-center gap-2">
               <Trophy className="w-5 h-5" />
-              Quiz Results: {submission.quizzes?.quiz_name}
+              Quiz Results: {submission.quizzes?.quiz_name || "Unknown Quiz"}
             </CardTitle>
             <Button variant="outline" onClick={() => setSelectedResult(null)}>
               Back to Results
@@ -128,13 +240,13 @@ const QuizResults = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-muted-foreground">
-                Course: {submission.quizzes?.courses?.course_name}
+                Course: {submission.quizzes?.courses?.course_name || "Unknown Course"}
               </p>
               <p className="text-sm text-muted-foreground">
                 Submitted: {new Date(submission.submitted_at).toLocaleString()}
               </p>
             </div>
-            {submission.score !== null && (
+            {submission.score !== null && submission.total_possible && (
               <div className="text-right">
                 <p className={`text-2xl font-bold ${getScoreColor(submission.score, submission.total_possible)}`}>
                   {submission.score}/{submission.total_possible}
@@ -147,7 +259,7 @@ const QuizResults = () => {
           </div>
         </CardHeader>
         <CardContent className="space-y-6">
-          {submission.score !== null && (
+          {submission.score !== null && submission.total_possible && (
             <div className="p-4 bg-muted rounded-lg">
               <div className="flex items-center justify-between">
                 <div>
@@ -187,7 +299,7 @@ const QuizResults = () => {
                       </p>
                       {submission.score !== null && (
                         <span className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium ${
-                          isCorrect ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
+                          isCorrect ? "" : ""
                         }`}>
                           {isCorrect ? <CheckCircle className="w-3 h-3" /> : <AlertCircle className="w-3 h-3" />}
                           {isCorrect ? "Correct" : "Incorrect"}
@@ -201,17 +313,17 @@ const QuizResults = () => {
                       <p className="text-sm font-medium">Your Answer:</p>
                       <div className="grid gap-2">
                         {question.options?.map((option, optIndex) => {
-                          let bgColor = "bg-gray-50";
+                          let bgColor = "";
                           let textColor = "text-foreground";
                           let icon = "";
                           
                           if (option === question.correct_answer) {
-                            bgColor = "bg-green-100 border-green-300";
-                            textColor = "text-green-800";
+                            bgColor = "border-green-300";
+                            textColor = "";
                             icon = " ✓ Correct Answer";
                           } else if (option === studentAnswer && option !== question.correct_answer) {
-                            bgColor = "bg-red-100 border-red-300";
-                            textColor = "text-red-800";
+                            bgColor = " border-red-300";
+                            textColor = "";
                             icon = " ✗ Your Answer";
                           } else if (option === studentAnswer && option === question.correct_answer) {
                             icon = " ✓ Your Correct Answer";
@@ -322,6 +434,24 @@ const QuizResults = () => {
         </CardTitle>
       </CardHeader>
       <CardContent>
+        {error && (
+          <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+            <div className="flex items-center gap-2 text-red-800">
+              <AlertCircle className="w-4 h-4" />
+              <span className="font-medium">Error</span>
+            </div>
+            <p className="text-red-700 text-sm mt-1">{error}</p>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={fetchSubmissions}
+              className="mt-2"
+            >
+              Try Again
+            </Button>
+          </div>
+        )}
+
         <div className="space-y-4">
           {!submissions || submissions.length === 0 ? (
             <div className="text-center py-8">
@@ -336,9 +466,11 @@ const QuizResults = () => {
               <div key={submission.id} className="p-4 glass-effect rounded-xl border border-primary/20 hover:border-primary/40 transition-all hover:shadow-md">
                 <div className="flex justify-between items-start">
                   <div className="flex-1">
-                    <h4 className="font-semibold text-foreground mb-1">{submission.quizzes?.quiz_name}</h4>
+                    <h4 className="font-semibold text-foreground mb-1">
+                      {submission.quizzes?.quiz_name || "Unknown Quiz"}
+                    </h4>
                     <p className="text-sm text-muted-foreground mb-2">
-                      📚 {submission.quizzes?.courses?.course_name}
+                      📚 {submission.quizzes?.courses?.course_name || "Unknown Course"}
                     </p>
                     <p className="text-sm text-muted-foreground flex items-center gap-1">
                       <Clock className="w-3 h-3" />
@@ -352,7 +484,7 @@ const QuizResults = () => {
                     )}
                   </div>
                   <div className="flex items-center gap-3">
-                    {submission.score !== null ? (
+                    {submission.score !== null && submission.total_possible ? (
                       <div className="text-right">
                         <div className="bg-gradient-to-br from-primary/20 to-accent/20 rounded-lg p-3">
                           <p className={`text-lg font-bold ${getScoreColor(submission.score, submission.total_possible)}`}>

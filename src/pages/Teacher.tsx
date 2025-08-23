@@ -249,7 +249,7 @@ const Teacher = () => {
   const renderContent = () => {
     switch (activeView) {
       case 'dashboard':
-        return <TeacherDashboard teacherData={teacherData} />;
+        return <TeacherDashboard teacherData={teacherData} onNavigate={setActiveView} />;
       case 'schedule':
         return <TeacherSchedule teacherData={teacherData} />;
       case 'enrollment':

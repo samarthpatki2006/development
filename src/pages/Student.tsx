@@ -31,7 +31,7 @@ import ScheduleTimetable from '@/components/student/ScheduleTimetable';
 import AttendanceOverview from '@/components/student/AttendanceOverview';
 import CoursesLearningSnapshot from '@/components/student/CoursesLearningSnapshot';
 // import MyCourses from '@/components/student/MyCourses'; // Temporarily commented out
-import CalendarAttendance from '@/components/student/CalendarAttendance';
+import CalendarAttendance from '@/components/student/Events';
 import CommunicationCenter from '@/components/student/CommunicationCenter';
 import PaymentsFees from '@/components/student/PaymentsFeesIntegrated';
 import HostelFacility from '@/components/student/HostelFacility';
@@ -39,6 +39,7 @@ import SupportHelp from '@/components/student/SupportHelp';
 import { supabase } from '@/integrations/supabase/client';
 import QuizTaker from '@/components/student/QuizTaker';
 import StudentGrades from '@/components/student/StudentGrades';
+import Events from '@/components/student/Events';
 
 const Student = () => {
   const [activeView, setActiveView] = useState('dashboard');
@@ -209,7 +210,7 @@ const Student = () => {
   const renderContent = () => {
     switch (activeView) {
       case 'dashboard':
-        return <StudentDashboard studentData={studentData} />;
+        return <StudentDashboard studentData={studentData} onNavigate={setActiveView}/>;
       case 'schedule':
         return <ScheduleTimetable studentData={studentData} />;
       case 'attendance':
@@ -221,7 +222,7 @@ const Student = () => {
       case 'gradebook':
         return <StudentGrades />;
       case 'events':
-        return <CalendarAttendance studentData={studentData} />;
+        return <Events studentData={studentData} />;
       case 'communication':
         return <CommunicationCenter studentData={studentData} />;
       case 'payments':

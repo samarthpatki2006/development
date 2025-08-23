@@ -241,7 +241,7 @@ const TeacherParentInteraction = ({ teacherData }: TeacherParentInteractionProps
       <div className="space-y-6">
         <div className="animate-pulse space-y-4">
           {[1, 2, 3].map(i => (
-            <div key={i} className="h-32 bg-gray-200 rounded-lg"></div>
+            <div key={i} className="h-32 rounded-lg"></div>
           ))}
         </div>
       </div>
@@ -329,7 +329,7 @@ const TeacherParentInteraction = ({ teacherData }: TeacherParentInteractionProps
             </CardHeader>
             <CardContent>
               {meetings.length === 0 ? (
-                <p className="text-gray-500 text-center py-4">No meetings scheduled</p>
+                <p className=" text-center py-4">No meetings scheduled</p>
               ) : (
                 <div className="space-y-3">
                   {meetings.map((meeting) => (
@@ -351,12 +351,12 @@ const TeacherParentInteraction = ({ teacherData }: TeacherParentInteractionProps
                                 {meeting.meeting_type.replace('_', ' ')}
                               </Badge>
                             </div>
-                            <p className="text-sm text-gray-600">{meeting.agenda}</p>
-                            <p className="text-xs text-gray-500 mt-1">
+                            <p className="text-sm ">{meeting.agenda}</p>
+                            <p className="text-xs  mt-1">
                               {new Date(meeting.meeting_date).toLocaleDateString()} at {new Date(meeting.meeting_date).toLocaleTimeString()}
                             </p>
                             {meeting.notes && (
-                              <p className="text-sm text-gray-700 mt-2 p-2 bg-gray-50 rounded">
+                              <p className="text-sm  mt-2 p-2 rounded">
                                 Notes: {meeting.notes}
                               </p>
                             )}
@@ -458,7 +458,7 @@ const TeacherParentInteraction = ({ teacherData }: TeacherParentInteractionProps
             </CardHeader>
             <CardContent>
               {progressReports.length === 0 ? (
-                <p className="text-gray-500 text-center py-4">No progress reports created</p>
+                <p className=" text-center py-4">No progress reports created</p>
               ) : (
                 <div className="space-y-3">
                   {progressReports.map((report) => (
@@ -479,27 +479,27 @@ const TeacherParentInteraction = ({ teacherData }: TeacherParentInteractionProps
                             
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
                               <div>
-                                <p className="font-medium text-gray-700">Attendance</p>
-                                <p className="text-blue-600">{report.attendance_percentage}%</p>
+                                <p className="font-medium ">Attendance</p>
+                                <p>{report.attendance_percentage}%</p>
                               </div>
                               <div>
-                                <p className="font-medium text-gray-700">Strengths</p>
-                                <p className="text-gray-600">{report.strengths || 'Not specified'}</p>
+                                <p className="font-medium ">Strengths</p>
+                                <p>{report.strengths || 'Not specified'}</p>
                               </div>
                               <div>
-                                <p className="font-medium text-gray-700">Areas for Improvement</p>
-                                <p className="text-gray-600">{report.areas_for_improvement || 'Not specified'}</p>
+                                <p className="font-medium ">Areas for Improvement</p>
+                                <p>{report.areas_for_improvement || 'Not specified'}</p>
                               </div>
                             </div>
 
                             {report.behavioral_notes && (
-                              <div className="mt-3 p-2 bg-gray-50 rounded">
-                                <p className="text-sm font-medium text-gray-700">Behavioral Notes:</p>
-                                <p className="text-sm text-gray-600">{report.behavioral_notes}</p>
+                              <div className="mt-3 p-2 border rounded">
+                                <p className="text-sm font-medium ">Behavioral Notes:</p>
+                                <p className="text-sm">{report.behavioral_notes}</p>
                               </div>
                             )}
 
-                            <p className="text-xs text-gray-500 mt-2">
+                            <p className="text-xs mt-2">
                               Generated: {new Date(report.generated_at).toLocaleDateString()}
                             </p>
                           </div>

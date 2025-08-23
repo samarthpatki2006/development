@@ -214,12 +214,14 @@ const EnhancedAttendanceTracker: React.FC<EnhancedAttendanceTrackerProps> = ({ t
     setTimeout(() => {
       const demoStudents: Student[] = Array.from({ length: 25 }, (_, i) => ({
         id: `student-${i + 1}`,
-        first_name: ['Alice', 'Bob', 'Charlie', 'Diana', 'Edward', 'Fiona', 'George', 'Hannah', 'Ian', 'Julia',
-                     'Kevin', 'Laura', 'Michael', 'Nina', 'Oliver', 'Petra', 'Quinn', 'Rachel', 'Samuel', 'Tara',
-                     'Ulysses', 'Victoria', 'William', 'Xena', 'Yasmin'][i],
-        last_name: ['Anderson', 'Brown', 'Clark', 'Davis', 'Evans', 'Foster', 'Garcia', 'Harris', 'Irving', 'Johnson',
-                   'King', 'Lee', 'Martinez', 'Nelson', 'O\'Connor', 'Parker', 'Quinn', 'Rodriguez', 'Smith', 'Taylor',
-                   'Underwood', 'Valdez', 'Wilson', 'Xavier', 'Young'][i],
+        first_name: ['Aarav', 'Bhavna', 'Chirag', 'Divya', 'Eshan', 'Farah', 'Gaurav', 'Harini', 'Ishaan', 'Juhi',
+             'Kunal', 'Lavanya', 'Manish', 'Neha', 'Omkar', 'Priya', 'Quasar', 'Riya', 'Sahil', 'Tanvi',
+             'Uday', 'Vaishnavi', 'Waseem', 'Xenia', 'Yash'][i],
+
+last_name: ['Agarwal', 'Bhat', 'Chowdhury', 'Desai', 'Elangovan', 'Fernandes', 'Gupta', 'Hariharan', 'Iyer', 'Jain',
+            'Kapoor', 'Lal', 'Menon', 'Nair', 'Ojha', 'Patel', 'Qureshi', 'Reddy', 'Sharma', 'Tripathi',
+            'Upadhyay', 'Varma', 'Wadhwa', 'Xavier', 'Yadav'][i],
+
         roll_number: `CS${String(i + 1).padStart(3, '0')}`,
         attendance_status: 'pending',
         attendance_percentage: Math.floor(Math.random() * 40) + 60, // 60-100%
@@ -634,31 +636,12 @@ const EnhancedAttendanceTracker: React.FC<EnhancedAttendanceTrackerProps> = ({ t
       {/* Enhanced Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+          <h1 className="text-3xl font-bold bg-gradient-to-r bg-clip-text">
             Enhanced Attendance Tracker
           </h1>
           <p className="text-muted-foreground mt-1">
             Intelligent attendance management with speech recognition and real-time analytics
           </p>
-        </div>
-        <div className="flex items-center space-x-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setDarkMode(!darkMode)}
-          >
-            {darkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setShowNotifications(!showNotifications)}
-          >
-            {showNotifications ? <Bell className="h-4 w-4" /> : <BellOff className="h-4 w-4" />}
-          </Button>
-          <Badge variant="outline" className="text-sm">
-            {format(selectedDate, "MMM dd, yyyy")}
-          </Badge>
         </div>
       </div>
 
@@ -1049,7 +1032,7 @@ const EnhancedAttendanceTracker: React.FC<EnhancedAttendanceTrackerProps> = ({ t
                             {currentStudentIndex + 1} of {filteredStudents.length}
                           </Badge>
                           {speechPaused && (
-                            <Badge variant="secondary" className="bg-yellow-100 text-black border border-black">
+                            <Badge variant="secondary" className=" border border-black">
                               Paused - Press Space to Resume
                             </Badge>
                           )}
@@ -1150,7 +1133,7 @@ const EnhancedAttendanceTracker: React.FC<EnhancedAttendanceTrackerProps> = ({ t
                                 }
                               }}
                               disabled={currentStudentIndex >= filteredStudents.length - 1}
-                              className="border-2 border-black text-black hover:bg-gray-100"
+                              className="border-2 border-black text-black"
                             >
                               <SkipForward className="h-5 w-5" />
                             </Button>
@@ -1162,9 +1145,9 @@ const EnhancedAttendanceTracker: React.FC<EnhancedAttendanceTrackerProps> = ({ t
                 )}
 
                 {/* Students List */}
-                <Card className="border-2 border-black bg-white shadow-lg">
-                  <CardHeader className="bg-gray-100 border-b-2 border-black">
-                    <CardTitle className="text-black font-bold text-xl">Students ({filteredStudents.length})</CardTitle>
+                <Card className="border-2 border-black shadow-lg">
+                  <CardHeader className="border-b-2 border-black">
+                    <CardTitle className="font-bold text-xl">Students ({filteredStudents.length})</CardTitle>
                   </CardHeader>
                   <CardContent className="p-6">
                     <div className="space-y-4">
@@ -1172,11 +1155,11 @@ const EnhancedAttendanceTracker: React.FC<EnhancedAttendanceTrackerProps> = ({ t
                         <div
                           key={student.id}
                           className={cn(
-                            "flex items-center justify-between p-6 border-2 rounded-lg transition-all duration-200 hover:shadow-lg cursor-pointer bg-white text-black border-black min-h-[80px]",
-                            currentStudentIndex === index && isRollCallActive && "ring-4 ring-black bg-gray-50 shadow-xl",
-                            student.attendance_status === 'present' && "border-green-600 bg-green-50",
-                            student.attendance_status === 'absent' && "border-red-600 bg-red-50",
-                            student.attendance_status === 'pending' && "border-black bg-white hover:bg-gray-50",
+                            "flex items-center justify-between p-6 border-2 rounded-lg transition-all duration-200 cursor-pointer border-black min-h-[80px]",
+                            currentStudentIndex === index && isRollCallActive && "ring-4 ring-black shadow-xl",
+                            student.attendance_status === 'present' && "border-green-600",
+                            student.attendance_status === 'absent' && "border-red-600 ",
+                            student.attendance_status === 'pending' && "border-black ",
                             student.risk_level === 'high' && "border-l-8 border-l-red-600",
                             student.risk_level === 'medium' && "border-l-8 border-l-orange-500",
                             student.risk_level === 'low' && "border-l-4 border-l-green-400"
@@ -1192,29 +1175,29 @@ const EnhancedAttendanceTracker: React.FC<EnhancedAttendanceTrackerProps> = ({ t
                               <img
                                 src={student.photo_url}
                                 alt={`${student.first_name} ${student.last_name}`}
-                                className="w-16 h-16 rounded-full border-2 border-black shadow-md"
+                                className="w-16 h-16 rounded-full border-2 border-white shadow-md"
                               />
                             )}
                             <div className="min-w-0 flex-1">
-                              <p className="font-bold text-lg text-black mb-1">
+                              <p className="font-bold text-lg mb-1">
                                 {student.first_name} {student.last_name}
                               </p>
-                              <p className="text-base text-gray-600 mb-2">
+                              <p className="text-base mb-2">
                                 {student.roll_number} • {student.attendance_percentage}% attendance
                               </p>
                               {student.notes && (
-                                <p className="text-sm text-gray-500 italic">{student.notes}</p>
+                                <p className="text-sm italic">{student.notes}</p>
                               )}
                             </div>
                           </div>
                           <div className="flex items-center space-x-4">
                             {student.risk_level === 'high' && (
-                              <Badge variant="destructive" className="text-sm bg-red-100 text-red-800 border-2 border-red-600 px-3 py-1">
+                              <Badge variant="destructive" className="text-sm border-2 border-red-600 px-3 py-1">
                                 🚨 High Risk
                               </Badge>
                             )}
                             {student.risk_level === 'medium' && (
-                              <Badge variant="secondary" className="text-sm bg-orange-100 text-orange-800 border-2 border-orange-500 px-3 py-1">
+                              <Badge variant="secondary" className="text-sm border-2 border-orange-500 px-3 py-1">
                                 ⚠️ At Risk
                               </Badge>
                             )}
@@ -1225,9 +1208,9 @@ const EnhancedAttendanceTracker: React.FC<EnhancedAttendanceTrackerProps> = ({ t
                               }
                               className={cn(
                                 "text-sm px-4 py-2 font-semibold",
-                                student.attendance_status === 'present' && "bg-green-100 text-green-800 border-2 border-green-600",
-                                student.attendance_status === 'absent' && "bg-red-100 text-red-800 border-2 border-red-600",
-                                student.attendance_status === 'pending' && "bg-yellow-100 text-yellow-800 border-2 border-yellow-600"
+                                student.attendance_status === 'present' && "text-green-800 border-2 border-green-600",
+                                student.attendance_status === 'absent' && "text-red-800 border-2 border-red-600",
+                                student.attendance_status === 'pending' && "text-yellow-800 border-2 border-yellow-600"
                               )}
                             >
                               {student.attendance_status === 'present' && '✅ Present'}
@@ -1248,7 +1231,7 @@ const EnhancedAttendanceTracker: React.FC<EnhancedAttendanceTrackerProps> = ({ t
                                   console.error('Speech error:', error);
                                 }
                               }}
-                              className="h-8 w-8 p-0 border border-black hover:bg-gray-100"
+                              className="h-8 w-8 p-0 border border-black"
                             >
                               <Volume2 className="h-4 w-4" />
                             </Button>
@@ -1262,8 +1245,8 @@ const EnhancedAttendanceTracker: React.FC<EnhancedAttendanceTrackerProps> = ({ t
                                 }}
                                 className={cn(
                                   "transition-all duration-200 px-4 py-2 font-semibold",
-                                  student.attendance_status === 'present' && "bg-green-600 hover:bg-green-700 text-white shadow-md border-2 border-green-600",
-                                  student.attendance_status !== 'present' && "border-2 border-black text-black hover:bg-gray-100"
+                                  student.attendance_status === 'present' && " hover:bg-green-700 shadow-md border-2 border-green-600",
+                                  student.attendance_status !== 'present' && "border-2"
                                 )}
                               >
                                 <CheckCircle2 className="h-5 w-5 mr-1" />
@@ -1278,8 +1261,8 @@ const EnhancedAttendanceTracker: React.FC<EnhancedAttendanceTrackerProps> = ({ t
                                 }}
                                 className={cn(
                                   "transition-all duration-200 px-4 py-2 font-semibold",
-                                  student.attendance_status === 'absent' && "bg-red-600 hover:bg-red-700 text-white shadow-md border-2 border-red-600",
-                                  student.attendance_status !== 'absent' && "border-2 border-black text-black hover:bg-gray-100"
+                                  student.attendance_status === 'absent' && " hover:bg-red-700 shadow-md border-2",
+                                  student.attendance_status !== 'absent' && "border-2 "
                                 )}
                               >
                                 <XCircle className="h-5 w-5 mr-1" />
@@ -1295,18 +1278,18 @@ const EnhancedAttendanceTracker: React.FC<EnhancedAttendanceTrackerProps> = ({ t
               </TabsContent>
 
               <TabsContent value="grid" className="space-y-4">
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                   {filteredStudents.map((student, index) => (
                     <Card 
                       key={student.id}
                       className={cn(
                         "cursor-pointer transition-all duration-200 hover:shadow-lg hover:scale-105",
-                        currentStudentIndex === index && isRollCallActive && "ring-2 ring-blue-500 shadow-xl",
-                        student.attendance_status === 'present' && "bg-green-50 border-green-300 shadow-green-200",
-                        student.attendance_status === 'absent' && "bg-red-50 border-red-300 shadow-red-200",
-                        student.attendance_status === 'pending' && "bg-gray-50 border-gray-300",
-                        student.risk_level === 'high' && "border-t-4 border-t-red-600",
-                        student.risk_level === 'medium' && "border-t-4 border-t-orange-500"
+                        currentStudentIndex === index && isRollCallActive && "ring-2 shadow-xl",
+                        student.attendance_status === 'present',
+                        student.attendance_status === 'absent' ,
+                        student.attendance_status === 'pending',
+                        student.risk_level === 'high',
+                        student.risk_level === 'medium'
                       )}
                     >
                       <CardContent className="p-4 text-center">
@@ -1315,10 +1298,10 @@ const EnhancedAttendanceTracker: React.FC<EnhancedAttendanceTrackerProps> = ({ t
                           alt={`${student.first_name} ${student.last_name}`}
                           className={cn(
                             "w-16 h-16 rounded-full mx-auto mb-2 border-2 transition-all duration-200",
-                            student.attendance_status === 'present' && "border-green-400 shadow-lg shadow-green-200",
-                            student.attendance_status === 'absent' && "border-red-400 shadow-lg shadow-red-200",
-                            student.attendance_status === 'pending' && "border-gray-300",
-                            student.risk_level === 'high' && "ring-2 ring-red-500"
+                            student.attendance_status === 'present' ,
+                            student.attendance_status === 'absent' ,
+                            student.attendance_status === 'pending',
+                            student.risk_level === 'high'
                           )}
                         />
                         <p className="font-medium text-sm">{student.first_name}</p>
@@ -1336,7 +1319,7 @@ const EnhancedAttendanceTracker: React.FC<EnhancedAttendanceTrackerProps> = ({ t
                           <Badge variant="destructive" className="text-xs mt-1">🚨</Badge>
                         )}
                         {student.risk_level === 'medium' && (
-                          <Badge variant="secondary" className="text-xs mt-1 bg-orange-100 text-orange-800">⚠️</Badge>
+                          <Badge variant="secondary" className="text-xs mt-1 ">⚠️</Badge>
                         )}
                         <div className="flex justify-center space-x-1 mt-2">
                           <Button
@@ -1345,7 +1328,7 @@ const EnhancedAttendanceTracker: React.FC<EnhancedAttendanceTrackerProps> = ({ t
                             onClick={() => markAttendance(student.id, 'present')}
                             className={cn(
                               "h-6 px-2 text-xs transition-all duration-200",
-                              student.attendance_status === 'present' && "bg-green-600 hover:bg-green-700 text-white shadow-md"
+                              student.attendance_status === 'present' && " shadow-md"
                             )}
                           >
                             ✅
@@ -1356,7 +1339,7 @@ const EnhancedAttendanceTracker: React.FC<EnhancedAttendanceTrackerProps> = ({ t
                             onClick={() => markAttendance(student.id, 'absent')}
                             className={cn(
                               "h-6 px-2 text-xs transition-all duration-200",
-                              student.attendance_status === 'absent' && "bg-red-600 hover:bg-red-700 text-white shadow-md"
+                              student.attendance_status === 'absent' && "bg-red-600 hover:bg-red- shadow-md"
                             )}
                           >
                             ❌
@@ -1371,7 +1354,7 @@ const EnhancedAttendanceTracker: React.FC<EnhancedAttendanceTrackerProps> = ({ t
               <TabsContent value="analytics" className="space-y-6">
                 {/* At-Risk Students Alert */}
                 {stats.atRiskStudents > 0 && (
-                  <Alert className="border-red-200 bg-red-50">
+                  <Alert className="border-red-200">
                     <AlertTriangle className="h-4 w-4 text-red-600" />
                     <AlertDescription className="text-red-800">
                       <strong>{stats.atRiskStudents} students</strong> are at risk due to low attendance (&lt;70%) or consecutive absences. 
@@ -1519,14 +1502,14 @@ const EnhancedAttendanceTracker: React.FC<EnhancedAttendanceTrackerProps> = ({ t
                   <Card>
                     <CardHeader>
                       <CardTitle className="flex items-center space-x-2">
-                        <AlertTriangle className="h-5 w-5 text-red-600" />
+                        <AlertTriangle className="h-5 w-5" />
                         <span>Students Requiring Attention ({filteredStudents.length})</span>
                       </CardTitle>
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-3">
                         {filteredStudents.map((student) => (
-                          <div key={student.id} className="p-4 border border-red-200 rounded-lg bg-red-50">
+                          <div key={student.id} className="p-4 rounded-lg">
                             <div className="flex items-center justify-between">
                               <div className="flex items-center space-x-3">
                                 <img
@@ -1535,14 +1518,14 @@ const EnhancedAttendanceTracker: React.FC<EnhancedAttendanceTrackerProps> = ({ t
                                   className="w-10 h-10 rounded-full border-2 border-red-400"
                                 />
                                 <div>
-                                  <p className="font-medium text-red-900">
+                                  <p className="font-medium ">
                                     {student.first_name} {student.last_name}
                                   </p>
-                                  <p className="text-sm text-red-700">
+                                  <p className="text-sm ">
                                     {student.roll_number} • {student.attendance_percentage}% attendance
                                   </p>
                                   {student.consecutive_absences > 0 && (
-                                    <p className="text-xs text-red-600">
+                                    <p className="text-xs">
                                       {student.consecutive_absences} consecutive absences
                                     </p>
                                   )}
@@ -1642,9 +1625,9 @@ const EnhancedAttendanceTracker: React.FC<EnhancedAttendanceTrackerProps> = ({ t
 
       {/* Attendance Selection Modal */}
       {showAttendanceModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-          <div className="bg-white rounded-lg shadow-xl p-8 w-96 text-center border-2 border-black">
-            <h2 className="text-2xl font-bold mb-4 text-black">Mark Attendance</h2>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-opacity-50">
+          <div className=" rounded-lg shadow-xl p-8 w-96 text-center border-2 border-black">
+            <h2 className="text-2xl font-bold mb-4">Mark Attendance</h2>
             <div className="mb-6">
               <img
                 src={filteredStudents[currentStudentIndex]?.photo_url}
@@ -1660,7 +1643,7 @@ const EnhancedAttendanceTracker: React.FC<EnhancedAttendanceTrackerProps> = ({ t
             </div>
             <div className="flex justify-center gap-4 mb-4">
               <Button
-                className="bg-black text-white hover:bg-gray-800 px-8 py-3 text-lg font-semibold shadow-lg"
+                className="px-8 py-3 text-lg font-semibold shadow-lg"
                 onClick={() => {
                   markAttendance(filteredStudents[currentStudentIndex].id, 'present');
                   setShowAttendanceModal(false);
@@ -1673,7 +1656,7 @@ const EnhancedAttendanceTracker: React.FC<EnhancedAttendanceTrackerProps> = ({ t
                 Present
               </Button>
               <Button
-                className="bg-white text-black border-2 border-black hover:bg-gray-200 px-8 py-3 text-lg font-semibold shadow-lg"
+                className="border-2 border-black px-8 py-3 text-lg font-semibold shadow-lg"
                 onClick={() => {
                   markAttendance(filteredStudents[currentStudentIndex].id, 'absent');
                   setShowAttendanceModal(false);

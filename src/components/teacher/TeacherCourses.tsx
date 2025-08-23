@@ -131,7 +131,7 @@ const TeacherCourses = ({ teacherData }: TeacherCoursesProps) => {
         .select(`
           *,
           quiz_questions (count),
-          quiz_attempts (count)
+          quiz_submissions (count)
         `)
         .eq('course_id', selectedCourse.id)
         .order('created_at', { ascending: false });

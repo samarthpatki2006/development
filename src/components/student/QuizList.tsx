@@ -162,13 +162,13 @@ const QuizList = ({ onStartQuiz, takenQuizIds }: QuizListProps) => {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'passed':
-        return 'border-green-200 bg-green-50';
+        return 'border-green-900';
       case 'failed':
-        return 'border-red-200 bg-red-50';
+        return 'border-red-900';
       case 'in_progress':
-        return 'border-orange-200 bg-orange-50';
+        return 'border-orange-900';
       default:
-        return 'border-gray-200 bg-white';
+        return 'border-gray-900';
     }
   };
 
@@ -192,8 +192,8 @@ const QuizList = ({ onStartQuiz, takenQuizIds }: QuizListProps) => {
     return (
       <Card>
         <CardContent className="text-center py-8">
-          <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-          <p className="text-red-500 mb-2 font-medium">{error}</p>
+          <AlertCircle className="w-12 h-12 mx-auto mb-4" />
+          <p className=" mb-2 font-medium">{error}</p>
           <p className="text-sm text-muted-foreground">
             Please try refreshing the page or contact support.
           </p>
@@ -224,7 +224,7 @@ const QuizList = ({ onStartQuiz, takenQuizIds }: QuizListProps) => {
         
         return (
           <Card key={quiz.id} className={`transition-all duration-200 hover:shadow-md ${getStatusColor(quizStatus.status)}`}>
-            <CardContent className="p-6 bg-black rounded-sm">
+            <CardContent className="p-6 rounded-sm">
               <div className="flex justify-between items-start mb-4">
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-2">
@@ -274,7 +274,7 @@ const QuizList = ({ onStartQuiz, takenQuizIds }: QuizListProps) => {
                     
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                        <span className={`px-2 py-1 rounded-full text-sm font-medium ${
                           quizStatus.status === 'passed' ? ' text-green-800' :
                           quizStatus.status === 'failed' ? ' text-red-800' :
                           quizStatus.status === 'in_progress' ? ' text-orange-800' :

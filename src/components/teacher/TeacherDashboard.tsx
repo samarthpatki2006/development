@@ -146,7 +146,7 @@ const TeacherDashboard = ({ teacherData }: TeacherDashboardProps) => {
     const Icon = action.icon;
     return (
       <PermissionWrapper key={index} permission={action.permission}>
-        <div className="flex items-center space-x-3 p-3 rounded-lg border hover:bg-gray-50 cursor-pointer">
+        <div className="flex items-center space-x-3 p-3 rounded-lg border cursor-pointer">
           <div className={`p-2 rounded-lg ${action.color}`}>
             <Icon className="h-4 w-4" />
           </div>

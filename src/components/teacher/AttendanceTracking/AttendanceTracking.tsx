@@ -406,10 +406,10 @@ const AttendanceTracking: React.FC<AttendanceTrackingProps> = ({ teacherData }) 
                   <span>Attendance Controls</span>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <Badge variant="outline" className="bg-blue-50">
+                  <Badge variant="outline">
                     {filteredStudents.length} students
                   </Badge>
-                  <Badge variant="outline" className="bg-green-50">
+                  <Badge variant="outline">
                     {format(selectedDate, "MMM dd, yyyy")}
                   </Badge>
                 </div>
@@ -494,15 +494,6 @@ const AttendanceTracking: React.FC<AttendanceTrackingProps> = ({ teacherData }) 
 
               {/* Quick Actions */}
               <div className="flex flex-wrap gap-2 mt-4 pt-4 border-t">
-                <Button 
-                  onClick={handleInsertDemoData} 
-                  variant="outline" 
-                  size="sm"
-                  className="flex-1 sm:flex-none"
-                >
-                  <Database className="h-4 w-4 mr-2" />
-                  Load Demo Data
-                </Button>
                 <Button 
                   variant="outline" 
                   size="sm"
@@ -618,24 +609,6 @@ const AttendanceTracking: React.FC<AttendanceTrackingProps> = ({ teacherData }) 
                 />
               )}
 
-              {/* Roll Call Interface */}
-              {filteredStudents.length > 0 && (
-                <RollCallInterface
-                  key={`rollcall-${attendanceVersion}`}
-                  students={filteredStudents}
-                  currentIndex={currentStudentIndex}
-                  isActive={isRollCallActive && !speechPaused}
-                  onStart={handleRollCallStart}
-                  onPause={handleRollCallPause}
-                  onStop={handleRollCallStop}
-                  onNext={handleNextStudent}
-                  onPrevious={handlePreviousStudent}
-                  onCurrentIndexChange={handleCurrentIndexChange}
-                  speechPaused={speechPaused}
-                  onSpeechResume={() => setSpeechPaused(false)}
-                />
-              )}
-
               {/* Students List */}
               {filteredStudents.length > 0 && (
                 <StudentList
@@ -656,16 +629,16 @@ const AttendanceTracking: React.FC<AttendanceTrackingProps> = ({ teacherData }) 
                   <CardTitle>Grid View</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                     {filteredStudents.map((student, index) => (
                       <Card 
                         key={student.id}
                         className={cn(
                           "cursor-pointer transition-all duration-200 hover:shadow-md",
                           currentStudentIndex === index && isRollCallActive && "ring-2 ring-primary",
-                          student.attendance_status === 'present' && "bg-green-50 border-green-200",
-                          student.attendance_status === 'absent' && "bg-red-50 border-red-200",
-                          student.attendance_status === 'pending' && "bg-yellow-50 border-yellow-200"
+                          student.attendance_status === 'present' ,
+                          student.attendance_status === 'absent' ,
+                          student.attendance_status === 'pending' 
                         )}
                       >
                         <CardContent className="p-4 text-center">
@@ -798,7 +771,9 @@ const AttendanceTracking: React.FC<AttendanceTrackingProps> = ({ teacherData }) 
       {/* Loading Overlay */}
       <LoadingOverlay loadingState={loadingState} />
     </div>
+    
   );
 };
 
 export default AttendanceTracking;
+

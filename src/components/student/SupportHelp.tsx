@@ -102,32 +102,32 @@ const SupportHelp: React.FC<SupportHelpProps> = ({ studentData }) => {
   const contactInfo = {
     academic: {
       title: 'Academic Support',
-      email: 'academic@colcord.edu',
-      phone: '+1 (555) 123-4567',
+      email: 'team@colcord.co.in',
+      phone: '+91 93110 13848',
       hours: 'Mon-Fri: 9:00 AM - 5:00 PM'
     },
     technical: {
       title: 'Technical Support',
-      email: 'tech@colcord.edu',
-      phone: '+1 (555) 123-4568',
+      email: 'team@colcord.co.in',
+      phone: '+91 93110 13848',
       hours: '24/7 Online Support'
     },
     financial: {
       title: 'Financial Services',
-      email: 'finance@colcord.edu',
-      phone: '+1 (555) 123-4569',
+      email: 'team@colcord.co.in',
+      phone: '+91 93110 13848',
       hours: 'Mon-Fri: 8:00 AM - 6:00 PM'
     },
     hostel: {
       title: 'Hostel Administration',
-      email: 'hostel@colcord.edu',
-      phone: '+1 (555) 123-4570',
+      email: 'team@colcord.co.in',
+      phone: '+91 93110 13848',
       hours: 'Mon-Sun: 6:00 AM - 10:00 PM'
     },
     general: {
       title: 'General Support',
-      email: 'support@colcord.edu',
-      phone: '+1 (555) 123-4571',
+      email: 'team@colcord.co.in',
+      phone: '+91 93110 13848',
       hours: 'Mon-Fri: 9:00 AM - 5:00 PM'
     }
   };
@@ -444,17 +444,17 @@ const SupportHelp: React.FC<SupportHelpProps> = ({ studentData }) => {
                 </div>
                 <div>
                   <h4 className="font-semibold mb-2">Campus Security</h4>
-                  <p className="text-lg font-bold">+1 (555) 123-9999</p>
+                  <p className="text-lg font-bold">+91 93110 13848</p>
                   <p className="text-sm text-gray-600">24/7 Campus Security Hotline</p>
                 </div>
                 <div>
                   <h4 className="font-semibold mb-2">Medical Center</h4>
-                  <p className="text-lg font-bold">+1 (555) 123-8888</p>
+                  <p className="text-lg font-bold">+91 93110 13848</p>
                   <p className="text-sm text-gray-600">On-campus medical assistance</p>
                 </div>
                 <div>
                   <h4 className="font-semibold mb-2">Counseling Services</h4>
-                  <p className="text-lg font-bold">+1 (555) 123-7777</p>
+                  <p className="text-lg font-bold">+91 93110 13848</p>
                   <p className="text-sm text-gray-600">Mental health and counseling support</p>
                 </div>
               </div>

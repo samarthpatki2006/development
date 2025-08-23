@@ -375,7 +375,7 @@ const AttendanceOverview: React.FC<AttendanceOverviewProps> = ({ studentData }) 
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-2 gap-4 mb-6">
-                    <div className="text-center p-4 bg-green-50 rounded-lg">
+                    <div className="text-center p-4 rounded-lg">
                       <p className="text-sm text-muted-foreground">Present Days</p>
                       <p className="text-2xl font-bold text-green-600">
                         {attendanceData.filter(a => 
@@ -384,7 +384,7 @@ const AttendanceOverview: React.FC<AttendanceOverviewProps> = ({ studentData }) 
                         ).length}
                       </p>
                     </div>
-                    <div className="text-center p-4 bg-red-50 rounded-lg">
+                    <div className="text-center p-4 rounded-lg">
                       <p className="text-sm text-muted-foreground">Absent Days</p>
                       <p className="text-2xl font-bold text-red-600">
                         {attendanceData.filter(a => 

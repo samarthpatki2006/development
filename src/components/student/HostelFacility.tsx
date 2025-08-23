@@ -463,7 +463,7 @@ const HostelFacility: React.FC<HostelFacilityProps> = ({ studentData }) => {
   return (
     <div className="space-y-6">
       {studentInfoError && (
-        <Card className="border-red-200 bg-red-50">
+        <Card>
           <CardContent className="p-4">
             <div className="flex items-center space-x-2">
               <AlertCircle className="h-5 w-5 text-red-500" />
@@ -475,7 +475,7 @@ const HostelFacility: React.FC<HostelFacilityProps> = ({ studentData }) => {
             </p>
             <Button 
               variant="outline" 
-              className="mt-3 text-red-600 border-red-200 hover:bg-red-100"
+              className="mt-3 "
               onClick={() => window.location.reload()}
             >
               Refresh Page
@@ -484,21 +484,12 @@ const HostelFacility: React.FC<HostelFacilityProps> = ({ studentData }) => {
         </Card>
       )}
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold text-gray-900">Hostel & Facilities</h2>
+        <h2 className="text-2xl font-bold ">Hostel & Facilities</h2>
         <Badge variant="outline" className="px-3 py-1">
           {hostels.length} Hostels Available
         </Badge>
       </div>
 
-      {/* Debug info - remove in production */}
-      {process.env.NODE_ENV === 'development' && (
-        <div className="text-xs text-gray-500 bg-gray-50 p-2 rounded">
-          Debug: {applications.length} applications loaded for student {studentData?.id}
-          {applications.length > 0 && (
-            <span> | Latest: {applications[applications.length - 1]?.status}</span>
-          )}
-        </div>
-      )}
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-3">

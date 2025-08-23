@@ -35,7 +35,7 @@ interface HostelFacilityProps {
   studentData: any;
 }
 
-const HostelFacility: React.FC<HostelFacilityProps> = ({ studentData }) => {
+const HostelFacilityNew: React.FC<HostelFacilityProps> = ({ studentData }) => {
   const [hostels, setHostels] = useState<any[]>([]);
   const [selectedHostel, setSelectedHostel] = useState<any>(null);
   const [hostelRooms, setHostelRooms] = useState<any[]>([]);
@@ -230,7 +230,7 @@ const HostelFacility: React.FC<HostelFacilityProps> = ({ studentData }) => {
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-[400px]">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2"></div>
       </div>
     );
   }
@@ -238,7 +238,7 @@ const HostelFacility: React.FC<HostelFacilityProps> = ({ studentData }) => {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold text-gray-900">Hostel & Facilities</h2>
+        <h2 className="text-2xl font-bold">Hostel & Facilities</h2>
         <Badge variant="outline" className="px-3 py-1">
           {hostels.length} Hostels Available
         </Badge>
@@ -265,7 +265,7 @@ const HostelFacility: React.FC<HostelFacilityProps> = ({ studentData }) => {
             // Hostel List View
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {hostels.map((hostel) => (
-                <Card key={hostel.id} className="cursor-pointer hover:shadow-lg transition-shadow border-l-4 border-l-blue-500">
+                <Card key={hostel.id} className="cursor-pointer hover:shadow-lg transition-shadow border-l-4">
                   <CardHeader className="pb-3">
                     <div className="flex justify-between items-start">
                       <CardTitle className="text-lg">{hostel.hostel_name}</CardTitle>
@@ -325,7 +325,7 @@ const HostelFacility: React.FC<HostelFacilityProps> = ({ studentData }) => {
                   <h3 className="text-xl font-semibold">{selectedHostel.hostel_name}</h3>
                   <p className="text-gray-600">{selectedHostel.location}</p>
                 </div>
-                <Button variant="outline" onClick={() => setSelectedHostel(null)}>
+                <Button variant="outline" className='border-white' onClick={() => setSelectedHostel(null)}>
                   Back to Hostels
                 </Button>
               </div>
@@ -378,7 +378,7 @@ const HostelFacility: React.FC<HostelFacilityProps> = ({ studentData }) => {
                           <div className="flex justify-between items-start mb-3">
                             <div>
                               <h4 className="font-semibold">Room {room.room_number}</h4>
-                              <p className="text-sm text-gray-600">Floor {room.floor_number}</p>
+                              <p className="text-sm ">Floor {room.floor_number}</p>
                             </div>
                             <Badge variant="outline" className="capitalize">
                               {room.room_type}
@@ -387,15 +387,15 @@ const HostelFacility: React.FC<HostelFacilityProps> = ({ studentData }) => {
                           
                           <div className="space-y-2 text-sm">
                             <div className="flex items-center space-x-2">
-                              <Users className="h-4 w-4 text-gray-400" />
+                              <Users className="h-4 w-4 " />
                               <span>Capacity: {room.capacity}</span>
                             </div>
                             <div className="flex items-center space-x-2">
-                              <Users className="h-4 w-4 text-gray-400" />
+                              <Users className="h-4 w-4 " />
                               <span>Occupied: {room.current_occupancy}/{room.capacity}</span>
                             </div>
                             <div className="flex items-center space-x-2">
-                              <IndianRupee className="h-4 w-4 text-gray-400" />
+                              <IndianRupee className="h-4 w-4 " />
                               <span>{formatCurrency(room.monthly_fee)}/month</span>
                             </div>
                           </div>
@@ -777,4 +777,4 @@ const FacilityRequestDialog: React.FC<{
   );
 };
 
-export default HostelFacility;
+export default HostelFacilityNew;

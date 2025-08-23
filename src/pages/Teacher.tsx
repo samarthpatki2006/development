@@ -21,7 +21,9 @@ import {
   Check,
   AlertTriangle,
   Info,
-  UserCircle
+  UserCircle,
+  PlusCircle,
+  PlusCircleIcon
 } from 'lucide-react';
 import SidebarNavigation from '@/components/layout/SidebarNavigation';
 import TeacherDashboard from '@/components/teacher/TeacherDashboard';
@@ -40,6 +42,7 @@ import TeacherSupport from '@/components/teacher/TeacherSupport';
 import { supabase } from '@/integrations/supabase/client';
 import GradeManager from '@/components/teacher/GradeManager';
 import StudentEnrollmentManagement from '@/components/teacher/StudentEnrollmentManagement';
+import TeacherExtra from '@/components/teacher/TeacherExtra';
 
 const Teacher = () => {
   const [activeView, setActiveView] = useState('dashboard');
@@ -226,12 +229,13 @@ const Teacher = () => {
 
   const sidebarItems = [
     { id: 'dashboard', label: 'Dashboard', icon: GraduationCap },
-    { id: 'schedule', label: 'Schedule & Timetable', icon: Calendar },
+    { id: 'schedule', label: 'Schedule', icon: Calendar },
     { id: 'enrollment', label: 'Enrollment', icon: Users },
     { id: 'attendance-tracking', label: 'Attendance Tracking', icon: ClipboardList },
     { id: 'enhanced-attendance', label: 'Enhanced Attendance Tracker', icon: ClipboardList },
     { id: 'courses', label: 'Course & Quiz', icon: BookOpen },
     { id: 'gradebook', label: 'Grading', icon: ClipboardList },
+    { id: 'extra-classes', label: 'Extra Classes', icon: PlusCircleIcon },
     { id: 'events', label: 'Events & Calendar', icon: Calendar },
     { id: 'performance', label: 'Student Performance', icon: TrendingUp },
     { id: 'communication', label: 'Communication', icon: MessageSquare },
@@ -258,6 +262,8 @@ const Teacher = () => {
         return <TeacherCourses teacherData={teacherData} />;
       case 'gradebook':
         return <GradeManager />;
+      case 'extra-classes':
+        return <TeacherExtra teacherData={teacherData} />;
       case 'events':
         return <TeacherEvents teacherData={teacherData} />;
       case 'performance':

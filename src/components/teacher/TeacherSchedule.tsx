@@ -401,7 +401,7 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
                   </DialogHeader>
                   <div className="space-y-4">
                     <select
-                      className="w-full p-2 border rounded"
+                      className="w-full p-2 border rounded bg-black"
                       value={newReminder.class_id}
                       onChange={(e) => setNewReminder({...newReminder, class_id: e.target.value})}
                     >
@@ -426,7 +426,7 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
                     />
                     
                     <select
-                      className="w-full p-2 border rounded"
+                      className="w-full p-2 border rounded bg-black"
                       value={newReminder.reminder_type}
                       onChange={(e) => setNewReminder({...newReminder, reminder_type: e.target.value})}
                     >

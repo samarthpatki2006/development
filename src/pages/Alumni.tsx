@@ -207,7 +207,7 @@ const Alumni = () => {
   const renderContent = () => {
     switch (activeView) {
       case 'dashboard':
-        return <AlumniDashboard user={user} />;
+        return <AlumniDashboard user={user} onNavigate={setActiveView}/>;
       case 'events':
         return <AlumniEvents user={user} />;
       case 'networking':

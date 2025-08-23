@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -8,9 +7,10 @@ import PermissionWrapper from '@/components/PermissionWrapper';
 
 interface StudentDashboardProps {
   studentData: any;
+  onNavigate?: (tab: string) => void; // Add navigation callback
 }
 
-const StudentDashboard = ({ studentData }: StudentDashboardProps) => {
+const StudentDashboard = ({ studentData, onNavigate }: StudentDashboardProps) => {
   const quickStats = [
     {
       title: 'Enrolled Courses',
@@ -78,45 +78,84 @@ const StudentDashboard = ({ studentData }: StudentDashboardProps) => {
       title: 'View Assignments',
       description: 'Check and submit pending assignments',
       icon: BookOpen,
-      color: 'bg-blue-50 text-blue-600',
-      permission: 'view_submit_assignments' as const
+      color: 'bg-blue-50 text-blue-600 hover:bg-blue-100',
+      permission: 'view_submit_assignments' as const,
+      navigateTo: 'courses' // Maps to CoursesLearningSnapshot
     },
     {
       title: 'Apply for Hostel',
       description: 'Submit hostel accommodation request',
       icon: Home,
-      color: 'bg-green-50 text-green-600',
-      permission: 'apply_hostel' as const
+      color: 'bg-green-50 text-green-600 hover:bg-green-100',
+      permission: 'apply_hostel' as const,
+      navigateTo: 'hostel' // Maps to HostelFacility
     },
     {
       title: 'Join Discussion',
       description: 'Participate in course forums',
       icon: Users,
-      color: 'bg-purple-50 text-purple-600',
-      permission: 'join_forums' as const
+      color: 'bg-purple-50 text-purple-600 hover:bg-purple-100',
+      permission: 'join_forums' as const,
+      navigateTo: 'communication' // Maps to CommunicationCenter
     },
     {
       title: 'Request Certificate',
       description: 'Apply for academic certificates',
       icon: Award,
-      color: 'bg-yellow-50 text-yellow-600',
-      permission: 'request_certificates' as const
+      color: 'bg-yellow-50 text-yellow-600 hover:bg-yellow-100',
+      permission: 'request_certificates' as const,
+      navigateTo: 'support' // Maps to SupportHelp
     }
   ];
+
+  const handleQuickActionClick = (navigateTo: string, actionTitle: string) => {
+    if (onNavigate) {
+      onNavigate(navigateTo);
+    } else {
+      console.warn(`Navigation not available for ${actionTitle}`);
+    }
+  };
+
+  const handleStatCardClick = (statTitle: string) => {
+    if (onNavigate) {
+      switch (statTitle) {
+        case 'Enrolled Courses':
+          onNavigate('courses');
+          break;
+        case 'Upcoming Assignments':
+          onNavigate('courses');
+          break;
+        case 'Current CGPA':
+          onNavigate('gradebook');
+          break;
+        case 'Pending Fees':
+          onNavigate('payments');
+          break;
+        default:
+          break;
+      }
+    }
+  };
+
+  const handleCourseClick = () => {
+    if (onNavigate) {
+      onNavigate('courses');
+    }
+  };
 
   return (
     <div className="space-y-6 animate-fade-in-up">
       {/* Welcome Section */}
-      <div className="bg-card border border-white/10 rounded-lg p-6">
+      <div className="bg-card border border-white/10 rounded-lg p-6 ">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-card-foreground mb-2">
+            <h1 className="text-2xl font-bold  mb-2">
               Welcome back, {studentData.first_name}
             </h1>
-            <p className="text-muted-foreground">Student ID: {studentData.user_code}</p>
+            <p >Student ID: {studentData.user_code}</p>
           </div>
           <div className="text-right">
-            <p className="text-sm text-muted-foreground">Current CGPA</p>
+            <p className="text-sm ">Current CGPA</p>
             <p className="text-2xl font-bold text-role-student">8.5</p>
           </div>
         </div>
@@ -128,16 +167,19 @@ const StudentDashboard = ({ studentData }: StudentDashboardProps) => {
           const Icon = stat.icon;
           return (
             <PermissionWrapper key={index} permission={stat.permission}>
-              <Card className="hover-translate-up transition-all duration-300 hover:border-role-student/20">
+              <Card 
+                className="hover:shadow-md transition-all duration-300 hover:border-role-student/20 cursor-pointer hover:scale-105"
+                onClick={() => handleStatCardClick(stat.title)}
+              >
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm font-medium text-muted-foreground">{stat.title}</p>
                       <p className="text-2xl font-bold text-card-foreground">{stat.value}</p>
                     </div>
-                  <div className="p-3 rounded-lg bg-white/5">
-                    <Icon className="h-6 w-6 text-role-student" />
-                  </div>
+                    <div className="p-3 rounded-lg bg-white/5">
+                      <Icon className="h-6 w-6 " />
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -157,11 +199,11 @@ const StudentDashboard = ({ studentData }: StudentDashboardProps) => {
             {recentActivities.map((activity, index) => (
               <PermissionWrapper key={index} permission={activity.permission}>
                 <div className="flex items-start space-x-4 p-3 rounded-lg bg-white/5 hover:bg-white/10 transition-colors duration-300">
-                  <div className="w-2 h-2 bg-role-student rounded-full mt-3 animate-pulse-indicator"></div>
+                  <div className="w-2 h-2  rounded-full mt-3 animate-pulse-indicator"></div>
                   <div className="flex-1">
                     <p className="font-medium text-card-foreground">{activity.title}</p>
                     <p className="text-sm text-muted-foreground">{activity.description}</p>
-                    <p className="text-xs text-white/40 font-mono">{activity.time}</p>
+                    <p className="text-xs  font-mono">{activity.time}</p>
                   </div>
                 </div>
               </PermissionWrapper>
@@ -170,25 +212,29 @@ const StudentDashboard = ({ studentData }: StudentDashboardProps) => {
         </Card>
 
         {/* Quick Actions */}
-        <Card className="border-white/10">
+        <Card >
           <CardHeader>
             <CardTitle className="text-2xl font-bold text-card-foreground">Quick Actions</CardTitle>
-            <CardDescription>Frequently used features</CardDescription>
+            <CardDescription>Frequently used features - click to navigate</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
             {quickActions.map((action, index) => {
               const Icon = action.icon;
               return (
                 <PermissionWrapper key={index} permission={action.permission}>
-                  <div className="flex items-center space-x-4 p-4 rounded-lg border border-white/10 hover:border-role-student/20 hover:bg-white/5 cursor-pointer transition-all duration-300 hover-translate-up">
-                    <div className="p-3 rounded-lg bg-role-student/10">
-                      <Icon className="h-5 w-5 text-role-student" />
+                  <Button
+                    variant="ghost"
+                    className="w-full h-auto p-4 flex items-center justify-start space-x-4 rounded-lg border border-white/10 transition-all duration-200"
+                    onClick={() => handleQuickActionClick(action.navigateTo, action.title)}
+                  >
+                    <div className="p-3 rounded-lg ">
+                      <Icon className="h-5 w-5" />
                     </div>
-                    <div className="flex-1">
-                      <p className="font-medium text-card-foreground">{action.title}</p>
-                      <p className="text-sm text-muted-foreground">{action.description}</p>
+                    <div className="flex-1 text-left">
+                      <p className="font-medium text-sm">{action.title}</p>
+                      <p className="text-xs opacity-80">{action.description}</p>
                     </div>
-                  </div>
+                  </Button>
                 </PermissionWrapper>
               );
             })}
@@ -201,7 +247,7 @@ const StudentDashboard = ({ studentData }: StudentDashboardProps) => {
         <Card className="border-white/10">
           <CardHeader>
             <CardTitle className="text-2xl font-bold text-card-foreground">Current Courses</CardTitle>
-            <CardDescription>Your enrolled courses this semester</CardDescription>
+            <CardDescription>Your enrolled courses this semester - click to view details</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -210,10 +256,14 @@ const StudentDashboard = ({ studentData }: StudentDashboardProps) => {
                 { name: 'Database Management Systems', code: 'CS302', instructor: 'Dr. Johnson', progress: 60 },
                 { name: 'Computer Networks', code: 'CS303', instructor: 'Dr. Brown', progress: 80 }
               ].map((course, index) => (
-                <div key={index} className="p-6 border border-white/10 rounded-lg bg-white/5 hover:border-role-student/20 transition-all duration-300 hover-translate-up">
+                <div 
+                  key={index} 
+                  className="p-6 border border-white/10 rounded-lg bg-white/5 hover:border-role-student/20 transition-all duration-300 hover-translate-up cursor-pointer hover:scale-105"
+                  onClick={handleCourseClick}
+                >
                   <div className="flex justify-between items-start mb-4">
                     <h4 className="font-bold text-card-foreground">{course.name}</h4>
-                    <Badge variant="secondary" className="bg-role-student/10 text-role-student border-role-student/20">{course.code}</Badge>
+                    <Badge variant="secondary">{course.code}</Badge>
                   </div>
                   <p className="text-sm text-muted-foreground mb-4">{course.instructor}</p>
                   <div className="space-y-2">
@@ -221,15 +271,24 @@ const StudentDashboard = ({ studentData }: StudentDashboardProps) => {
                       <span className="text-muted-foreground">Progress</span>
                       <span className="text-card-foreground font-medium">{course.progress}%</span>
                     </div>
-                    <div className="w-full bg-white/10 rounded-full h-2">
+                    <div className="w-full  rounded-full h-2">
                       <div 
-                        className="bg-role-student h-2 rounded-full transition-all duration-500" 
+                        className=" h-2 rounded-full transition-all duration-500" 
                         style={{ width: `${course.progress}%` }}
                       ></div>
                     </div>
                   </div>
                 </div>
               ))}
+            </div>
+            <div className="mt-6 text-center">
+              <Button 
+                variant="outline" 
+                onClick={handleCourseClick}
+                className="hover:bg-role-student/10 hover:text-role-student hover:border-role-student/20"
+              >
+                View All Courses
+              </Button>
             </div>
           </CardContent>
         </Card>

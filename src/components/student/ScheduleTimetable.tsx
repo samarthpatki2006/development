@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Clock, MapPin, User, BookOpen, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Clock, MapPin, User, BookOpen, ChevronLeft, ChevronRight, Star } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import PermissionWrapper from '@/components/PermissionWrapper';
@@ -36,8 +36,8 @@ const ScheduleTimetable: React.FC<ScheduleTimetableProps> = ({ studentData }) =>
 
     setLoading(true);
     try {
-      // Get enrolled courses with schedule
-      const { data: enrollments } = await supabase
+      // Get enrolled courses with regular schedule
+      const { data: enrollments, error: enrollmentError } = await supabase
         .from('enrollments')
         .select(`
           course_id,
@@ -61,24 +61,124 @@ const ScheduleTimetable: React.FC<ScheduleTimetableProps> = ({ studentData }) =>
         .eq('student_id', studentData.user_id)
         .eq('status', 'enrolled');
 
+      if (enrollmentError) {
+        console.error('Enrollment fetch error:', enrollmentError);
+        throw enrollmentError;
+      }
+
+      let allScheduleData = [];
+
+      // Process regular classes
       if (enrollments) {
-        const scheduleData = enrollments.flatMap(enrollment => 
+        const regularSchedule = enrollments.flatMap(enrollment => 
           enrollment.courses.class_schedule.map(schedule => ({
             ...schedule,
             course_name: enrollment.courses.course_name,
             course_code: enrollment.courses.course_code,
             instructor_name: `${enrollment.courses.user_profiles?.first_name || ''} ${enrollment.courses.user_profiles?.last_name || ''}`.trim(),
-            course_id: enrollment.courses.id
+            course_id: enrollment.courses.id,
+            is_extra_class: false,
+            class_type: 'regular'
           }))
         );
-
-        setWeeklySchedule(scheduleData);
-
-        // Filter today's classes
-        const today = new Date();
-        const todaySchedule = scheduleData.filter(cls => cls.day_of_week === today.getDay());
-        setTodayClasses(todaySchedule);
+        allScheduleData = [...regularSchedule];
       }
+
+      // Get enrolled course IDs for extra class lookup
+      const enrolledCourseIds = enrollments?.map(e => e.course_id) || [];
+
+      if (enrolledCourseIds.length > 0) {
+        // Calculate week start and end dates
+        const weekStart = new Date(currentWeek);
+        weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+        const weekEnd = new Date(weekStart);
+        weekEnd.setDate(weekStart.getDate() + 6);
+
+        // Get extra classes for the current week
+        const { data: extraClasses, error: extraError } = await supabase
+          .from('extra_class_schedule')
+          .select(`
+            id,
+            course_id,
+            teacher_id,
+            title,
+            description,
+            scheduled_date,
+            start_time,
+            end_time,
+            room_location,
+            class_type,
+            status,
+            courses (
+              course_name,
+              course_code
+            )
+          `)
+          .in('course_id', enrolledCourseIds)
+          .eq('status', 'scheduled')
+          .gte('scheduled_date', weekStart.toISOString().split('T')[0])
+          .lte('scheduled_date', weekEnd.toISOString().split('T')[0]);
+
+        // If we have extra classes, get teacher information separately
+        let teacherProfiles = {};
+        if (extraClasses && extraClasses.length > 0) {
+          const teacherIds = [...new Set(extraClasses.map(ec => ec.teacher_id))];
+          const { data: teachers } = await supabase
+            .from('user_profiles')
+            .select('user_id, first_name, last_name')
+            .in('user_id', teacherIds);
+          
+          if (teachers) {
+            teacherProfiles = teachers.reduce((acc, teacher) => {
+              acc[teacher.user_id] = teacher;
+              return acc;
+            }, {});
+          }
+        }
+
+        if (extraError) {
+          console.warn('Extra class fetch error:', extraError);
+        } else if (extraClasses && extraClasses.length > 0) {
+          // Process extra classes
+          const extraScheduleData = extraClasses.map(extraClass => {
+            const scheduledDate = new Date(extraClass.scheduled_date);
+            const teacher = teacherProfiles[extraClass.teacher_id];
+            return {
+              id: extraClass.id,
+              day_of_week: scheduledDate.getDay(),
+              scheduled_date: extraClass.scheduled_date,
+              start_time: extraClass.start_time,
+              end_time: extraClass.end_time,
+              room_location: extraClass.room_location || '',
+              course_name: extraClass.courses?.course_name || extraClass.title,
+              course_code: extraClass.courses?.course_code || 'EXTRA',
+              instructor_name: teacher ? `${teacher.first_name || ''} ${teacher.last_name || ''}`.trim() : '',
+              course_id: extraClass.course_id,
+              class_type: extraClass.class_type,
+              title: extraClass.title,
+              description: extraClass.description,
+              status: extraClass.status,
+              is_extra_class: true
+            };
+          });
+          
+          allScheduleData = [...allScheduleData, ...extraScheduleData];
+        }
+      }
+
+      setWeeklySchedule(allScheduleData);
+
+      // Filter today's classes
+      const today = new Date();
+      const todaySchedule = allScheduleData.filter(cls => {
+        if (cls.is_extra_class && cls.scheduled_date) {
+          const classDate = new Date(cls.scheduled_date);
+          return classDate.toDateString() === today.toDateString();
+        }
+        return cls.day_of_week === today.getDay();
+      });
+      setTodayClasses(todaySchedule.sort((a, b) => a.start_time.localeCompare(b.start_time)));
+
     } catch (error) {
       console.error('Error fetching schedule:', error);
       toast({
@@ -119,13 +219,38 @@ const ScheduleTimetable: React.FC<ScheduleTimetableProps> = ({ studentData }) =>
     return `${displayHour}:${minutes} ${ampm}`;
   };
 
-  const getClassesForDay = (dayOfWeek: number) => {
-    return weeklySchedule.filter(cls => cls.day_of_week === dayOfWeek);
+  const getClassesForDay = (dayOfWeek: number, specificDate?: Date) => {
+    return weeklySchedule.filter(cls => {
+      if (cls.is_extra_class && cls.scheduled_date && specificDate) {
+        const classDate = new Date(cls.scheduled_date);
+        return classDate.toDateString() === specificDate.toDateString();
+      }
+      return cls.day_of_week === dayOfWeek;
+    });
   };
 
   const isToday = (date: Date) => {
     const today = new Date();
     return date.toDateString() === today.toDateString();
+  };
+
+  const getClassTypeStyle = (cls: any) => {
+    if (!cls.is_extra_class) {
+      return 'bg-primary/10 text-primary border-primary/20';
+    }
+    
+    switch (cls.class_type) {
+      case 'extra':
+        return 'bg-blue-50 text-blue-700 border-blue-200';
+      case 'remedial':
+        return 'bg-orange-50 text-orange-700 border-orange-200';
+      case 'makeup':
+        return 'bg-purple-50 text-purple-700 border-purple-200';
+      case 'special':
+        return 'bg-green-50 text-green-700 border-green-200';
+      default:
+        return 'bg-blue-50 text-blue-700 border-blue-200';
+    }
   };
 
   if (loading) {
@@ -143,7 +268,7 @@ const ScheduleTimetable: React.FC<ScheduleTimetableProps> = ({ studentData }) =>
         <div className="flex justify-between items-center">
           <div>
             <h2 className="text-2xl font-bold">Schedule & Timetable</h2>
-            <p className="text-muted-foreground">View your class schedule and timetable</p>
+            <p className="text-muted-foreground">View your class schedule including extra classes</p>
           </div>
         </div>
 
@@ -200,7 +325,7 @@ const ScheduleTimetable: React.FC<ScheduleTimetableProps> = ({ studentData }) =>
                       </div>
                       
                       {timeSlots.map((timeSlot, timeIndex) => {
-                        const dayClasses = getClassesForDay(dayIndex);
+                        const dayClasses = getClassesForDay(dayIndex, date);
                         const classAtTime = dayClasses.find(cls => {
                           const startTime = formatTime(cls.start_time);
                           return startTime === timeSlot;
@@ -209,13 +334,21 @@ const ScheduleTimetable: React.FC<ScheduleTimetableProps> = ({ studentData }) =>
                         return (
                           <div key={timeIndex} className="h-16 border rounded">
                             {classAtTime && (
-                              <div className="p-1 bg-primary/10 rounded text-xs h-full">
-                                <div className="font-medium text-primary truncate">
-                                  {classAtTime.course_code}
+                              <div className={`p-1 rounded text-xs h-full border ${getClassTypeStyle(classAtTime)}`}>
+                                <div className="font-medium truncate flex items-center">
+                                  {classAtTime.is_extra_class && (
+                                    <Star className="h-2 w-2 mr-1 flex-shrink-0" />
+                                  )}
+                                  <span className="truncate">{classAtTime.course_code}</span>
                                 </div>
-                                <div className="text-muted-foreground truncate">
+                                <div className="text-xs opacity-80 truncate">
                                   {classAtTime.room_location}
                                 </div>
+                                {classAtTime.is_extra_class && (
+                                  <div className="text-xs opacity-70 truncate capitalize">
+                                    {classAtTime.class_type}
+                                  </div>
+                                )}
                               </div>
                             )}
                           </div>
@@ -241,16 +374,39 @@ const ScheduleTimetable: React.FC<ScheduleTimetableProps> = ({ studentData }) =>
                   </div>
                 ) : (
                   todayClasses.map((cls, index) => (
-                    <div key={index} className="flex items-center space-x-4 p-4 border rounded-lg">
+                    <div key={index} className={`flex items-center space-x-4 p-4 border rounded-lg ${
+                      cls.is_extra_class ? 'border-l-4 border-l-blue-500' : ''
+                    }`}>
                       <div className="flex-shrink-0">
-                        <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
-                          <BookOpen className="h-6 w-6 text-primary" />
+                        <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
+                          cls.is_extra_class 
+                            ? 'bg-blue-50 text-blue-600'
+                            : 'bg-primary/10 text-primary'
+                        }`}>
+                          {cls.is_extra_class ? (
+                            <Star className="h-6 w-6" />
+                          ) : (
+                            <BookOpen className="h-6 w-6" />
+                          )}
                         </div>
                       </div>
                       <div className="flex-1">
-                        <h3 className="font-medium">{cls.course_name}</h3>
-                        <p className="text-sm text-muted-foreground">{cls.course_code}</p>
-                        <div className="flex items-center space-x-4 mt-2 text-xs text-muted-foreground">
+                        <div className="flex items-center space-x-2 flex-wrap">
+                          <h3 className="font-medium">{cls.course_name}</h3>
+                          {cls.is_extra_class && (
+                            <Badge variant="secondary" className="text-xs capitalize">
+                              {cls.class_type}
+                            </Badge>
+                          )}
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                          {cls.course_code}
+                          {cls.is_extra_class && cls.title && ` • ${cls.title}`}
+                        </p>
+                        {cls.description && (
+                          <p className="text-xs text-muted-foreground mt-1">{cls.description}</p>
+                        )}
+                        <div className="flex items-center space-x-4 mt-2 text-xs text-muted-foreground flex-wrap">
                           <span className="flex items-center">
                             <Clock className="h-3 w-3 mr-1" />
                             {formatTime(cls.start_time)} - {formatTime(cls.end_time)}
@@ -261,10 +417,12 @@ const ScheduleTimetable: React.FC<ScheduleTimetableProps> = ({ studentData }) =>
                               {cls.room_location}
                             </span>
                           )}
-                          <span className="flex items-center">
-                            <User className="h-3 w-3 mr-1" />
-                            {cls.instructor_name}
-                          </span>
+                          {cls.instructor_name && (
+                            <span className="flex items-center">
+                              <User className="h-3 w-3 mr-1" />
+                              {cls.instructor_name}
+                            </span>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -303,19 +461,41 @@ const ScheduleTimetable: React.FC<ScheduleTimetableProps> = ({ studentData }) =>
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {getClassesForDay(selectedDate.getDay()).length === 0 ? (
+                  {getClassesForDay(selectedDate.getDay(), selectedDate).length === 0 ? (
                     <div className="text-center py-8 text-muted-foreground">
                       No classes scheduled for this day
                     </div>
                   ) : (
-                    getClassesForDay(selectedDate.getDay()).map((cls, index) => (
-                      <div key={index} className="flex items-center space-x-4 p-4 border rounded-lg">
-                        <div className="flex-shrink-0">
-                          <Badge variant="outline">{cls.course_code}</Badge>
+                    getClassesForDay(selectedDate.getDay(), selectedDate)
+                      .sort((a, b) => a.start_time.localeCompare(b.start_time))
+                      .map((cls, index) => (
+                      <div key={index} className={`flex items-center space-x-4 p-4 border rounded-lg ${
+                        cls.is_extra_class ? 'border-l-4 border-l-blue-500' : ''
+                      }`}>
+                        <div className="flex-shrink-0 space-y-2">
+                          <Badge variant={cls.is_extra_class ? "secondary" : "outline"}>
+                            {cls.course_code}
+                          </Badge>
+                          {cls.is_extra_class && (
+                            <Badge variant="outline" className="text-xs capitalize block">
+                              {cls.class_type}
+                            </Badge>
+                          )}
                         </div>
                         <div className="flex-1">
-                          <h4 className="font-medium">{cls.course_name}</h4>
-                          <div className="flex items-center space-x-4 mt-1 text-sm text-muted-foreground">
+                          <div className="flex items-center space-x-2">
+                            <h4 className="font-medium">{cls.course_name}</h4>
+                            {cls.is_extra_class && (
+                              <Star className="h-4 w-4 text-blue-500" />
+                            )}
+                          </div>
+                          {cls.is_extra_class && cls.title && (
+                            <p className="text-sm text-blue-600 font-medium">{cls.title}</p>
+                          )}
+                          {cls.description && (
+                            <p className="text-sm text-muted-foreground mt-1">{cls.description}</p>
+                          )}
+                          <div className="flex items-center space-x-4 mt-1 text-sm text-muted-foreground flex-wrap">
                             <span className="flex items-center">
                               <Clock className="h-3 w-3 mr-1" />
                               {formatTime(cls.start_time)} - {formatTime(cls.end_time)}
@@ -324,6 +504,12 @@ const ScheduleTimetable: React.FC<ScheduleTimetableProps> = ({ studentData }) =>
                               <span className="flex items-center">
                                 <MapPin className="h-3 w-3 mr-1" />
                                 {cls.room_location}
+                              </span>
+                            )}
+                            {cls.instructor_name && (
+                              <span className="flex items-center">
+                                <User className="h-3 w-3 mr-1" />
+                                {cls.instructor_name}
                               </span>
                             )}
                           </div>

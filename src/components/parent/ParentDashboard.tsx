@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -8,9 +7,10 @@ import PermissionWrapper from '@/components/PermissionWrapper';
 
 interface ParentDashboardProps {
   user: any;
+  onNavigate?: (tab: string) => void; // Add navigation callback
 }
 
-const ParentDashboard = ({ user }: ParentDashboardProps) => {
+const ParentDashboard = ({ user, onNavigate }: ParentDashboardProps) => {
   // Mock data for children - in real app, this would come from parent_student_links
   const children = [
     {
@@ -29,28 +29,32 @@ const ParentDashboard = ({ user }: ParentDashboardProps) => {
       value: '8.5',
       icon: Award,
       color: 'text-green-600',
-      permission: 'view_child_grades' as const
+      permission: 'view_child_grades' as const,
+      navigateTo: 'grades'
     },
     {
       title: 'Attendance',
       value: '92%',
       icon: Calendar,
       color: 'text-blue-600',
-      permission: 'view_child_attendance' as const
+      permission: 'view_child_attendance' as const,
+      navigateTo: 'attendance'
     },
     {
       title: 'Pending Fees',
       value: '₹15,000',
       icon: DollarSign,
       color: 'text-red-600',
-      permission: 'view_child_fees' as const
+      permission: 'view_child_fees' as const,
+      navigateTo: 'payments'
     },
     {
       title: 'Enrolled Courses',
       value: '6',
       icon: BookOpen,
       color: 'text-purple-600',
-      permission: 'view_child_grades' as const
+      permission: 'view_child_grades' as const,
+      navigateTo: 'courses'
     }
   ];
 
@@ -83,42 +87,72 @@ const ParentDashboard = ({ user }: ParentDashboardProps) => {
       title: 'View Grades',
       description: 'Check your child\'s academic performance',
       icon: Award,
-      color: 'bg-green-50 text-green-600',
-      permission: 'view_child_grades' as const
+      color: 'bg-green-50 text-green-600 hover:bg-green-100',
+      permission: 'view_child_grades' as const,
+      navigateTo: 'grades'
     },
     {
       title: 'Pay Fees',
       description: 'Make fee payments for your child',
       icon: DollarSign,
-      color: 'bg-blue-50 text-blue-600',
-      permission: 'make_child_payments' as const
+      color: 'bg-blue-50 text-blue-600 hover:bg-blue-100',
+      permission: 'make_child_payments' as const,
+      navigateTo: 'payments'
     },
     {
       title: 'Attendance Report',
       description: 'View detailed attendance records',
       icon: Calendar,
-      color: 'bg-purple-50 text-purple-600',
-      permission: 'view_child_attendance' as const
+      color: 'bg-purple-50 text-purple-600 hover:bg-purple-100',
+      permission: 'view_child_attendance' as const,
+      navigateTo: 'attendance'
     },
     {
       title: 'Contact Support',
       description: 'Get help with any concerns',
       icon: AlertCircle,
-      color: 'bg-yellow-50 text-yellow-600',
-      permission: 'support_tickets' as const
+      color: 'bg-yellow-50 text-yellow-600 hover:bg-yellow-100',
+      permission: 'support_tickets' as const,
+      navigateTo: 'support'
     }
   ];
+
+  const handleQuickActionClick = (navigateTo: string, actionTitle: string) => {
+    if (onNavigate) {
+      onNavigate(navigateTo);
+    } else {
+      console.warn(`Navigation not available for ${actionTitle}`);
+    }
+  };
+
+  const handleStatCardClick = (navigateTo: string) => {
+    if (onNavigate) {
+      onNavigate(navigateTo);
+    }
+  };
+
+  const handleChildClick = () => {
+    if (onNavigate) {
+      onNavigate('grades');
+    }
+  };
+
+  const handlePayNowClick = () => {
+    if (onNavigate) {
+      onNavigate('payments');
+    }
+  };
 
   return (
     <div className="space-y-6">
       {/* Welcome Section */}
-      <Card>
+      <Card >
         <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
+          <CardTitle className="flex items-center space-x-2 ">
             <User className="h-5 w-5" />
             <span>Welcome, {user.first_name} {user.last_name}!</span>
           </CardTitle>
-          <CardDescription>
+          <CardDescription >
             Parent Portal | Monitor your child's academic progress
           </CardDescription>
         </CardHeader>
@@ -128,15 +162,19 @@ const ParentDashboard = ({ user }: ParentDashboardProps) => {
       <Card>
         <CardHeader>
           <CardTitle>Your Children</CardTitle>
-          <CardDescription>Students linked to your account</CardDescription>
+          <CardDescription>Students linked to your account - click to view details</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
             {children.map((child) => (
-              <div key={child.id} className="flex items-center justify-between p-4 border rounded-lg">
+              <div 
+                key={child.id} 
+                className="flex items-center justify-between p-4 border rounded-lg  transition-colors cursor-pointer hover:shadow-md"
+                onClick={handleChildClick}
+              >
                 <div>
                   <h4 className="font-medium">{child.name}</h4>
-                  <p className="text-sm text-gray-600">{child.user_code} • {child.class}</p>
+                  <p className="text-sm ">{child.user_code} • {child.class}</p>
                 </div>
                 <div className="flex space-x-2">
                   <PermissionWrapper permission="view_child_grades">
@@ -158,11 +196,14 @@ const ParentDashboard = ({ user }: ParentDashboardProps) => {
           const Icon = stat.icon;
           return (
             <PermissionWrapper key={index} permission={stat.permission}>
-              <Card>
+              <Card 
+                className="hover:shadow-md transition-all duration-300 cursor-pointer hover:scale-105"
+                onClick={() => handleStatCardClick(stat.navigateTo)}
+              >
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-gray-600">{stat.title}</p>
+                      <p className="text-sm font-medium ">{stat.title}</p>
                       <p className="text-2xl font-bold">{stat.value}</p>
                     </div>
                     <Icon className={`h-8 w-8 ${stat.color}`} />
@@ -184,12 +225,12 @@ const ParentDashboard = ({ user }: ParentDashboardProps) => {
           <CardContent className="space-y-4">
             {recentActivities.map((activity, index) => (
               <PermissionWrapper key={index} permission={activity.permission}>
-                <div className="flex items-start space-x-3">
-                  <div className="w-2 h-2 bg-blue-600 rounded-full mt-2"></div>
+                <div className="flex items-start space-x-3 p-2 rounded-lg  transition-colors">
+                  <div className="w-2 h-2  rounded-full mt-2"></div>
                   <div className="flex-1">
                     <p className="font-medium">{activity.title}</p>
-                    <p className="text-sm text-gray-600">{activity.description}</p>
-                    <p className="text-xs text-gray-400">{activity.child} • {activity.time}</p>
+                    <p className="text-sm ">{activity.description}</p>
+                    <p className="text-xs ">{activity.child} • {activity.time}</p>
                   </div>
                 </div>
               </PermissionWrapper>
@@ -201,22 +242,25 @@ const ParentDashboard = ({ user }: ParentDashboardProps) => {
         <Card>
           <CardHeader>
             <CardTitle>Quick Actions</CardTitle>
-            <CardDescription>Frequently used features</CardDescription>
+            <CardDescription>Frequently used features - click to navigate</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
             {quickActions.map((action, index) => {
               const Icon = action.icon;
               return (
                 <PermissionWrapper key={index} permission={action.permission}>
-                  <div className="flex items-center space-x-3 p-3 rounded-lg border hover:bg-gray-50 cursor-pointer">
-                    <div className={`p-2 rounded-lg ${action.color}`}>
+                  <Button
+                    className="w-full h-auto p-4 flex items-center justify-start space-x-3 rounded-lg border transition-all duration-20"
+                    onClick={() => handleQuickActionClick(action.navigateTo, action.title)}
+                  >
+                    <div className="p-2 rounded-lg 0">
                       <Icon className="h-4 w-4" />
                     </div>
-                    <div className="flex-1">
-                      <p className="font-medium">{action.title}</p>
-                      <p className="text-sm text-gray-600">{action.description}</p>
+                    <div className="flex-1 text-left">
+                      <p className="font-medium text-sm">{action.title}</p>
+                      <p className="text-xs opacity-80">{action.description}</p>
                     </div>
-                  </div>
+                  </Button>
                 </PermissionWrapper>
               );
             })}
@@ -226,7 +270,7 @@ const ParentDashboard = ({ user }: ParentDashboardProps) => {
 
       {/* Fee Payment Alert */}
       <PermissionWrapper permission="view_child_fees">
-        <Card className="border-yellow-200 bg-yellow-50">
+        <Card >
           <CardHeader>
             <CardTitle className="flex items-center space-x-2 text-yellow-800">
               <AlertCircle className="h-5 w-5" />
@@ -234,11 +278,13 @@ const ParentDashboard = ({ user }: ParentDashboardProps) => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-yellow-700 mb-4">
+            <p className=" mb-4">
               Semester fees for Alex Johnson are due in 5 days. Amount due: ₹15,000
             </p>
             <PermissionWrapper permission="make_child_payments">
-              <Button className="bg-yellow-600 hover:bg-yellow-700">
+              <Button 
+                onClick={handlePayNowClick}
+              >
                 Pay Now
               </Button>
             </PermissionWrapper>

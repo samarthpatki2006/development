@@ -46,7 +46,7 @@ interface Event {
   is_registered?: boolean;
 }
 
-const CalendarAttendance: React.FC<CalendarAttendanceProps> = ({ studentData }) => {
+const Events: React.FC<CalendarAttendanceProps> = ({ studentData }) => {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [todayClasses, setTodayClasses] = useState([]);
   const [todayEvents, setTodayEvents] = useState<Event[]>([]);
@@ -402,22 +402,16 @@ const CalendarAttendance: React.FC<CalendarAttendanceProps> = ({ studentData }) 
     return colors[type] || 'bg-gray-100 text-gray-800';
   };
 
-  const getAttendancePercentage = () => {
-    if (monthlyStats.total === 0) return 0;
-    return Math.round((monthlyStats.present / monthlyStats.total) * 100);
-  };
 
   if (loading) {
-    return <div className="flex justify-center py-8">Loading calendar data...</div>;
+    return <div className="flex justify-center py-8">Loading event calendar data...</div>;
   }
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold">Calendar & Attendance</h2>
-        <Badge variant="outline" className="text-lg px-3 py-1">
-          {getAttendancePercentage()}% This Month
-        </Badge>
+        <h2 className="text-2xl font-bold">Event calendar</h2>
+
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -426,7 +420,7 @@ const CalendarAttendance: React.FC<CalendarAttendanceProps> = ({ studentData }) 
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
               <CalendarIcon className="h-5 w-5" />
-              <span>Academic Calendar</span>
+              <span>Calendar</span>
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -619,4 +613,4 @@ const AbsenceRequestDialog: React.FC<{
   );
 };
 
-export default CalendarAttendance;
+export default Events;

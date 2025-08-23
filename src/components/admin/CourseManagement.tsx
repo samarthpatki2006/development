@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -111,16 +110,26 @@ const CourseManagement = ({ userProfile }: { userProfile: UserProfile }) => {
         .from('user_profiles')
         .select('id, first_name, last_name')
         .eq('college_id', userProfile.college_id)
-        .in('user_type', ['teacher', 'admin'])
+        .eq('user_type', 'faculty') // Changed from ['teacher', 'admin'] to 'faculty'
         .eq('is_active', true);
 
       if (error) {
         console.error('Error loading instructors:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load faculty members.",
+          variant: "destructive",
+        });
       } else {
         setInstructors(data || []);
       }
     } catch (error) {
       console.error('Error loading instructors:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load faculty members.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -280,10 +289,10 @@ const CourseManagement = ({ userProfile }: { userProfile: UserProfile }) => {
                     </Select>
                   </div>
                   <div>
-                    <Label htmlFor="instructor">Instructor</Label>
+                    <Label htmlFor="instructor">Faculty Instructor</Label>
                     <Select value={courseForm.instructor_id} onValueChange={(value) => setCourseForm({...courseForm, instructor_id: value})}>
                       <SelectTrigger>
-                        <SelectValue placeholder="Select instructor" />
+                        <SelectValue placeholder="Select faculty member" />
                       </SelectTrigger>
                       <SelectContent>
                         {instructors.map((instructor) => (

@@ -420,7 +420,7 @@ const GradeManager = () => {
               {/* Assignment Scores Section */}
               {assignmentData.assignments.length > 0 && (
                 <Card className="border shadow-sm">
-                  <CardHeader className="bg-gray-50">
+                  <CardHeader>
                     <CardTitle className="text-lg">Official Assignment Scores</CardTitle>
                   </CardHeader>
                   <CardContent className="p-4">
@@ -434,7 +434,7 @@ const GradeManager = () => {
                           <div key={assignment.id} className="flex items-center justify-between p-3 rounded border">
                             <div className="flex-1">
                               <p className="font-medium">{assignment.title}</p>
-                              <p className="text-sm text-gray-600">
+                              <p className="text-sm ">
                                 Score: {score}/{assignment.max_marks} ({percentage.toFixed(1)}%)
                               </p>
                             </div>
@@ -455,7 +455,6 @@ const GradeManager = () => {
                       onClick={addCustomAssessment} 
                       size="sm" 
                       variant="outline" 
-                      className="border-blue-300 "
                     >
                       <Plus className="w-4 h-4 mr-1" />
                       Add Assessment
@@ -507,20 +506,20 @@ const GradeManager = () => {
                             onClick={() => removeCustomAssessment(assessment.id)}
                             variant="outline"
                             size="sm"
-                            className="border-red-300  w-full"
+                            className=" w-full"
                           >
                             <Trash2 className="w-4 h-4" />
                           </Button>
                         </div>
                         {assessment.maxScore > 0 && (
-                          <div className="md:col-span-5 text-sm text-gray-600">
+                          <div className="md:col-span-5 text-sm ">
                             Percentage: {((assessment.score / assessment.maxScore) * 100).toFixed(1)}%
                           </div>
                         )}
                       </div>
                     ))}
                     {customAssessments.length === 0 && (
-                      <div className="text-center py-8 text-gray-500">
+                      <div className="text-center py-8 ">
                         <p>No manual assessments added yet.</p>
                         <p className="text-sm">Click "Add Assessment" to include additional scores like quizzes, projects, or participation grades.</p>
                       </div>
@@ -532,30 +531,30 @@ const GradeManager = () => {
               {/* Grade Summary */}
               <Card className="border shadow-sm">
                 <CardHeader className="">
-                  <CardTitle className="text-lg text-gray-800 flex items-center gap-2">
+                  <CardTitle className="text-lg  flex items-center gap-2">
                     <Calculator className="w-5 h-5" />
                     Grade Summary
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4 p-4">
                   <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <div className="text-center p-4 rounded border border-blue-200">
+                    <div className="text-center p-4 rounded border ">
                       <p className="text-sm ">Total Assessments</p>
                       <p className="text-2xl font-bold ">
                         {assignmentData.assignments.length + customAssessments.length}
                       </p>
                     </div>
-                    <div className="text-center p-4 rounded border border-purple-200 ">
+                    <div className="text-center p-4 rounded border  ">
                       <p className="text-">Manual Assessments</p>
                       <p className="text-2xl font-bold ">{customAssessments.length}</p>
                     </div>
-                    <div className="text-center p-4 rounded border border-orange-200 ">
+                    <div className="text-center p-4 rounded border  ">
                       <p className="text-sm ">Calculated Score</p>
-                      <p className="text-2xl font-bold text-orange-600">{calculateWeightedScore().toFixed(1)}%</p>
+                      <p className="text-2xl font-bold ">{calculateWeightedScore().toFixed(1)}%</p>
                     </div>
-                    <div className="text-center p-4 rounded border border-green-200 ">
+                    <div className="text-center p-4 rounded border  ">
                       <p className="text-sm">Auto Grade</p>
-                      <p className="text-2xl font-bold text-green-600">{getLetterGrade(calculateWeightedScore())}</p>
+                      <p className="text-2xl font-bold ">{getLetterGrade(calculateWeightedScore())}</p>
                     </div>
                   </div>
 
@@ -568,7 +567,7 @@ const GradeManager = () => {
                       placeholder={`Auto-calculated: ${getLetterGrade(calculateWeightedScore())}`}
                       className="text-center font-bold"
                     />
-                    <p className="text-xs text-gray-500">Leave empty to use auto-calculated grade</p>
+                    <p className="text-xs ">Leave empty to use auto-calculated grade</p>
                   </div>
 
                   <Button
@@ -591,16 +590,6 @@ const GradeManager = () => {
                 </CardContent>
               </Card>
             </>
-          )}
-
-          {selectedCourse && selectedStudent && assignmentData.assignments.length === 0 && !loading && (
-            <Card className="border shadow-sm">
-              <CardContent className="p-4">
-                <p className="text-yellow-800 text-center">
-                  No official assignments found for this course. You can still add manual assessments and assign a final grade.
-                </p>
-              </CardContent>
-            </Card>
           )}
         </CardContent>
       </Card>

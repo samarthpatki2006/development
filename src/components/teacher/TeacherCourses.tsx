@@ -560,7 +560,7 @@ const TeacherCourses = ({ teacherData }: TeacherCoursesProps) => {
                           onChange={(e) => setNewMaterial({...newMaterial, description: e.target.value})}
                         />
                         <select
-                          className="w-full p-2 border rounded"
+                          className="w-full p-2 border rounded bg-black"
                           value={newMaterial.material_type}
                           onChange={(e) => setNewMaterial({...newMaterial, material_type: e.target.value})}
                         >
@@ -587,11 +587,11 @@ const TeacherCourses = ({ teacherData }: TeacherCoursesProps) => {
                       <CardContent className="p-4">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-3">
-                            <FileText className="h-5 w-5 text-blue-500" />
+                            <FileText className="h-5 w-5 " />
                             <div>
                               <p className="font-medium">{material.title}</p>
-                              <p className="text-sm text-gray-600">{material.description}</p>
-                              <p className="text-xs text-gray-500">
+                              <p className="text-sm ">{material.description}</p>
+                              <p className="text-xs ">
                                 Uploaded {new Date(material.uploaded_at).toLocaleDateString()}
                               </p>
                             </div>
@@ -618,15 +618,15 @@ const TeacherCourses = ({ teacherData }: TeacherCoursesProps) => {
                       <CardContent className="p-4">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-3">
-                            <FileText className="h-5 w-5 text-green-500" />
+                            <FileText className="h-5 w-5 " />
                             <div>
                               <p className="font-medium">{quiz.quiz_name}</p>
-                              <p className="text-sm text-gray-600">{quiz.description}</p>
-                              <p className="text-xs text-gray-500">
+                              <p className="text-sm ">{quiz.description}</p>
+                              <p className="text-xs ">
                                 {quiz.time_limit_minutes && `${quiz.time_limit_minutes} minutes • `}
                                 {quiz.attempts_allowed} attempt(s) • Pass: {quiz.pass_percentage}%
                               </p>
-                              <p className="text-xs text-gray-500">
+                              <p className="text-xs ">
                                 Created: {new Date(quiz.created_at).toLocaleDateString()}
                               </p>
                             </div>

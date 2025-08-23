@@ -30,7 +30,9 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
   const [todayClasses, setTodayClasses] = useState<any[]>([]);
   const [reminders, setReminders] = useState<any[]>([]);
   const [alerts, setAlerts] = useState<any[]>([]);
+  const [courses, setCourses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isScheduleDialogOpen, setIsScheduleDialogOpen] = useState(false);
 
   const [newReminder, setNewReminder] = useState({
     class_id: '',
@@ -39,10 +41,19 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
     reminder_type: 'preparation'
   });
 
+  const [newSchedule, setNewSchedule] = useState({
+    course_id: '',
+    day_of_week: 0,
+    start_time: '',
+    end_time: '',
+    room_location: ''
+  });
+
   const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
   useEffect(() => {
     fetchScheduleData();
+    fetchTeacherCourses();
   }, [teacherData]);
 
   const fetchScheduleData = async () => {
@@ -58,6 +69,21 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
       console.error('Error fetching schedule data:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchTeacherCourses = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('courses')
+        .select('id, course_name, course_code')
+        .eq('instructor_id', teacherData.user_id);
+
+      if (!error && data) {
+        setCourses(data);
+      }
+    } catch (error) {
+      console.error('Error fetching teacher courses:', error);
     }
   };
 
@@ -141,6 +167,74 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
     ]);
   };
 
+  const createSchedule = async () => {
+    try {
+      // Validate form data
+      if (!newSchedule.course_id || !newSchedule.start_time || !newSchedule.end_time) {
+        toast({
+          title: 'Error',
+          description: 'Please fill in all required fields',
+          variant: 'destructive'
+        });
+        return;
+      }
+
+      // Validate time logic
+      if (newSchedule.start_time >= newSchedule.end_time) {
+        toast({
+          title: 'Error',
+          description: 'End time must be after start time',
+          variant: 'destructive'
+        });
+        return;
+      }
+
+      // Insert into database
+      const { data, error } = await supabase
+        .from('class_schedule')
+        .insert([{
+          course_id: newSchedule.course_id,
+          day_of_week: parseInt(newSchedule.day_of_week.toString()),
+          start_time: newSchedule.start_time,
+          end_time: newSchedule.end_time,
+          room_location: newSchedule.room_location || null
+        }])
+        .select();
+
+      if (error) {
+        throw error;
+      }
+
+      toast({
+        title: 'Success',
+        description: 'Class scheduled successfully'
+      });
+
+      // Reset form
+      setNewSchedule({
+        course_id: '',
+        day_of_week: 0,
+        start_time: '',
+        end_time: '',
+        room_location: ''
+      });
+
+      // Close dialog
+      setIsScheduleDialogOpen(false);
+
+      // Refresh schedule data
+      await fetchScheduleData();
+
+    } catch (error) {
+      console.error('Error creating schedule:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to schedule class. Please try again.',
+        variant: 'destructive'
+      });
+    }
+  };
+
   const createReminder = async () => {
     try {
       // In a real implementation, you would save to a reminders table
@@ -188,19 +282,103 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
   return (
     <PermissionWrapper permission="mark_attendance">
       <div className="space-y-6">
-        {/* Alerts Section */}
-        {alerts.length > 0 && (
-          <div className="space-y-2">
-            {alerts.map((alert) => (
-              <Alert key={alert.id} variant={alert.severity === 'error' ? 'destructive' : 'default'}>
-                <AlertTriangle className="h-4 w-4" />
-                <AlertDescription>
-                  <strong>{alert.class_time}</strong> - {alert.message}
-                </AlertDescription>
-              </Alert>
-            ))}
-          </div>
-        )}
+        {/* Header with Schedule Class Button */}
+        <div className="flex justify-between items-center">
+          <h2 className="text-2xl font-bold">My Schedule</h2>
+          <Dialog open={isScheduleDialogOpen} onOpenChange={setIsScheduleDialogOpen}>
+            <DialogTrigger asChild>
+              <Button className="flex items-center gap-2">
+                <Plus className="h-4 w-4" />
+                Schedule Class
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-md">
+              <DialogHeader>
+                <DialogTitle>Schedule New Class</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium mb-2">Course *</label>
+                  <select
+                    className="w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                    value={newSchedule.course_id}
+                    onChange={(e) => setNewSchedule({...newSchedule, course_id: e.target.value})}
+                  >
+                    <option value="">Select a course</option>
+                    {courses.map((course) => (
+                      <option key={course.id} value={course.id}>
+                        {course.course_code} - {course.course_name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-2">Day of Week *</label>
+                  <select
+                    className="w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                    value={newSchedule.day_of_week}
+                    onChange={(e) => setNewSchedule({...newSchedule, day_of_week: parseInt(e.target.value)})}
+                  >
+                    {daysOfWeek.map((day, index) => (
+                      <option key={index} value={index}>
+                        {day}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Start Time *</label>
+                    <Input
+                      type="time"
+                      value={newSchedule.start_time}
+                      onChange={(e) => setNewSchedule({...newSchedule, start_time: e.target.value})}
+                      className="focus:ring-2 focus:ring-primary"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2">End Time *</label>
+                    <Input
+                      type="time"
+                      value={newSchedule.end_time}
+                      onChange={(e) => setNewSchedule({...newSchedule, end_time: e.target.value})}
+                      className="focus:ring-2 focus:ring-primary"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-2">Room Location</label>
+                  <Input
+                    placeholder="e.g., Room 101, Lab A, Online"
+                    value={newSchedule.room_location}
+                    onChange={(e) => setNewSchedule({...newSchedule, room_location: e.target.value})}
+                    className="focus:ring-2 focus:ring-primary"
+                  />
+                </div>
+
+                <div className="flex gap-3 pt-4">
+                  <Button 
+                    onClick={createSchedule} 
+                    className="flex-1"
+                    disabled={!newSchedule.course_id || !newSchedule.start_time || !newSchedule.end_time}
+                  >
+                    <Calendar className="h-4 w-4 mr-2" />
+                    Schedule Class
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setIsScheduleDialogOpen(false)}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
+        </div>
 
         {/* Today's Schedule */}
         <Card>

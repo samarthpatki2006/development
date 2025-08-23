@@ -6,6 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { 
   Calendar, 
   Clock, 
@@ -25,6 +26,7 @@ interface TeacherEventsProps {
 const TeacherExtra = ({ teacherData }: TeacherEventsProps) => {
   const [loading, setLoading] = useState(true);
   const [scheduledClasses, setScheduledClasses] = useState<any[]>([]);
+  const [courses, setCourses] = useState<any[]>([]);
   const [editingClass, setEditingClass] = useState<any>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [newClassDialogOpen, setNewClassDialogOpen] = useState(false);
@@ -41,36 +43,81 @@ const TeacherExtra = ({ teacherData }: TeacherEventsProps) => {
   });
 
   useEffect(() => {
-    if (teacherData) {
+    if (teacherData?.user_id) {
       fetchScheduledClasses();
+      fetchTeacherCourses();
     }
   }, [teacherData]);
+
+  const fetchTeacherCourses = async () => {
+    try {
+      console.log('Fetching courses for instructor:', teacherData.user_id);
+      
+      const { data, error } = await supabase
+        .from('courses')
+        .select('id, course_name, course_code')
+        .eq('instructor_id', teacherData.user_id);
+
+      if (error) {
+        console.error('Error fetching courses:', error);
+        toast({
+          title: 'Error',
+          description: 'Failed to fetch courses',
+          variant: 'destructive'
+        });
+        return;
+      }
+
+      console.log('Fetched courses:', data);
+      setCourses(data || []);
+    } catch (error) {
+      console.error('Error fetching courses:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to fetch courses',
+        variant: 'destructive'
+      });
+    }
+  };
 
   const fetchScheduledClasses = async () => {
     try {
       setLoading(true);
+      console.log('Fetching scheduled classes for teacher:', teacherData.user_id);
+      
       const { data, error } = await supabase
         .from('extra_class_schedule')
         .select(`
           *,
-          courses (
+          courses!inner (
+            id,
             course_name,
             course_code
           )
         `)
         .eq('teacher_id', teacherData.user_id)
+        .not('course_id', 'is', null)
         .order('scheduled_date', { ascending: true });
 
       if (error) {
         console.error('Error fetching scheduled classes:', error);
+        toast({
+          title: 'Error',
+          description: 'Failed to fetch scheduled classes',
+          variant: 'destructive'
+        });
         return;
       }
 
-      if (data) {
-        setScheduledClasses(data);
-      }
+      console.log('Fetched scheduled classes:', data);
+      setScheduledClasses(data || []);
     } catch (error) {
       console.error('Error fetching scheduled classes:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to fetch scheduled classes',
+        variant: 'destructive'
+      });
     } finally {
       setLoading(false);
     }
@@ -79,27 +126,50 @@ const TeacherExtra = ({ teacherData }: TeacherEventsProps) => {
   const scheduleExtraClass = async () => {
     try {
       // Validate required fields
-      if (!newClass.title || !newClass.scheduled_date || !newClass.start_time || !newClass.end_time) {
+      if (!newClass.title || !newClass.scheduled_date || !newClass.start_time || !newClass.end_time || !newClass.course_id) {
         toast({
           title: 'Error',
-          description: 'Please fill in all required fields',
+          description: 'Please fill in all required fields including course selection',
           variant: 'destructive'
         });
         return;
       }
+
+      // Validate time order
+      if (newClass.start_time >= newClass.end_time) {
+        toast({
+          title: 'Error',
+          description: 'Start time must be before end time',
+          variant: 'destructive'
+        });
+        return;
+      }
+
+      console.log('Scheduling class with data:', {
+        teacher_id: teacherData.user_id,
+        course_id: newClass.course_id,
+        title: newClass.title,
+        description: newClass.description,
+        scheduled_date: newClass.scheduled_date,
+        start_time: newClass.start_time,
+        end_time: newClass.end_time,
+        room_location: newClass.room_location,
+        class_type: newClass.class_type,
+        status: 'scheduled'
+      });
 
       // Create the class schedule entry in the database
       const { data, error } = await supabase
         .from('extra_class_schedule')
         .insert({
           teacher_id: teacherData.user_id,
-          course_id: newClass.course_id || null,
+          course_id: newClass.course_id,
           title: newClass.title,
-          description: newClass.description,
+          description: newClass.description || null,
           scheduled_date: newClass.scheduled_date,
           start_time: newClass.start_time,
           end_time: newClass.end_time,
-          room_location: newClass.room_location,
+          room_location: newClass.room_location || null,
           class_type: newClass.class_type,
           status: 'scheduled',
           created_at: new Date().toISOString(),
@@ -110,8 +180,15 @@ const TeacherExtra = ({ teacherData }: TeacherEventsProps) => {
 
       if (error) {
         console.error('Database error:', error);
-        throw error;
+        toast({
+          title: 'Error',
+          description: `Failed to schedule class: ${error.message}`,
+          variant: 'destructive'
+        });
+        return;
       }
+
+      console.log('Class scheduled successfully:', data);
 
       toast({
         title: 'Success',
@@ -148,7 +225,10 @@ const TeacherExtra = ({ teacherData }: TeacherEventsProps) => {
     try {
       const { error } = await supabase
         .from('extra_class_schedule')
-        .update({ status: 'cancelled' })
+        .update({ 
+          status: 'cancelled',
+          updated_at: new Date().toISOString()
+        })
         .eq('id', classId);
 
       if (error) throw error;
@@ -189,10 +269,20 @@ const TeacherExtra = ({ teacherData }: TeacherEventsProps) => {
   // Update scheduled class function
   const updateScheduledClass = async () => {
     try {
-      if (!editingClass.title || !editingClass.scheduled_date || !editingClass.start_time || !editingClass.end_time) {
+      if (!editingClass.title || !editingClass.scheduled_date || !editingClass.start_time || !editingClass.end_time || !editingClass.course_id) {
         toast({
           title: 'Error',
-          description: 'Please fill in all required fields',
+          description: 'Please fill in all required fields including course selection',
+          variant: 'destructive'
+        });
+        return;
+      }
+
+      // Validate time order
+      if (editingClass.start_time >= editingClass.end_time) {
+        toast({
+          title: 'Error',
+          description: 'Start time must be before end time',
           variant: 'destructive'
         });
         return;
@@ -202,18 +292,26 @@ const TeacherExtra = ({ teacherData }: TeacherEventsProps) => {
         .from('extra_class_schedule')
         .update({
           title: editingClass.title,
-          description: editingClass.description,
+          description: editingClass.description || null,
           scheduled_date: editingClass.scheduled_date,
           start_time: editingClass.start_time,
           end_time: editingClass.end_time,
-          room_location: editingClass.room_location,
+          room_location: editingClass.room_location || null,
           class_type: editingClass.class_type,
-          course_id: editingClass.course_id || null,
+          course_id: editingClass.course_id,
           updated_at: new Date().toISOString()
         })
         .eq('id', editingClass.id);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error updating class:', error);
+        toast({
+          title: 'Error',
+          description: `Failed to update class: ${error.message}`,
+          variant: 'destructive'
+        });
+        return;
+      }
 
       toast({
         title: 'Success',
@@ -269,62 +367,115 @@ const TeacherExtra = ({ teacherData }: TeacherEventsProps) => {
                         Schedule Class
                       </Button>
                     </DialogTrigger>
-                    <DialogContent>
+                    <DialogContent className="max-w-md">
                       <DialogHeader>
                         <DialogTitle>Schedule New Class</DialogTitle>
                       </DialogHeader>
                       <div className="space-y-4">
-                        <Input
-                          placeholder="Class title"
-                          value={newClass.title}
-                          onChange={(e) => setNewClass({...newClass, title: e.target.value})}
-                        />
-                        
-                        <Textarea
-                          placeholder="Class description"
-                          value={newClass.description}
-                          onChange={(e) => setNewClass({...newClass, description: e.target.value})}
-                        />
-                        
-                        <Input
-                          type="date"
-                          value={newClass.scheduled_date}
-                          onChange={(e) => setNewClass({...newClass, scheduled_date: e.target.value})}
-                        />
-                        
-                        <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="text-sm font-medium">Class Title *</label>
                           <Input
-                            type="time"
-                            placeholder="Start time"
-                            value={newClass.start_time}
-                            onChange={(e) => setNewClass({...newClass, start_time: e.target.value})}
-                          />
-                          <Input
-                            type="time"
-                            placeholder="End time"
-                            value={newClass.end_time}
-                            onChange={(e) => setNewClass({...newClass, end_time: e.target.value})}
+                            placeholder="Enter class title"
+                            value={newClass.title}
+                            onChange={(e) => setNewClass({...newClass, title: e.target.value})}
                           />
                         </div>
                         
-                        <Input
-                          placeholder="Room location"
-                          value={newClass.room_location}
-                          onChange={(e) => setNewClass({...newClass, room_location: e.target.value})}
-                        />
+                        <div>
+                          <label className="text-sm font-medium">Description</label>
+                          <Textarea
+                            placeholder="Enter class description (optional)"
+                            value={newClass.description}
+                            onChange={(e) => setNewClass({...newClass, description: e.target.value})}
+                            rows={3}
+                          />
+                        </div>
+
+                        <div>
+                          <label className="text-sm font-medium">Course *</label>
+                          <Select
+                            value={newClass.course_id}
+                            onValueChange={(value) => setNewClass({...newClass, course_id: value})}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select a course" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {courses.map((course) => (
+                                <SelectItem key={course.id} value={course.id}>
+                                  {course.course_code} - {course.course_name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          {courses.length === 0 && (
+                            <p className="text-sm text-muted-foreground mt-1">
+                              No courses found. Make sure you have courses assigned.
+                            </p>
+                          )}
+                        </div>
                         
-                        <select
-                          className="w-full p-2 border rounded bg-background"
-                          value={newClass.class_type}
-                          onChange={(e) => setNewClass({...newClass, class_type: e.target.value})}
+                        <div>
+                          <label className="text-sm font-medium">Date *</label>
+                          <Input
+                            type="date"
+                            value={newClass.scheduled_date}
+                            onChange={(e) => setNewClass({...newClass, scheduled_date: e.target.value})}
+                            min={new Date().toISOString().split('T')[0]}
+                          />
+                        </div>
+                        
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <label className="text-sm font-medium">Start Time *</label>
+                            <Input
+                              type="time"
+                              value={newClass.start_time}
+                              onChange={(e) => setNewClass({...newClass, start_time: e.target.value})}
+                            />
+                          </div>
+                          <div>
+                            <label className="text-sm font-medium">End Time *</label>
+                            <Input
+                              type="time"
+                              value={newClass.end_time}
+                              onChange={(e) => setNewClass({...newClass, end_time: e.target.value})}
+                            />
+                          </div>
+                        </div>
+                        
+                        <div>
+                          <label className="text-sm font-medium">Room Location</label>
+                          <Input
+                            placeholder="Enter room location (optional)"
+                            value={newClass.room_location}
+                            onChange={(e) => setNewClass({...newClass, room_location: e.target.value})}
+                          />
+                        </div>
+                        
+                        <div>
+                          <label className="text-sm font-medium">Class Type</label>
+                          <Select
+                            value={newClass.class_type}
+                            onValueChange={(value) => setNewClass({...newClass, class_type: value})}
+                          >
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="extra">Extra Class</SelectItem>
+                              <SelectItem value="remedial">Remedial Class</SelectItem>
+                              <SelectItem value="makeup">Makeup Class</SelectItem>
+                              <SelectItem value="special">Special Session</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        
+                        <Button 
+                          onClick={scheduleExtraClass} 
+                          className="w-full"
+                          disabled={!newClass.title || !newClass.course_id || !newClass.scheduled_date || !newClass.start_time || !newClass.end_time}
                         >
-                          <option value="extra">Extra Class</option>
-                          <option value="remedial">Remedial Class</option>
-                          <option value="makeup">Makeup Class</option>
-                          <option value="special">Special Session</option>
-                        </select>
-                        
-                        <Button onClick={scheduleExtraClass} className="w-full">
                           Schedule Class
                         </Button>
                       </div>
@@ -334,9 +485,12 @@ const TeacherExtra = ({ teacherData }: TeacherEventsProps) => {
               </CardHeader>
               <CardContent>
                 {scheduledClasses.length === 0 ? (
-                  <p className="text-muted-foreground text-center py-8">
-                    No scheduled classes yet. Schedule your first extra or remedial class!
-                  </p>
+                  <div className="text-center py-8">
+                    <BookOpen className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                    <p className="text-muted-foreground">
+                      No scheduled classes yet. Schedule your first extra or remedial class!
+                    </p>
+                  </div>
                 ) : (
                   <div className="space-y-4">
                     {scheduledClasses.map((scheduledClass) => (
@@ -385,8 +539,8 @@ const TeacherExtra = ({ teacherData }: TeacherEventsProps) => {
                             
                             {scheduledClass.courses && (
                               <div className="flex items-center gap-2 text-sm">
-                                <BookOpen className="h-4 w-4" />
-                                <span className="font-medium">
+                                <BookOpen className="h-4 w-4 text-primary" />
+                                <span className="font-medium text-primary">
                                   {scheduledClass.courses.course_code} - {scheduledClass.courses.course_name}
                                 </span>
                               </div>
@@ -423,63 +577,111 @@ const TeacherExtra = ({ teacherData }: TeacherEventsProps) => {
 
         {/* Edit Dialog */}
         <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-          <DialogContent>
+          <DialogContent className="max-w-md">
             <DialogHeader>
               <DialogTitle>Edit Class</DialogTitle>
             </DialogHeader>
             {editingClass && (
               <div className="space-y-4">
-                <Input
-                  placeholder="Class title"
-                  value={editingClass.title}
-                  onChange={(e) => setEditingClass({...editingClass, title: e.target.value})}
-                />
-                
-                <Textarea
-                  placeholder="Class description"
-                  value={editingClass.description}
-                  onChange={(e) => setEditingClass({...editingClass, description: e.target.value})}
-                />
-                
-                <Input
-                  type="date"
-                  value={editingClass.scheduled_date}
-                  onChange={(e) => setEditingClass({...editingClass, scheduled_date: e.target.value})}
-                />
-                
-                <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium">Class Title *</label>
                   <Input
-                    type="time"
-                    placeholder="Start time"
-                    value={editingClass.start_time}
-                    onChange={(e) => setEditingClass({...editingClass, start_time: e.target.value})}
-                  />
-                  <Input
-                    type="time"
-                    placeholder="End time"
-                    value={editingClass.end_time}
-                    onChange={(e) => setEditingClass({...editingClass, end_time: e.target.value})}
+                    placeholder="Enter class title"
+                    value={editingClass.title}
+                    onChange={(e) => setEditingClass({...editingClass, title: e.target.value})}
                   />
                 </div>
                 
-                <Input
-                  placeholder="Room location"
-                  value={editingClass.room_location}
-                  onChange={(e) => setEditingClass({...editingClass, room_location: e.target.value})}
-                />
+                <div>
+                  <label className="text-sm font-medium">Description</label>
+                  <Textarea
+                    placeholder="Enter class description (optional)"
+                    value={editingClass.description}
+                    onChange={(e) => setEditingClass({...editingClass, description: e.target.value})}
+                    rows={3}
+                  />
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium">Course *</label>
+                  <Select
+                    value={editingClass.course_id}
+                    onValueChange={(value) => setEditingClass({...editingClass, course_id: value})}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a course" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {courses.map((course) => (
+                        <SelectItem key={course.id} value={course.id}>
+                          {course.course_code} - {course.course_name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
                 
-                <select
-                  className="w-full p-2 border rounded bg-background"
-                  value={editingClass.class_type}
-                  onChange={(e) => setEditingClass({...editingClass, class_type: e.target.value})}
+                <div>
+                  <label className="text-sm font-medium">Date *</label>
+                  <Input
+                    type="date"
+                    value={editingClass.scheduled_date}
+                    onChange={(e) => setEditingClass({...editingClass, scheduled_date: e.target.value})}
+                    min={new Date().toISOString().split('T')[0]}
+                  />
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium">Start Time *</label>
+                    <Input
+                      type="time"
+                      value={editingClass.start_time}
+                      onChange={(e) => setEditingClass({...editingClass, start_time: e.target.value})}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">End Time *</label>
+                    <Input
+                      type="time"
+                      value={editingClass.end_time}
+                      onChange={(e) => setEditingClass({...editingClass, end_time: e.target.value})}
+                    />
+                  </div>
+                </div>
+                
+                <div>
+                  <label className="text-sm font-medium">Room Location</label>
+                  <Input
+                    placeholder="Enter room location (optional)"
+                    value={editingClass.room_location}
+                    onChange={(e) => setEditingClass({...editingClass, room_location: e.target.value})}
+                  />
+                </div>
+                
+                <div>
+                  <label className="text-sm font-medium">Class Type</label>
+                  <Select
+                    value={editingClass.class_type}
+                    onValueChange={(value) => setEditingClass({...editingClass, class_type: value})}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="extra">Extra Class</SelectItem>
+                      <SelectItem value="remedial">Remedial Class</SelectItem>
+                      <SelectItem value="makeup">Makeup Class</SelectItem>
+                      <SelectItem value="special">Special Session</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <Button 
+                  onClick={updateScheduledClass} 
+                  className="w-full"
+                  disabled={!editingClass.title || !editingClass.course_id || !editingClass.scheduled_date || !editingClass.start_time || !editingClass.end_time}
                 >
-                  <option value="extra">Extra Class</option>
-                  <option value="remedial">Remedial Class</option>
-                  <option value="makeup">Makeup Class</option>
-                  <option value="special">Special Session</option>
-                </select>
-                
-                <Button onClick={updateScheduledClass} className="w-full">
                   Update Class
                 </Button>
               </div>

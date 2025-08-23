@@ -15,7 +15,10 @@ import {
   AlertTriangle,
   BookOpen,
   Plus,
-  Edit
+  Edit,
+  ChevronLeft,
+  ChevronRight,
+  Star
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
@@ -31,6 +34,7 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
   const [reminders, setReminders] = useState<any[]>([]);
   const [alerts, setAlerts] = useState<any[]>([]);
   const [courses, setCourses] = useState<any[]>([]);
+  const [currentWeek, setCurrentWeek] = useState(new Date());
   const [loading, setLoading] = useState(true);
   const [isScheduleDialogOpen, setIsScheduleDialogOpen] = useState(false);
 
@@ -50,11 +54,15 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
   });
 
   const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  const timeSlots = [
+    '8:00 AM', '9:00 AM', '10:00 AM', '11:00 AM', '12:00 PM', 
+    '1:00 PM', '2:00 PM', '3:00 PM', '4:00 PM', '5:00 PM', '6:00 PM'
+  ];
 
   useEffect(() => {
     fetchScheduleData();
     fetchTeacherCourses();
-  }, [teacherData]);
+  }, [teacherData, currentWeek]);
 
   const fetchScheduleData = async () => {
     try {
@@ -88,42 +96,194 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
   };
 
   const fetchWeeklySchedule = async () => {
-    const { data, error } = await supabase
-      .from('class_schedule')
-      .select(`
-        *,
-        courses (
-          id,
-          course_name,
-          course_code,
-          enrollments (count)
-        )
-      `)
-      .eq('courses.instructor_id', teacherData.user_id);
+    try {
+      // Get regular schedule
+      const { data: regularSchedule, error: regularError } = await supabase
+        .from('class_schedule')
+        .select(`
+          *,
+          courses (
+            id,
+            course_name,
+            course_code,
+            enrollments (count)
+          )
+        `)
+        .eq('courses.instructor_id', teacherData.user_id);
 
-    if (!error && data) {
-      setSchedule(data);
+      if (regularError) {
+        console.error('Regular schedule fetch error:', regularError);
+        throw regularError;
+      }
+
+      let allScheduleData = [];
+
+      // Process regular classes
+      if (regularSchedule) {
+        const regularScheduleData = regularSchedule.map(schedule => ({
+          ...schedule,
+          is_extra_class: false,
+          class_type: 'regular'
+        }));
+        allScheduleData = [...regularScheduleData];
+      }
+
+      // Calculate week start and end dates
+      const weekStart = new Date(currentWeek);
+      weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+      const weekEnd = new Date(weekStart);
+      weekEnd.setDate(weekStart.getDate() + 6);
+
+      // Get extra classes for the current week taught by this teacher
+      const { data: extraClasses, error: extraError } = await supabase
+        .from('extra_class_schedule')
+        .select(`
+          id,
+          course_id,
+          teacher_id,
+          title,
+          description,
+          scheduled_date,
+          start_time,
+          end_time,
+          room_location,
+          class_type,
+          status,
+          courses (
+            course_name,
+            course_code
+          )
+        `)
+        .eq('teacher_id', teacherData.user_id)
+        .eq('status', 'scheduled')
+        .gte('scheduled_date', weekStart.toISOString().split('T')[0])
+        .lte('scheduled_date', weekEnd.toISOString().split('T')[0]);
+
+      if (extraError) {
+        console.warn('Extra class fetch error:', extraError);
+      } else if (extraClasses && extraClasses.length > 0) {
+        // Process extra classes
+        const extraScheduleData = extraClasses.map(extraClass => {
+          const scheduledDate = new Date(extraClass.scheduled_date);
+          return {
+            id: extraClass.id,
+            day_of_week: scheduledDate.getDay(),
+            scheduled_date: extraClass.scheduled_date,
+            start_time: extraClass.start_time,
+            end_time: extraClass.end_time,
+            room_location: extraClass.room_location || '',
+            course_id: extraClass.course_id,
+            class_type: extraClass.class_type,
+            title: extraClass.title,
+            description: extraClass.description,
+            status: extraClass.status,
+            is_extra_class: true,
+            courses: {
+              id: extraClass.course_id,
+              course_name: extraClass.courses?.course_name || extraClass.title,
+              course_code: extraClass.courses?.course_code || 'EXTRA',
+              enrollments: [] // Extra classes don't have regular enrollments
+            }
+          };
+        });
+        
+        allScheduleData = [...allScheduleData, ...extraScheduleData];
+      }
+
+      setSchedule(allScheduleData);
+
+    } catch (error) {
+      console.error('Error fetching weekly schedule:', error);
     }
   };
 
   const fetchTodayClasses = async () => {
-    const today = new Date().getDay();
-    const { data, error } = await supabase
-      .from('class_schedule')
-      .select(`
-        *,
-        courses (
-          id,
-          course_name,
-          course_code,
-          enrollments (count)
-        )
-      `)
-      .eq('courses.instructor_id', teacherData.user_id)
-      .eq('day_of_week', today);
+    const today = new Date();
+    const todayDay = today.getDay();
+    
+    try {
+      // Get regular classes for today
+      const { data: regularClasses, error: regularError } = await supabase
+        .from('class_schedule')
+        .select(`
+          *,
+          courses (
+            id,
+            course_name,
+            course_code,
+            enrollments (count)
+          )
+        `)
+        .eq('courses.instructor_id', teacherData.user_id)
+        .eq('day_of_week', todayDay);
 
-    if (!error && data) {
-      setTodayClasses(data);
+      let allTodayClasses = [];
+
+      if (!regularError && regularClasses) {
+        const regularClassesData = regularClasses.map(cls => ({
+          ...cls,
+          is_extra_class: false,
+          class_type: 'regular'
+        }));
+        allTodayClasses = [...regularClassesData];
+      }
+
+      // Get extra classes for today
+      const todayString = today.toISOString().split('T')[0];
+      const { data: extraClasses, error: extraError } = await supabase
+        .from('extra_class_schedule')
+        .select(`
+          id,
+          course_id,
+          teacher_id,
+          title,
+          description,
+          scheduled_date,
+          start_time,
+          end_time,
+          room_location,
+          class_type,
+          status,
+          courses (
+            course_name,
+            course_code
+          )
+        `)
+        .eq('teacher_id', teacherData.user_id)
+        .eq('status', 'scheduled')
+        .eq('scheduled_date', todayString);
+
+      if (!extraError && extraClasses && extraClasses.length > 0) {
+        const extraClassesData = extraClasses.map(extraClass => ({
+          id: extraClass.id,
+          day_of_week: todayDay,
+          scheduled_date: extraClass.scheduled_date,
+          start_time: extraClass.start_time,
+          end_time: extraClass.end_time,
+          room_location: extraClass.room_location || '',
+          course_id: extraClass.course_id,
+          class_type: extraClass.class_type,
+          title: extraClass.title,
+          description: extraClass.description,
+          status: extraClass.status,
+          is_extra_class: true,
+          courses: {
+            id: extraClass.course_id,
+            course_name: extraClass.courses?.course_name || extraClass.title,
+            course_code: extraClass.courses?.course_code || 'EXTRA',
+            enrollments: []
+          }
+        }));
+        
+        allTodayClasses = [...allTodayClasses, ...extraClassesData];
+      }
+
+      // Sort by start time
+      allTodayClasses.sort((a, b) => a.start_time.localeCompare(b.start_time));
+      setTodayClasses(allTodayClasses);
+
+    } catch (error) {
+      console.error('Error fetching today classes:', error);
     }
   };
 
@@ -165,6 +325,69 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
         severity: 'error'
       }
     ]);
+  };
+
+  // Helper functions for timeline view
+  const getWeekDays = (startDate: Date) => {
+    const week = [];
+    const start = new Date(startDate);
+    start.setDate(start.getDate() - start.getDay()); // Start from Sunday
+
+    for (let i = 0; i < 7; i++) {
+      const day = new Date(start);
+      day.setDate(start.getDate() + i);
+      week.push(day);
+    }
+    return week;
+  };
+
+  const navigateWeek = (direction: 'prev' | 'next') => {
+    const newWeek = new Date(currentWeek);
+    newWeek.setDate(currentWeek.getDate() + (direction === 'next' ? 7 : -7));
+    setCurrentWeek(newWeek);
+  };
+
+  const formatTime = (timeString: string) => {
+    if (!timeString) return '';
+    const [hours, minutes] = timeString.split(':');
+    const hour = parseInt(hours);
+    const ampm = hour >= 12 ? 'PM' : 'AM';
+    const displayHour = hour % 12 || 12;
+    return `${displayHour}:${minutes} ${ampm}`;
+  };
+
+  const getClassesForDay = (dayOfWeek: number, specificDate?: Date) => {
+    return schedule.filter(cls => {
+      if (cls.is_extra_class && cls.scheduled_date && specificDate) {
+        const classDate = new Date(cls.scheduled_date);
+        return classDate.toDateString() === specificDate.toDateString();
+      }
+      return cls.day_of_week === dayOfWeek;
+    });
+  };
+
+  const getClassTypeStyle = (cls: any) => {
+    if (!cls.is_extra_class) {
+      return 'bg-primary/10 text-primary border-primary/20 hover:bg-primary/20';
+    }
+    
+    switch (cls.class_type) {
+      case 'extra':
+        return 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100';
+      case 'remedial':
+        return 'bg-orange-50 text-orange-700 border-orange-200 hover:bg-orange-100';
+      case 'makeup':
+        return 'bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100';
+      case 'special':
+        return 'bg-green-50 text-green-700 border-green-200 hover:bg-green-100';
+      default:
+        return 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100';
+    }
+  };
+
+  const isToday = (date: Date) => {
+    const today = new Date();
+    return date.toDateString() === today.toDateString();
   };
 
   const createSchedule = async () => {
@@ -380,6 +603,94 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
           </Dialog>
         </div>
 
+        {/* Weekly Timeline View */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2">
+                <Calendar className="h-5 w-5" />
+                Weekly Schedule Timeline
+              </CardTitle>
+              <div className="flex items-center space-x-2">
+                <Button variant="outline" size="sm" onClick={() => navigateWeek('prev')}>
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <span className="text-sm font-medium min-w-[140px] text-center">
+                  {currentWeek.toLocaleDateString('en-US', { 
+                    month: 'long', 
+                    day: 'numeric', 
+                    year: 'numeric' 
+                  })}
+                </span>
+                <Button variant="outline" size="sm" onClick={() => navigateWeek('next')}>
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-8 gap-2">
+              {/* Time column */}
+              <div className="space-y-2">
+                <div className="h-12"></div>
+                {timeSlots.map(time => (
+                  <div key={time} className="h-16 text-xs text-muted-foreground flex items-center justify-end pr-2">
+                    {time}
+                  </div>
+                ))}
+              </div>
+
+              {/* Day columns */}
+              {getWeekDays(currentWeek).map((date, dayIndex) => (
+                <div key={dayIndex} className="space-y-2">
+                  <div className={`h-12 text-center p-2 rounded-lg ${
+                    isToday(date) ? 'bg-primary text-primary-foreground' : 'bg-muted'
+                  }`}>
+                    <div className="text-sm font-medium">{daysOfWeek[dayIndex]}</div>
+                    <div className="text-xs">{date.getDate()}</div>
+                  </div>
+                  
+                  {timeSlots.map((timeSlot, timeIndex) => {
+                    const dayClasses = getClassesForDay(dayIndex, date);
+                    const classAtTime = dayClasses.find(cls => {
+                      const startTime = formatTime(cls.start_time);
+                      return startTime === timeSlot;
+                    });
+
+                    return (
+                      <div key={timeIndex} className="h-16 border rounded">
+                        {classAtTime && (
+                          <div className={`p-1 rounded text-xs h-full border transition-colors cursor-pointer ${getClassTypeStyle(classAtTime)}`}>
+                            <div className="font-medium truncate flex items-center">
+                              {classAtTime.is_extra_class && (
+                                <Star className="h-2 w-2 mr-1 flex-shrink-0" />
+                              )}
+                              <span className="truncate">{classAtTime.courses?.course_code}</span>
+                            </div>
+                            <div className="text-xs opacity-80 truncate">
+                              {classAtTime.room_location}
+                            </div>
+                            {classAtTime.is_extra_class ? (
+                              <div className="text-xs opacity-70 truncate capitalize">
+                                {classAtTime.class_type}
+                              </div>
+                            ) : (
+                              <div className="text-xs opacity-70 truncate flex items-center">
+                                <Users className="h-2 w-2 mr-1" />
+                                {classAtTime.courses?.enrollments?.[0]?.count || 0}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Today's Schedule */}
         <Card>
           <CardHeader>
@@ -401,7 +712,7 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
                   </DialogHeader>
                   <div className="space-y-4">
                     <select
-                      className="w-full p-2 border rounded bg-black"
+                      className="w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
                       value={newReminder.class_id}
                       onChange={(e) => setNewReminder({...newReminder, class_id: e.target.value})}
                     >
@@ -426,7 +737,7 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
                     />
                     
                     <select
-                      className="w-full p-2 border rounded bg-black"
+                      className="w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
                       value={newReminder.reminder_type}
                       onChange={(e) => setNewReminder({...newReminder, reminder_type: e.target.value})}
                     >
@@ -450,28 +761,47 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
             ) : (
               <div className="space-y-4">
                 {todayClasses.map((class_item) => (
-                  <Card key={class_item.id} className="p-4">
+                  <Card key={class_item.id} className={`p-4 ${
+                    class_item.is_extra_class ? 'border-l-4 border-l-blue-500' : ''
+                  }`}>
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-4">
                         <div className="text-center">
                           <div className="text-lg font-bold text-primary">
-                            {class_item.start_time}
+                            {formatTime(class_item.start_time)}
                           </div>
                           <div className="text-sm text-muted-foreground">
-                            {class_item.end_time}
+                            {formatTime(class_item.end_time)}
                           </div>
                         </div>
                         <div className="flex-1">
-                          <h3 className="font-semibold text-lg">{class_item.courses?.course_name}</h3>
+                          <div className="flex items-center space-x-2 flex-wrap">
+                            <h3 className="font-semibold text-lg">{class_item.courses?.course_name}</h3>
+                            {class_item.is_extra_class && (
+                              <Badge variant="secondary" className="text-xs capitalize flex items-center">
+                                <Star className="h-3 w-3 mr-1" />
+                                {class_item.class_type}
+                              </Badge>
+                            )}
+                          </div>
+                          <p className="text-sm text-muted-foreground">
+                            {class_item.courses?.course_code}
+                            {class_item.is_extra_class && class_item.title && ` • ${class_item.title}`}
+                          </p>
+                          {class_item.description && (
+                            <p className="text-xs text-muted-foreground mt-1">{class_item.description}</p>
+                          )}
                           <div className="flex items-center gap-4 text-sm text-muted-foreground">
                             <div className="flex items-center gap-1">
                               <MapPin className="h-4 w-4" />
                               {class_item.room_location || 'Room TBD'}
                             </div>
-                            <div className="flex items-center gap-1">
-                              <Users className="h-4 w-4" />
-                              {class_item.courses?.enrollments?.[0]?.count || 0} students
-                            </div>
+                            {!class_item.is_extra_class && (
+                              <div className="flex items-center gap-1">
+                                <Users className="h-4 w-4" />
+                                {class_item.courses?.enrollments?.[0]?.count || 0} students
+                              </div>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -490,63 +820,6 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
                 ))}
               </div>
             )}
-          </CardContent>
-        </Card>
-
-        {/* Weekly Schedule */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Calendar className="h-5 w-5" />
-              Weekly Schedule Overview
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-7 gap-4">
-              {daysOfWeek.map((day, index) => {
-                const daySchedule = schedule.filter(item => item.day_of_week === index);
-                const isToday = index === new Date().getDay();
-                
-                return (
-                  <div key={day} className="space-y-2">
-                    <h3 className={`font-semibold text-center p-2 rounded ${
-                      isToday ? 'bg-primary text-primary-foreground' : 'bg-muted'
-                    }`}>
-                      {day}
-                    </h3>
-                    <div className="space-y-2">
-                      {daySchedule.map((classItem) => (
-                        <Card key={classItem.id} className="p-3 hover:shadow-md transition-shadow cursor-pointer">
-                          <div className="space-y-2">
-                            <div className="flex items-center gap-2">
-                              <Clock className="h-3 w-3 text-muted-foreground" />
-                              <span className="text-xs font-medium">
-                                {classItem.start_time} - {classItem.end_time}
-                              </span>
-                            </div>
-                            <p className="font-medium text-sm">{classItem.courses?.course_name}</p>
-                            <div className="flex items-center justify-between">
-                              <span className="text-xs text-muted-foreground flex items-center gap-1">
-                                <MapPin className="h-3 w-3" />
-                                {classItem.room_location}
-                              </span>
-                              <Badge variant="secondary" className="text-xs">
-                                {classItem.courses?.enrollments?.[0]?.count || 0}
-                              </Badge>
-                            </div>
-                          </div>
-                        </Card>
-                      ))}
-                      {daySchedule.length === 0 && (
-                        <div className="text-center text-muted-foreground text-sm py-8">
-                          No classes
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
           </CardContent>
         </Card>
 

@@ -75,20 +75,20 @@ const TeacherSupport = ({ teacherData }: TeacherSupportProps) => {
   const supportContacts = [
     {
       type: "Technical Support",
-      phone: "+1 (555) 123-4567",
-      email: "tech-support@colcord.edu",
+      phone: "+91 93110 13848",
+      email: "team@colcord.co.in",
       hours: "24/7"
     },
     {
       type: "Academic Support",
-      phone: "+1 (555) 123-4568",
-      email: "academic-support@colcord.edu",
+      phone: "+91 93110 13848",
+      email: "team@colcord.co.in",
       hours: "Mon-Fri 8AM-6PM"
     },
     {
       type: "General Help",
-      phone: "+1 (555) 123-4569",
-      email: "help@colcord.edu",
+      phone: "+91 93110 13848",
+      email: "team@colcord.co.in",
       hours: "Mon-Fri 9AM-5PM"
     }
   ];

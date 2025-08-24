@@ -722,7 +722,7 @@ const TeacherCourses = ({ teacherData }: TeacherCoursesProps) => {
                     <div className="space-y-4">
                       <div className="flex justify-between items-center">
                         <Label>Questions</Label>
-                        <div className="text-sm text-gray-600">
+                        <div className="text-sm ">
                           Total Marks: {getTotalMarks()}
                         </div>
                       </div>
@@ -938,7 +938,7 @@ const TeacherCourses = ({ teacherData }: TeacherCoursesProps) => {
                         const currentScore = scores[question.id] || 0;
 
                         return (
-                          <Card key={question.id} className="p-4 border-l-4 border-l-primary">
+                          <Card key={question.id} className="p-4 border-l-4 border-l-primary bg-black/50">
                             <div className="space-y-4">
                               <div className="flex justify-between items-start">
                                 <div className="flex-1">
@@ -956,17 +956,17 @@ const TeacherCourses = ({ teacherData }: TeacherCoursesProps) => {
                                   <p className="text-sm font-medium">Answer Choices:</p>
                                   <div className="grid gap-2">
                                     {question.options?.map((option, optIndex) => {
-                                      let bgColor = "bg-gray-50";
+                                      let bgColor = " border-gray-300";
                                       let textColor = "text-foreground";
                                       let icon = "";
                                       
                                       if (option === question.correct_answer) {
-                                        bgColor = "bg-green-100 border-green-300";
-                                        textColor = "text-green-800";
+                                        bgColor = "bg-green-700 border-green-300";
+                                        textColor = "text-white";
                                         icon = " ✓ Correct";
                                       } else if (option === studentAnswer) {
-                                        bgColor = "bg-red-100 border-red-300";
-                                        textColor = "text-red-800";
+                                        bgColor = "bg-red-700 border-red-300";
+                                        textColor = "text-white";
                                         icon = " ✗ Selected";
                                       }
 
@@ -988,10 +988,10 @@ const TeacherCourses = ({ teacherData }: TeacherCoursesProps) => {
                                   <div className="grid grid-cols-2 gap-4">
                                     <div className={`p-3 rounded border ${
                                       question.correct_answer === "true" 
-                                        ? "bg-green-100 border-green-300 text-green-800" 
+                                        ? "bg-green-700 border-green-300 " 
                                         : studentAnswer === "true"
-                                        ? "bg-red-100 border-red-300 text-red-800"
-                                        : "bg-gray-50"
+                                        ? "bg-red-700 border-red-300"
+                                        : "bg-gray-700"
                                     }`}>
                                       <strong>True</strong> 
                                       {question.correct_answer === "true" && " ✓ Correct"}
@@ -999,10 +999,10 @@ const TeacherCourses = ({ teacherData }: TeacherCoursesProps) => {
                                     </div>
                                     <div className={`p-3 rounded border ${
                                       question.correct_answer === "false" 
-                                        ? "bg-green-100 border-green-300 text-green-800" 
-                                        : studentAnswer === "false"
-                                        ? "bg-red-100 border-red-300 text-red-800"
-                                        : "bg-gray-50"
+                                        ? "bg-green-700 border-green-300 " 
+                                        : studentAnswer === "true"
+                                        ? "bg-red-700 border-red-300"
+                                        : "bg-gray-700"
                                     }`}>
                                       <strong>False</strong> 
                                       {question.correct_answer === "false" && " ✓ Correct"}

@@ -50,6 +50,7 @@ const Events: React.FC<CalendarAttendanceProps> = ({ studentData }) => {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [todayClasses, setTodayClasses] = useState([]);
   const [todayEvents, setTodayEvents] = useState<Event[]>([]);
+  const [allUpcomingEvents, setAllUpcomingEvents] = useState<Event[]>([]);
   const [attendanceHistory, setAttendanceHistory] = useState([]);
   const [monthlyStats, setMonthlyStats] = useState({ present: 0, absent: 0, total: 0 });
   const [loading, setLoading] = useState(true);
@@ -58,6 +59,7 @@ const Events: React.FC<CalendarAttendanceProps> = ({ studentData }) => {
   useEffect(() => {
     fetchTodayClasses();
     fetchTodayEvents();
+    fetchAllUpcomingEvents();
     fetchAttendanceHistory();
   }, [selectedDate, studentData]);
 
@@ -197,6 +199,77 @@ const Events: React.FC<CalendarAttendanceProps> = ({ studentData }) => {
     }
   };
 
+  const fetchAllUpcomingEvents = async () => {
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      
+      const { data: eventsData, error: eventsError } = await supabase
+        .from('events')
+        .select(`
+          *,
+          organizer:user_profiles!events_organizer_id_fkey(
+            first_name,
+            last_name
+          )
+        `)
+        .eq('college_id', studentData.college_id)
+        .eq('is_active', true)
+        .gte('start_date', today)
+        .order('start_date');
+
+      if (eventsError) {
+        console.error('Error fetching upcoming events:', eventsError);
+        return;
+      }
+
+      // Get registration status and participant count for each event
+      const eventsWithDetails = await Promise.all(
+        (eventsData || []).map(async (event) => {
+          try {
+            // Check if student is registered for this event
+            const { data: registrationData, error: regError } = await supabase
+              .from('event_registrations')
+              .select('*')
+              .eq('event_id', event.id)
+              .eq('user_id', studentData.user_id)
+              .maybeSingle();
+
+            if (regError && regError.code !== 'PGRST116') {
+              console.error('Error checking registration for event', event.id, regError);
+            }
+
+            // Get participant count
+            const { count, error: countError } = await supabase
+              .from('event_registrations')
+              .select('*', { count: 'exact', head: true })
+              .eq('event_id', event.id);
+
+            if (countError) {
+              console.error('Error counting participants for event', event.id, countError);
+            }
+
+            return {
+              ...event,
+              is_registered: !!registrationData,
+              participant_count: count || 0
+            };
+          } catch (error) {
+            console.error('Error processing event', event.id, error);
+            return {
+              ...event,
+              is_registered: false,
+              participant_count: 0
+            };
+          }
+        })
+      );
+
+      setAllUpcomingEvents(eventsWithDetails);
+    } catch (error) {
+      console.error('Error fetching all upcoming events:', error);
+    }
+  };
+
   const fetchAttendanceHistory = async () => {
     try {
       const { data: attendanceData } = await supabase
@@ -290,6 +363,7 @@ const Events: React.FC<CalendarAttendanceProps> = ({ studentData }) => {
 
       // Refresh events data
       fetchTodayEvents();
+      fetchAllUpcomingEvents();
 
     } catch (error) {
       console.error('Error registering for event:', error);
@@ -318,6 +392,7 @@ const Events: React.FC<CalendarAttendanceProps> = ({ studentData }) => {
 
       // Refresh events data
       fetchTodayEvents();
+      fetchAllUpcomingEvents();
 
     } catch (error) {
       console.error('Error unregistering from event:', error);
@@ -397,11 +472,11 @@ const Events: React.FC<CalendarAttendanceProps> = ({ studentData }) => {
       'sports': 'bg-green-100 text-green-800',
       'orientation': 'bg-orange-100 text-orange-800',
       'workshop': 'bg-indigo-100 text-indigo-800',
-      'seminar': 'bg-gray-100 text-gray-800'
+      'seminar': 'bg-gray-100 text-gray-800',
+      'meeting': 'bg-yellow-100 text-yellow-800'
     };
     return colors[type] || 'bg-gray-100 text-gray-800';
   };
-
 
   if (loading) {
     return <div className="flex justify-center py-8">Loading event calendar data...</div>;
@@ -410,8 +485,7 @@ const Events: React.FC<CalendarAttendanceProps> = ({ studentData }) => {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold">Event calendar</h2>
-
+        <h2 className="text-2xl font-bold">Event Calendar</h2>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -430,11 +504,10 @@ const Events: React.FC<CalendarAttendanceProps> = ({ studentData }) => {
               onSelect={(date) => date && setSelectedDate(date)}
               className="rounded-md border"
             />
-            
           </CardContent>
         </Card>
 
-        {/* Today's Classes and Events */}
+        {/* Today's Events */}
         <Card className="lg:col-span-2">
           <CardHeader>
             <CardTitle>
@@ -447,105 +520,186 @@ const Events: React.FC<CalendarAttendanceProps> = ({ studentData }) => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <Tabs defaultValue="events" className="w-full">
-              
-              <TabsContent value="events" className="space-y-4">
-                {todayEvents.length === 0 ? (
-                  <p className="text-gray-500 text-center py-8">No events scheduled for this day</p>
-                ) : (
-                  <div className="space-y-4">
-                    {todayEvents.map((event) => (
-                      <div key={event.id} className="border rounded-lg p-4">
-                        <div className="flex items-start justify-between mb-3">
-                          <div className="flex-1">
-                            <div className="flex items-center space-x-2 mb-2">
-                              <h4 className="font-semibold">{event.event_name}</h4>
-                              <Badge className={getEventTypeColor(event.event_type)}>
-                                {event.event_type}
-                              </Badge>
-                              {event.is_registered && (
-                                <Badge variant="outline" className=" text-green-700">
-                                  <Star className="w-3 h-3 mr-1" />
-                                  Registered
-                                </Badge>
-                              )}
-                            </div>
-                            <p className="text-sm text-gray-600 mb-2">{event.description}</p>
-                            <div className="flex items-center space-x-4 text-sm text-gray-500">
-                              <div className="flex items-center space-x-1">
-                                <Clock className="w-4 h-4" />
-                                <span>
-                                  {formatEventDateTime(event.start_date)} - {formatEventDateTime(event.end_date)}
-                                </span>
-                              </div>
-                              <div className="flex items-center space-x-1">
-                                <MapPin className="w-4 h-4" />
-                                <span>{event.location}</span>
-                              </div>
-                              <div className="flex items-center space-x-1">
-                                <Users className="w-4 h-4" />
-                                <span>{event.participant_count}/{event.max_participants}</span>
-                              </div>
-                            </div>
-                            {event.organizer && (
-                              <p className="text-xs text-gray-400 mt-1">
-                                Organized by {event.organizer.first_name} {event.organizer.last_name}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* Event Registration Actions */}
-                        <div className="flex space-x-2 mt-3">
-                          {event.registration_required ? (
-                            event.is_registered ? (
-                              <div className="flex space-x-2">
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => unregisterFromEvent(event.id)}
-                                >
-                                  Unregister
-                                </Button>
-                                <Badge variant="outline" className="bg-green-50 text-green-700 flex items-center">
-                                  <CheckCircle className="w-3 h-3 mr-1" />
-                                  You're registered
-                                </Badge>
-                              </div>
-                            ) : (
-                              <div className="flex space-x-2 items-center">
-                                <Button
-                                  size="sm"
-                                  onClick={() => registerForEvent(event.id)}
-                                  disabled={event.participant_count >= event.max_participants}
-                                  className="bg-blue-600 hover:bg-blue-700"
-                                >
-                                  {event.participant_count >= event.max_participants ? 'Event Full' : 'Register Now'}
-                                </Button>
-                                {event.participant_count >= event.max_participants && (
-                                  <Badge variant="destructive">Full</Badge>
-                                )}
-                              </div>
-                            )
-                          ) : (
-                            <div className="flex space-x-2 items-center">
-                              <Badge variant="secondary">No Registration Required</Badge>
-                              <Badge variant="outline" className="bg-blue-50 text-blue-700">
-                                Open to All
-                              </Badge>
-                            </div>
+            {todayEvents.length === 0 ? (
+              <p className="text-gray-500 text-center py-8">No events scheduled for this day</p>
+            ) : (
+              <div className="space-y-4">
+                {todayEvents.map((event) => (
+                  <div key={event.id} className="border rounded-lg p-4">
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex-1">
+                        <div className="flex items-center space-x-2 mb-2">
+                          <h4 className="font-semibold">{event.event_name}</h4>
+                          <Badge className={getEventTypeColor(event.event_type)}>
+                            {event.event_type}
+                          </Badge>
+                          {event.is_registered && (
+                            <Badge variant="outline" className="text-green-700">
+                              <Star className="w-3 h-3 mr-1" />
+                              Registered
+                            </Badge>
                           )}
                         </div>
+                        <p className="text-sm text-gray-600 mb-2">{event.description}</p>
+                        <div className="flex items-center space-x-4 text-sm text-gray-500">
+                          <div className="flex items-center space-x-1">
+                            <Clock className="w-4 h-4" />
+                            <span>
+                              {formatEventDateTime(event.start_date)} - {formatEventDateTime(event.end_date)}
+                            </span>
+                          </div>
+                          <div className="flex items-center space-x-1">
+                            <MapPin className="w-4 h-4" />
+                            <span>{event.location}</span>
+                          </div>
+                          <div className="flex items-center space-x-1">
+                            <Users className="w-4 h-4" />
+                            <span>{event.participant_count}/{event.max_participants}</span>
+                          </div>
+                        </div>
+                        {event.organizer && (
+                          <p className="text-xs text-gray-400 mt-1">
+                            Organized by {event.organizer.first_name} {event.organizer.last_name}
+                          </p>
+                        )}
                       </div>
-                    ))}
+                    </div>
+
+                    {/* Event Registration Actions */}
+                    <div className="flex space-x-2 mt-3">
+                      {event.registration_required ? (
+                        event.is_registered ? (
+                          <div className="flex space-x-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => unregisterFromEvent(event.id)}
+                            >
+                              Unregister
+                            </Button>
+                            <Badge variant="outline" className="bg-green-50 text-green-700 flex items-center">
+                              <CheckCircle className="w-3 h-3 mr-1" />
+                              You're registered
+                            </Badge>
+                          </div>
+                        ) : (
+                          <div className="flex space-x-2 items-center">
+                            <Button
+                              size="sm"
+                              onClick={() => registerForEvent(event.id)}
+                              disabled={event.participant_count >= event.max_participants}
+                              className="bg-blue-600 hover:bg-blue-700"
+                            >
+                              {event.participant_count >= event.max_participants ? 'Event Full' : 'Register Now'}
+                            </Button>
+                            {event.participant_count >= event.max_participants && (
+                              <Badge variant="destructive">Full</Badge>
+                            )}
+                          </div>
+                        )
+                      ) : (
+                        <div className="flex space-x-2 items-center">
+                          <Badge variant="secondary">No Registration Required</Badge>
+                          <Badge variant="outline" className="bg-blue-50 text-blue-700">
+                            Open to All
+                          </Badge>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                )}
-              </TabsContent>
-            </Tabs>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
 
+      {/* All Upcoming Events List */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <CalendarIcon className="h-5 w-5" />
+            All Upcoming Events
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {allUpcomingEvents.length === 0 ? (
+            <p className="text-muted-foreground text-center py-8">No upcoming events</p>
+          ) : (
+            <div className="space-y-4">
+              {allUpcomingEvents.map((event) => (
+                <Card key={event.id} className="p-4">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-2">
+                        <h3 className="font-semibold">{event.event_name}</h3>
+                        <Badge className={getEventTypeColor(event.event_type)}>
+                          {event.event_type}
+                        </Badge>
+                        {event.is_registered && (
+                          <Badge variant="outline" className="text-green-700">
+                            <CheckCircle className="h-3 w-3 mr-1" />
+                            Registered
+                          </Badge>
+                        )}
+                      </div>
+                      <p className="text-sm text-muted-foreground mb-2">{event.description}</p>
+                      <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                        <div className="flex items-center gap-1">
+                          <CalendarIcon className="h-4 w-4" />
+                          {new Date(event.start_date).toLocaleDateString()}
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Clock className="h-4 w-4" />
+                          {formatEventDateTime(event.start_date)} - {formatEventDateTime(event.end_date)}
+                        </div>
+                        {event.location && (
+                          <div className="flex items-center gap-1">
+                            <MapPin className="h-4 w-4" />
+                            {event.location}
+                          </div>
+                        )}
+                        <div className="flex items-center gap-1">
+                          <Users className="h-4 w-4" />
+                          <span>{event.participant_count}/{event.max_participants}</span>
+                        </div>
+                      </div>
+                      {event.organizer && (
+                        <p className="text-xs text-gray-400 mt-1">
+                          Organized by {event.organizer.first_name} {event.organizer.last_name}
+                        </p>
+                      )}
+                    </div>
+                    <div className="flex space-x-2">
+                      {event.registration_required ? (
+                        event.is_registered ? (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => unregisterFromEvent(event.id)}
+                          >
+                            Unregister
+                          </Button>
+                        ) : (
+                          <Button 
+                            size="sm" 
+                            onClick={() => registerForEvent(event.id)}
+                            disabled={event.participant_count >= event.max_participants}
+                          >
+                            {event.participant_count >= event.max_participants ? 'Full' : 'RSVP'}
+                          </Button>
+                        )
+                      ) : (
+                        <Badge variant="secondary">Open Event</Badge>
+                      )}
+                    </div>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 };

@@ -523,7 +523,7 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
                 <div>
                   <label className="block text-sm font-medium mb-2">Course *</label>
                   <select
-                    className="w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                    className="w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary bg-black"
                     value={newSchedule.course_id}
                     onChange={(e) => setNewSchedule({...newSchedule, course_id: e.target.value})}
                   >
@@ -539,7 +539,7 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
                 <div>
                   <label className="block text-sm font-medium mb-2">Day of Week *</label>
                   <select
-                    className="w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                    className="w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary bg-black"
                     value={newSchedule.day_of_week}
                     onChange={(e) => setNewSchedule({...newSchedule, day_of_week: parseInt(e.target.value)})}
                   >

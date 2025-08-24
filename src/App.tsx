@@ -12,7 +12,6 @@ import Teacher from "./pages/Teacher";
 import NotFound from "./pages/NotFound";
 import Parent from "./pages/Parent";
 import Alumni from "./pages/Alumni";
-import TestFeePage from "./pages/TestFeePage";
 
 const queryClient = new QueryClient();
 
@@ -30,7 +29,6 @@ const App = () => (
             <Route path="/teacher" element={<Teacher />} />
             <Route path="/parent" element={<Parent />} />
             <Route path="/alumni" element={<Alumni />} />
-            <Route path="/test-fees" element={<TestFeePage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </NavigationWrapper>

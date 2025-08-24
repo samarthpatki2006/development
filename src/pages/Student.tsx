@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { toast } from "@/components/ui/use-toast";
 import { 
   BookOpen, 
   Calendar, 
@@ -22,7 +24,8 @@ import {
   Info,
   X,
   Award,
-  TrendingUp
+  TrendingUp,
+  UserCircle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import SidebarNavigation from '@/components/layout/SidebarNavigation';
@@ -30,7 +33,6 @@ import StudentDashboard from '@/components/student/StudentDashboard';
 import ScheduleTimetable from '@/components/student/ScheduleTimetable';
 import AttendanceOverview from '@/components/student/AttendanceOverview';
 import CoursesLearningSnapshot from '@/components/student/CoursesLearningSnapshot';
-// import MyCourses from '@/components/student/MyCourses'; // Temporarily commented out
 import CalendarAttendance from '@/components/student/Events';
 import CommunicationCenter from '@/components/student/CommunicationCenter';
 import PaymentsFees from '@/components/student/PaymentsFeesIntegrated';
@@ -44,17 +46,18 @@ import Events from '@/components/student/Events';
 const Student = () => {
   const [activeView, setActiveView] = useState('dashboard');
   const [studentData, setStudentData] = useState(null);
-  const [isDarkMode, setIsDarkMode] = useState(true);
+  const [loading, setLoading] = useState(true);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const navigate = useNavigate();
   
   const notificationRef = useRef(null);
   const userMenuRef = useRef(null);
 
-  // Mock notifications for students
-  const [notifications] = useState([
+  // Mock notifications data
+  const [notifications, setNotifications] = useState([
     {
       id: 1,
       type: 'warning',
@@ -127,43 +130,74 @@ const Student = () => {
   }, []);
 
   useEffect(() => {
-    const userData = localStorage.getItem('colcord_user');
-    if (userData) {
-      setStudentData(JSON.parse(userData));
-    } else {
-      // Set default student data for development/testing
-      const defaultStudent = {
-        id: 'student_123',
-        name: 'John Doe',
-        first_name: 'John',
-        last_name: 'Doe',
-        student_id: 'STU2024001',
-        user_code: 'STU2024001',
-        class: '12th Grade',
-        section: 'A',
-        email: 'john.doe@college.edu',
-        phone: '+91 9876543210',
-        user_type: 'student'
-      };
-      setStudentData(defaultStudent);
-      console.log('No user data in localStorage, using default student data:', defaultStudent);
-    }
-  }, []);
+    const checkUser = async () => {
+      try {
+        const userData = localStorage.getItem('colcord_user');
+        if (!userData) {
+          navigate('/');
+          return;
+        }
+
+        const parsedUser = JSON.parse(userData);
+        if (parsedUser.user_type !== 'student') {
+          toast({
+            title: 'Access Denied',
+            description: 'This area is for students only.',
+            variant: 'destructive',
+          });
+          navigate('/');
+          return;
+        }
+
+        setStudentData(parsedUser);
+      } catch (error) {
+        console.error('Error checking user:', error);
+        navigate('/');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    checkUser();
+  }, [navigate]);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
     localStorage.removeItem('colcord_user');
-    window.location.href = '/';
+    toast({
+      title: 'Logged Out',
+      description: 'You have been successfully logged out.',
+    });
+    navigate('/');
   };
 
-  const toggleNotifications = () => {
+  const handleNotificationClick = () => {
     setShowNotifications(!showNotifications);
     setShowUserMenu(false);
   };
 
-  const toggleUserMenu = () => {
+  const handleUserMenuClick = () => {
     setShowUserMenu(!showUserMenu);
     setShowNotifications(false);
+  };
+
+  const markNotificationAsRead = (notificationId) => {
+    setNotifications(prevNotifications =>
+      prevNotifications.map(notification =>
+        notification.id === notificationId
+          ? { ...notification, read: true }
+          : notification
+      )
+    );
+  };
+
+  const clearAllNotifications = () => {
+    setNotifications([]);
+    setShowNotifications(false);
+    toast({
+      title: 'Notifications Cleared',
+      description: 'All notifications have been cleared.',
+    });
   };
 
   const getNotificationIcon = (type) => {
@@ -181,16 +215,16 @@ const Student = () => {
 
   const unreadCount = notifications.filter(n => !n.read).length;
 
-  if (!studentData) {
+  if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <h2 className="text-xl font-semibold mb-2">Loading Student Portal...</h2>
-          <p className="text-gray-600">Setting up your dashboard...</p>
-        </div>
+      <div className="flex items-center justify-center min-h-screen bg-background">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-role-student" />
       </div>
     );
+  }
+
+  if (!studentData) {
+    return null;
   }
 
   const sidebarItems = [
@@ -242,7 +276,7 @@ const Student = () => {
       <div className="fixed inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:40px_40px] pointer-events-none"></div>
       
       {/* Header */}
-      <div className="relative z-[100] bg-background/95 backdrop-blur-sm border-b border-white/10">
+      <div className="relative z-[100] bg-background/95 backdrop-blur-sm border-b border-white/10 sticky top-0">
         <div className="container px-4 mx-auto">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-6">
@@ -260,136 +294,139 @@ const Student = () => {
                 </div>
               </Button>
               <h1 className="text-2xl font-bold text-foreground">ColCord</h1>
-              {!isMobile && (
-                <>
-                  <div className="h-6 w-px bg-white/20"></div>
-                  <div className="flex items-center space-x-2">
-                    <div className="h-2 w-2 bg-role-student rounded-full animate-pulse-indicator"></div>
-                    <span className="text-lg font-medium text-foreground">Student Portal</span>
-                  </div>
-                </>
-              )}
+              <div className="hidden sm:flex items-center space-x-2">
+                <div className="h-6 w-px bg-white/20"></div>
+                <div className="flex items-center space-x-2">
+                  <div className="h-2 w-2 bg-role-student rounded-full animate-pulse-indicator"></div>
+                  <span className="text-lg font-medium text-foreground">Student Portal</span>
+                </div>
+              </div>
             </div>
             <div className="flex items-center space-x-3">
-              {!isMobile && studentData.name && (
+              {!isMobile && (
                 <span className="text-sm text-muted-foreground">
-                  Welcome, {studentData.first_name || studentData.name}
+                  Welcome, {studentData.first_name} {studentData.last_name}
                 </span>
               )}
               
-              {/* Notifications Dropdown */}
+              {/* Notifications */}
               <div className="relative" ref={notificationRef}>
                 <Button 
                   variant="ghost" 
                   size="icon"
-                  onClick={toggleNotifications}
+                  onClick={handleNotificationClick}
                   className="h-9 w-9 rounded-lg hover:bg-white/10 transition-colors relative"
                 >
                   <Bell className="h-5 w-5 text-foreground" />
                   {unreadCount > 0 && (
-                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center min-w-[20px]">
-                      {unreadCount}
-                    </span>
+                    <div className="absolute -top-1 -right-1 h-5 w-5 bg-red-500 rounded-full flex items-center justify-center">
+                      <span className="text-xs text-white font-medium">{unreadCount}</span>
+                    </div>
                   )}
                 </Button>
 
-                {/* Notifications Panel */}
+                {/* Notifications Dropdown */}
                 {showNotifications && (
-                  <div className="absolute right-0 mt-2 w-80 max-w-[90vw] bg-background/95 backdrop-blur-md border border-white/20 rounded-xl shadow-2xl z-[9999]">
+                  <div className="fixed right-4 top-20 w-80 sm:w-96 bg-background/95 backdrop-blur-xl border border-white/20 rounded-xl shadow-2xl z-[9999]">
                     <div className="p-4 border-b border-white/10">
                       <div className="flex items-center justify-between">
                         <h3 className="text-lg font-semibold text-foreground">Notifications</h3>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => setShowNotifications(false)}
-                          className="h-6 w-6 rounded-lg hover:bg-white/10"
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
+                        <div className="flex items-center space-x-2">
+                          {notifications.length > 0 && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={clearAllNotifications}
+                              className="text-xs text-muted-foreground hover:text-foreground"
+                            >
+                              Clear All
+                            </Button>
+                          )}
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => setShowNotifications(false)}
+                            className="h-6 w-6"
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </div>
-                      {unreadCount > 0 && (
-                        <p className="text-sm text-muted-foreground mt-1">
-                          {unreadCount} unread notification{unreadCount > 1 ? 's' : ''}
-                        </p>
-                      )}
                     </div>
-                    <div className="max-h-80 overflow-y-auto">
-                      {notifications.map((notification) => (
-                        <div
-                          key={notification.id}
-                          className={`p-4 border-b border-white/5 hover:bg-white/5 transition-colors ${
-                            !notification.read ? 'bg-white/5' : ''
-                          }`}
-                        >
-                          <div className="flex items-start space-x-3">
-                            {getNotificationIcon(notification.type)}
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center justify-between">
-                                <p className="text-sm font-medium text-foreground truncate">
-                                  {notification.title}
-                                </p>
-                                {!notification.read && (
-                                  <div className="h-2 w-2 bg-blue-500 rounded-full ml-2 flex-shrink-0"></div>
-                                )}
+                    
+                    <div className="max-h-96 overflow-y-auto">
+                      {notifications.length === 0 ? (
+                        <div className="p-6 text-center">
+                          <Bell className="h-12 w-12 text-muted-foreground mx-auto mb-3 opacity-50" />
+                          <p className="text-muted-foreground">No notifications</p>
+                        </div>
+                      ) : (
+                        notifications.map((notification) => (
+                          <div
+                            key={notification.id}
+                            className={`p-4 border-b border-white/10 cursor-pointer hover:bg-white/5 transition-colors ${
+                              !notification.read ? 'bg-white/5' : ''
+                            }`}
+                            onClick={() => markNotificationAsRead(notification.id)}
+                          >
+                            <div className="flex items-start space-x-3">
+                              <div className="flex-shrink-0 mt-1">
+                                {getNotificationIcon(notification.type)}
                               </div>
-                              <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
-                                {notification.message}
-                              </p>
-                              <p className="text-xs text-muted-foreground mt-2">
-                                {notification.time}
-                              </p>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center justify-between">
+                                  <p className="text-sm font-medium text-foreground truncate">
+                                    {notification.title}
+                                  </p>
+                                  {!notification.read && (
+                                    <div className="h-2 w-2 bg-blue-500 rounded-full flex-shrink-0 ml-2"></div>
+                                  )}
+                                </div>
+                                <p className="text-sm text-muted-foreground mt-1">
+                                  {notification.message}
+                                </p>
+                                <p className="text-xs text-muted-foreground mt-2">
+                                  {notification.time}
+                                </p>
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      ))}
-                    </div>
-                    <div className="p-4 border-t border-white/10">
-                      <Button variant="ghost" className="w-full text-sm text-muted-foreground hover:text-foreground">
-                        View All Notifications
-                      </Button>
+                        ))
+                      )}
                     </div>
                   </div>
                 )}
               </div>
-
               
-              {/* User Menu Dropdown */}
+              {/* User Menu */}
               <div className="relative" ref={userMenuRef}>
                 <Button 
                   variant="ghost" 
                   size="icon"
-                  onClick={toggleUserMenu}
+                  onClick={handleUserMenuClick}
                   className="h-9 w-9 rounded-lg hover:bg-white/10 transition-colors"
                 >
                   <User className="h-5 w-5 text-foreground" />
                 </Button>
 
-                {/* User Menu Panel */}
+                {/* User Menu Dropdown */}
                 {showUserMenu && (
-                  <div className="absolute right-0 mt-2 w-72 max-w-[90vw] bg-background/95 backdrop-blur-md border border-white/20 rounded-xl shadow-2xl z-[9999]">
+                  <div className="fixed right-4 top-20 w-64 bg-background/95 backdrop-blur-xl border border-white/20 rounded-xl shadow-2xl z-[9999]">
                     <div className="p-4 border-b border-white/10">
                       <div className="flex items-center space-x-3">
-                        <div className="h-12 w-12 rounded-full bg-gradient-to-br from-blue-500 to-cyan-600 flex items-center justify-center">
-                          <span className="text-white font-semibold text-lg">
-                            {(studentData.first_name || studentData.name)?.[0]}{studentData.last_name?.[0]}
-                          </span>
+                        <div className="h-12 w-12 bg-role-student/20 rounded-full flex items-center justify-center">
+                          <UserCircle className="h-8 w-8 text-role-student" />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-base font-semibold text-foreground truncate">
-                            {studentData.first_name ? `${studentData.first_name} ${studentData.last_name}` : studentData.name}
+                          <p className="text-sm font-medium text-foreground truncate">
+                            {studentData.first_name} {studentData.last_name}
                           </p>
-                          <p className="text-sm text-muted-foreground truncate">
+                          <p className="text-xs text-muted-foreground truncate">
                             {studentData.email}
                           </p>
-                          <div className="flex items-center space-x-2 mt-1">
-                            <div className="px-2 py-1 bg-role-student/20 text-role-student text-xs rounded-md font-medium">
-                              Student
-                            </div>
-                            <span className="text-xs text-muted-foreground">
-                              {studentData.user_code || studentData.student_id}
-                            </span>
-                          </div>
+                          <p className="text-xs text-role-student font-medium">
+                            Student
+                          </p>
                         </div>
                       </div>
                     </div>
@@ -397,11 +434,11 @@ const Student = () => {
                     <div className="p-2">
                       <Button
                         variant="ghost"
-                        className="w-full justify-start text-left hover:bg-white/10"
                         onClick={() => {
-                          setActiveView('courses');
                           setShowUserMenu(false);
+                          setActiveView('courses');
                         }}
+                        className="w-full justify-start text-sm text-muted-foreground hover:text-foreground hover:bg-white/5 rounded-lg"
                       >
                         <BookOpen className="h-4 w-4 mr-3" />
                         My Courses
@@ -409,11 +446,11 @@ const Student = () => {
                       
                       <Button
                         variant="ghost"
-                        className="w-full justify-start text-left hover:bg-white/10"
                         onClick={() => {
-                          setActiveView('gradebook');
                           setShowUserMenu(false);
+                          setActiveView('gradebook');
                         }}
+                        className="w-full justify-start text-sm text-muted-foreground hover:text-foreground hover:bg-white/5 rounded-lg"
                       >
                         <TrendingUp className="h-4 w-4 mr-3" />
                         My Grades
@@ -421,11 +458,11 @@ const Student = () => {
                       
                       <Button
                         variant="ghost"
-                        className="w-full justify-start text-left hover:bg-white/10"
                         onClick={() => {
-                          setActiveView('attendance');
                           setShowUserMenu(false);
+                          setActiveView('attendance');
                         }}
+                        className="w-full justify-start text-sm text-muted-foreground hover:text-foreground hover:bg-white/5 rounded-lg"
                       >
                         <Calendar className="h-4 w-4 mr-3" />
                         My Attendance
@@ -433,11 +470,11 @@ const Student = () => {
                       
                       <Button
                         variant="ghost"
-                        className="w-full justify-start text-left hover:bg-white/10"
                         onClick={() => {
-                          setActiveView('schedule');
                           setShowUserMenu(false);
+                          setActiveView('schedule');
                         }}
+                        className="w-full justify-start text-sm text-muted-foreground hover:text-foreground hover:bg-white/5 rounded-lg"
                       >
                         <Clock className="h-4 w-4 mr-3" />
                         My Schedule
@@ -445,25 +482,28 @@ const Student = () => {
                       
                       <Button
                         variant="ghost"
-                        className="w-full justify-start text-left hover:bg-white/10"
                         onClick={() => {
-                          setActiveView('support');
                           setShowUserMenu(false);
+                          setActiveView('support');
                         }}
+                        className="w-full justify-start text-sm text-muted-foreground hover:text-foreground hover:bg-white/5 rounded-lg"
                       >
                         <Settings className="h-4 w-4 mr-3" />
-                        Account Settings
+                        Settings & Support
                       </Button>
                       
-                      <div className="my-2 h-px bg-white/10"></div>
+                      <div className="h-px bg-white/10 my-2"></div>
                       
                       <Button
                         variant="ghost"
-                        className="w-full justify-start text-left hover:bg-red-500/10 text-red-400 hover:text-red-300"
-                        onClick={handleLogout}
+                        onClick={() => {
+                          setShowUserMenu(false);
+                          handleLogout();
+                        }}
+                        className="w-full justify-start text-sm text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg"
                       >
                         <LogOut className="h-4 w-4 mr-3" />
-                        Sign Out
+                        Logout
                       </Button>
                     </div>
                   </div>
@@ -475,26 +515,26 @@ const Student = () => {
       </div>
 
       {/* Main Layout */}
-      <div className="relative z-10 flex">
+      <div className="relative z-10 flex min-h-[calc(100vh-4rem)]">
         {/* Sidebar */}
         <SidebarNavigation
           items={sidebarItems}
           activeItem={activeView}
           onItemClick={setActiveView}
           userType="student"
-          collapsed={isMobile || sidebarCollapsed}
+          collapsed={sidebarCollapsed || isMobile}
         />
 
         {/* Main Content */}
-        <div className={`flex-1 p-4 md:p-6 ${isMobile ? 'ml-0' : ''}`}>
+        <div className={`flex-1 p-3 sm:p-6 ${isMobile ? 'ml-0' : ''}`}>
           {renderContent()}
         </div>
       </div>
       
-      {/* Mobile overlay when sidebar is open */}
+      {/* Mobile Overlay */}
       {isMobile && !sidebarCollapsed && (
         <div 
-          className="fixed inset-0 bg-black/50 z-[50] md:hidden"
+          className="fixed inset-0 bg-black/50 z-[90] md:hidden"
           onClick={() => setSidebarCollapsed(true)}
         />
       )}

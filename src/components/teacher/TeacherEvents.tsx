@@ -98,6 +98,7 @@ const TeacherEvents = ({ teacherData }: TeacherEventsProps) => {
 
   const fetchEvents = async () => {
     try {
+      const today = new Date().toISOString().split('T')[0];
       const { data: eventsData, error: eventsError } = await supabase
         .from('events')
         .select(`
@@ -109,6 +110,7 @@ const TeacherEvents = ({ teacherData }: TeacherEventsProps) => {
         `)
         .eq('college_id', teacherData.college_id)
         .eq('is_active', true)
+        .gte('start_date', today)
         .order('start_date');
 
       if (eventsError) {

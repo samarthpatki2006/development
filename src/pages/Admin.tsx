@@ -124,57 +124,92 @@ const Admin = () => {
   }, []);
 
   useEffect(() => {
-    const checkAuth = () => {
-      try {
-        const storedSession = localStorage.getItem('colcord_user');
-        console.log('Checking stored session:', storedSession);
-        
-        if (storedSession) {
-          const parsedSession = JSON.parse(storedSession);
-          console.log('Parsed session:', parsedSession);
-          
-          if (parsedSession.user_type && parsedSession.user_id) {
-            console.log('Valid session found, setting authenticated state');
-            setSessionData(parsedSession);
-            setIsAuthenticated(true);
-            
-            // Create user profile from session data
-            const profile = {
-              id: parsedSession.user_id,
-              first_name: parsedSession.first_name || 'Admin',
-              last_name: parsedSession.last_name || 'User',
-              email: parsedSession.email || '',
-              user_code: parsedSession.user_code || 'ADM001',
-              user_type: parsedSession.user_type || 'admin',
-              is_active: true,
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString(),
-              college_id: parsedSession.college_id || '',
-              hierarchy_level: parsedSession.user_type || 'admin'
-            };
-            setUserProfile(profile);
-            
-            // Set default admin roles
-            setAdminRoles([{
-              role_type: 'super_admin',
-              permissions: { all: true },
-              assigned_at: new Date().toISOString()
-            }]);
-            
-            setIsLoading(false);
-            return;
-          }
-        }
+    const checkAuth = async () => {
+  try {
+    // First check Supabase session
+    const { data: { session }, error } = await supabase.auth.getSession();
+    
+    if (error) {
+      console.error('Session error:', error);
+      navigate('/');
+      return;
+    }
 
-        console.log('No valid session found, redirecting to login');
+    if (session?.user) {
+      // Get user profile from database
+      const { data: profile, error: profileError } = await supabase
+        .from('user_profiles')
+        .select('*')
+        .eq('id', session.user.id)
+        .single();
+
+      if (profileError || !profile) {
+        console.error('Profile error:', profileError);
         navigate('/');
-      } catch (error) {
-        console.error('Auth check error:', error);
-        navigate('/');
-      } finally {
-        setIsLoading(false);
+        return;
       }
-    };
+
+      // Set session data
+      const userData = {
+        user_id: profile.id,
+        user_type: profile.user_type,
+        first_name: profile.first_name,
+        last_name: profile.last_name,
+        college_id: profile.college_id,
+        user_code: profile.user_code,
+        email: profile.email
+      };
+
+      setSessionData(userData);
+      setIsAuthenticated(true);
+      setUserProfile(profile);
+      setAdminRoles([{
+        role_type: 'super_admin',
+        permissions: { all: true },
+        assigned_at: new Date().toISOString()
+      }]);
+    } else {
+      // Fallback to localStorage for development
+      const storedSession = localStorage.getItem('colcord_user');
+      if (storedSession) {
+        const parsedSession = JSON.parse(storedSession);
+        if (parsedSession.user_type && parsedSession.user_id) {
+          setSessionData(parsedSession);
+          setIsAuthenticated(true);
+          
+          const profile = {
+            id: parsedSession.user_id,
+            first_name: parsedSession.first_name || 'Admin',
+            last_name: parsedSession.last_name || 'User',
+            email: parsedSession.email || '',
+            user_code: parsedSession.user_code || 'ADM001',
+            user_type: parsedSession.user_type || 'admin',
+            is_active: true,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            college_id: parsedSession.college_id || '',
+            hierarchy_level: parsedSession.user_type || 'admin'
+          };
+          setUserProfile(profile);
+          setAdminRoles([{
+            role_type: 'super_admin',
+            permissions: { all: true },
+            assigned_at: new Date().toISOString()
+          }]);
+        } else {
+          navigate('/');
+        }
+      } else {
+        navigate('/');
+      }
+    }
+  } catch (error) {
+    console.error('Auth check error:', error);
+    navigate('/');
+  } finally {
+    setIsLoading(false);
+  }
+};
 
     checkAuth();
   }, [navigate]);

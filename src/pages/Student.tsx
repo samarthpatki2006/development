@@ -131,32 +131,77 @@ const Student = () => {
 
   useEffect(() => {
     const checkUser = async () => {
-      try {
-        const userData = localStorage.getItem('colcord_user');
-        if (!userData) {
-          navigate('/');
-          return;
-        }
+  try {
+    // First check Supabase session
+    const { data: { session }, error } = await supabase.auth.getSession();
+    
+    if (error) {
+      console.error('Session error:', error);
+      navigate('/');
+      return;
+    }
 
-        const parsedUser = JSON.parse(userData);
-        if (parsedUser.user_type !== 'student') {
-          toast({
-            title: 'Access Denied',
-            description: 'This area is for students only.',
-            variant: 'destructive',
-          });
-          navigate('/');
-          return;
-        }
+    if (session?.user) {
+      // Get user profile from database
+      const { data: profile, error: profileError } = await supabase
+        .from('user_profiles')
+        .select('*')
+        .eq('id', session.user.id)
+        .single();
 
-        setStudentData(parsedUser);
-      } catch (error) {
-        console.error('Error checking user:', error);
+      if (profileError || !profile) {
+        console.error('Profile error:', profileError);
         navigate('/');
-      } finally {
-        setLoading(false);
+        return;
       }
-    };
+
+      if (profile.user_type !== 'student') {
+        toast({
+          title: 'Access Denied',
+          description: 'This area is for students only.',
+          variant: 'destructive',
+        });
+        navigate('/');
+        return;
+      }
+
+      setStudentData({
+        user_id: profile.id,
+        user_type: profile.user_type,
+        first_name: profile.first_name,
+        last_name: profile.last_name,
+        college_id: profile.college_id,
+        user_code: profile.user_code,
+        email: profile.email
+      });
+    } else {
+      // Fallback to localStorage
+      const userData = localStorage.getItem('colcord_user');
+      if (!userData) {
+        navigate('/');
+        return;
+      }
+
+      const parsedUser = JSON.parse(userData);
+      if (parsedUser.user_type !== 'student') {
+        toast({
+          title: 'Access Denied',
+          description: 'This area is for students only.',
+          variant: 'destructive',
+        });
+        navigate('/');
+        return;
+      }
+
+      setStudentData(parsedUser);
+    }
+  } catch (error) {
+    console.error('Error checking user:', error);
+    navigate('/');
+  } finally {
+    setLoading(false);
+  }
+};
 
     checkUser();
   }, [navigate]);

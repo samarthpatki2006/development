@@ -1,14 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Calendar } from '@/components/ui/calendar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { CheckCircle, XCircle, AlertTriangle, Calendar as CalendarIcon, TrendingUp, TrendingDown } from 'lucide-react';
+import { CheckCircle, XCircle, AlertTriangle, Camera, X, ScanLine, User } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
-import PermissionWrapper from '@/components/PermissionWrapper';
+import { toast } from 'sonner';
+import { Html5Qrcode } from 'html5-qrcode';
 
 interface AttendanceOverviewProps {
   studentData: any;
@@ -27,18 +30,32 @@ const AttendanceOverview: React.FC<AttendanceOverviewProps> = ({ studentData }) 
   const [selectedCourse, setSelectedCourse] = useState<string>('all');
   const [courses, setCourses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const { toast } = useToast();
+
+  // QR Scanner states
+  const [isScanning, setIsScanning] = useState(false);
+  const [qrCodeInput, setQrCodeInput] = useState('');
+  const [isMarked, setIsMarked] = useState(false);
+  const scannerRef = useRef<Html5Qrcode | null>(null);
+  const scannerDivId = 'qr-reader-student';
 
   useEffect(() => {
-    fetchAttendanceData();
-    fetchCourses();
+    if (studentData?.user_id) {
+      fetchAttendanceData();
+      fetchCourses();
+    }
+
+    return () => {
+      if (scannerRef.current) {
+        scannerRef.current.stop().catch(console.error);
+      }
+    };
   }, [studentData, selectedMonth, selectedCourse]);
 
   const fetchCourses = async () => {
     if (!studentData?.user_id) return;
 
     try {
-      const { data: enrollments } = await supabase
+      const { data: enrollments, error } = await supabase
         .from('enrollments')
         .select(`
           courses (
@@ -49,6 +66,8 @@ const AttendanceOverview: React.FC<AttendanceOverviewProps> = ({ studentData }) 
         `)
         .eq('student_id', studentData.user_id)
         .eq('status', 'enrolled');
+
+      if (error) throw error;
 
       if (enrollments) {
         setCourses(enrollments.map(e => e.courses).filter(Boolean));
@@ -79,7 +98,9 @@ const AttendanceOverview: React.FC<AttendanceOverviewProps> = ({ studentData }) 
         query = query.eq('course_id', selectedCourse);
       }
 
-      const { data: attendance } = await query;
+      const { data: attendance, error } = await query;
+
+      if (error) throw error;
 
       if (attendance) {
         setAttendanceData(attendance);
@@ -88,11 +109,7 @@ const AttendanceOverview: React.FC<AttendanceOverviewProps> = ({ studentData }) 
       }
     } catch (error) {
       console.error('Error fetching attendance:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to load attendance data',
-        variant: 'destructive',
-      });
+      toast.error('Failed to load attendance data');
     } finally {
       setLoading(false);
     }
@@ -159,6 +176,114 @@ const AttendanceOverview: React.FC<AttendanceOverviewProps> = ({ studentData }) 
     setCourseStats(stats);
   };
 
+  const startScanner = async () => {
+    try {
+      setIsScanning(true);
+      const html5QrCode = new Html5Qrcode(scannerDivId);
+      scannerRef.current = html5QrCode;
+
+      await html5QrCode.start(
+        { facingMode: "environment" },
+        {
+          fps: 10,
+          qrbox: { width: 250, height: 250 },
+        },
+        (decodedText) => {
+          setQrCodeInput(decodedText);
+          stopScanner();
+          toast.success('QR Code scanned successfully!');
+        },
+        () => {}
+      );
+    } catch (error) {
+      toast.error('Failed to start camera. Please check permissions.');
+      setIsScanning(false);
+    }
+  };
+
+  const stopScanner = async () => {
+    if (scannerRef.current) {
+      try {
+        await scannerRef.current.stop();
+        scannerRef.current = null;
+        setIsScanning(false);
+      } catch (error) {
+        console.error('Error stopping scanner:', error);
+      }
+    }
+  };
+
+  const handleMarkAttendance = async () => {
+    if (!qrCodeInput.trim()) {
+      toast.error('Please scan or enter session ID');
+      return;
+    }
+
+    if (!studentData?.user_id) {
+      toast.error('Student data not found');
+      return;
+    }
+
+    try {
+      // Verify session exists and is active
+      const { data: session, error: sessionError } = await supabase
+        .from('attendance_sessions')
+        .select('*')
+        .eq('qr_code', qrCodeInput)
+        .eq('is_active', true)
+        .single();
+
+      if (sessionError || !session) {
+        toast.error('Invalid or expired session ID');
+        return;
+      }
+
+      // Check if already marked
+      const { data: existing } = await supabase
+        .from('attendance')
+        .select('id')
+        .eq('session_id', session.id)
+        .eq('student_id', studentData.user_id)
+        .single();
+
+      if (existing) {
+        toast.error('Attendance already marked for this session');
+        return;
+      }
+
+      // Mark attendance
+      const { error: insertError } = await supabase
+        .from('attendance')
+        .insert({
+          course_id: session.course_id,
+          student_id: studentData.user_id,
+          class_date: session.session_date,
+          status: 'present',
+          session_id: session.id,
+          marked_by: studentData.user_id,
+          location_verified: false
+        });
+
+      if (insertError) throw insertError;
+
+      toast.success('Attendance marked successfully!');
+      setIsMarked(true);
+      
+      // Refresh attendance data
+      await fetchAttendanceData();
+
+      // Reset after 3 seconds
+      setTimeout(() => {
+        setQrCodeInput('');
+        setIsMarked(false);
+      }, 3000);
+
+    } catch (error) {
+      console.error('Error marking attendance:', error);
+      toast.error('Failed to mark attendance. Please try again.');
+    }
+  };
+
   const getAttendanceStatusColor = (status: string) => {
     switch (status) {
       case 'present':
@@ -200,100 +325,173 @@ const AttendanceOverview: React.FC<AttendanceOverviewProps> = ({ studentData }) 
   }
 
   return (
-    <PermissionWrapper permission="view_attendance">
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="flex justify-between items-center">
-          <div>
-            <h2 className="text-2xl font-bold">Attendance Overview</h2>
-            <p className="text-muted-foreground">Track your class attendance and statistics</p>
-          </div>
-          <div className="flex items-center space-x-4">
-            <Select value={selectedCourse} onValueChange={setSelectedCourse}>
-              <SelectTrigger className="w-48">
-                <SelectValue placeholder="Select course" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Courses</SelectItem>
-                {courses.map(course => (
-                  <SelectItem key={course.id} value={course.id}>
-                    {course.course_code} - {course.course_name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <div>
+          <h2 className="text-2xl font-bold">Attendance Overview</h2>
+          <p className="text-muted-foreground">Track your class attendance and statistics</p>
         </div>
+        <Select value={selectedCourse} onValueChange={setSelectedCourse}>
+          <SelectTrigger className="w-48">
+            <SelectValue placeholder="Select course" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Courses</SelectItem>
+            {courses.map(course => (
+              <SelectItem key={course.id} value={course.id}>
+                {course.course_code}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
 
-        {/* Overall Statistics */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Overall Attendance</p>
-                  <p className="text-2xl font-bold">{overallStats.percentage}%</p>
+      {/* Overall Statistics */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Overall Attendance</p>
+                <p className="text-2xl font-bold">{overallStats.percentage}%</p>
+              </div>
+            </div>
+            <Progress value={overallStats.percentage} className="mt-3" />
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="text-center">
+              <p className="text-sm font-medium text-muted-foreground">Total Classes</p>
+              <p className="text-2xl font-bold">{overallStats.totalClasses}</p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="text-center">
+              <p className="text-sm font-medium text-muted-foreground">Classes Attended</p>
+              <p className="text-2xl font-bold text-green-600">{overallStats.attendedClasses}</p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="text-center">
+              <p className="text-sm font-medium text-muted-foreground">Classes Missed</p>
+              <p className="text-2xl font-bold text-red-600">
+                {overallStats.totalClasses - overallStats.attendedClasses}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Tabs defaultValue="mark" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="mark">Mark Attendance</TabsTrigger>
+          <TabsTrigger value="summary">Course Summary</TabsTrigger>
+          <TabsTrigger value="history">Attendance History</TabsTrigger>
+        </TabsList>
+
+        {/* Mark Attendance Tab */}
+        <TabsContent value="mark">
+          <Card className="p-8">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
+                <ScanLine className="h-6 w-6 text-primary" />
+              </div>
+              <div>
+                <h2 className="text-2xl font-bold">Mark Attendance</h2>
+                <p className="text-muted-foreground">Scan or enter the QR code session ID</p>
+              </div>
+            </div>
+
+            {isMarked ? (
+              <div className="flex flex-col items-center justify-center py-12">
+                <div className="h-20 w-20 rounded-full bg-success/10 flex items-center justify-center mb-4 animate-in zoom-in">
+                  <CheckCircle className="h-12 w-12 text-success" />
                 </div>
-                <div className={`p-2 rounded-full ${
-                  overallStats.status === 'critical' ? 'bg-red-100' :
-                  overallStats.status === 'warning' ? 'bg-yellow-100' : 'bg-green-100'
-                }`}>
-                  {overallStats.status === 'critical' ? (
-                    <TrendingDown className="h-6 w-6 text-red-600" />
+                <h3 className="text-2xl font-bold text-success mb-2">Attendance Marked!</h3>
+                <p className="text-muted-foreground">You're all set for today</p>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                <div className="space-y-2">
+                  <Label htmlFor="qrCode" className="flex items-center gap-2">
+                    <ScanLine className="h-4 w-4" />
+                    QR Code Session ID
+                  </Label>
+                  
+                  {isScanning ? (
+                    <div className="space-y-4">
+                      <div 
+                        id={scannerDivId}
+                        className="rounded-lg overflow-hidden border-2 border-primary"
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={stopScanner}
+                        className="w-full"
+                      >
+                        <X className="h-4 w-4 mr-2" />
+                        Cancel Scanning
+                      </Button>
+                    </div>
                   ) : (
-                    <TrendingUp className="h-6 w-6 text-green-600" />
+                    <>
+                      <div className="flex gap-2">
+                        <Input
+                          id="qrCode"
+                          placeholder="Scan or paste session ID here"
+                          value={qrCodeInput}
+                          onChange={(e) => setQrCodeInput(e.target.value)}
+                          className="h-12 font-mono"
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={startScanner}
+                          className="h-12 px-6"
+                        >
+                          <Camera className="h-5 w-5" />
+                        </Button>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Click the camera icon to scan QR code or enter session ID manually
+                      </p>
+                    </>
                   )}
                 </div>
-              </div>
-              <Progress value={overallStats.percentage} className="mt-3" />
-            </CardContent>
-          </Card>
 
+                <Button 
+                  onClick={handleMarkAttendance}
+                  size="lg" 
+                  className="w-full h-12"
+                  disabled={!qrCodeInput.trim()}
+                >
+                  Submit Attendance
+                </Button>
+              </div>
+            )}
+          </Card>
+        </TabsContent>
+
+        {/* Course Summary Tab */}
+        <TabsContent value="summary" className="space-y-4">
           <Card>
-            <CardContent className="p-6">
-              <div className="text-center">
-                <p className="text-sm font-medium text-muted-foreground">Total Classes</p>
-                <p className="text-2xl font-bold">{overallStats.totalClasses}</p>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-6">
-              <div className="text-center">
-                <p className="text-sm font-medium text-muted-foreground">Classes Attended</p>
-                <p className="text-2xl font-bold text-green-600">{overallStats.attendedClasses}</p>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-6">
-              <div className="text-center">
-                <p className="text-sm font-medium text-muted-foreground">Classes Missed</p>
-                <p className="text-2xl font-bold text-red-600">
-                  {overallStats.totalClasses - overallStats.attendedClasses}
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        <Tabs defaultValue="summary" className="space-y-4">
-          <TabsList>
-            <TabsTrigger value="summary">Course Summary</TabsTrigger>
-            <TabsTrigger value="history">Attendance History</TabsTrigger>
-            <TabsTrigger value="calendar">Calendar View</TabsTrigger>
-          </TabsList>
-
-          {/* Course Summary */}
-          <TabsContent value="summary" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Course-wise Attendance</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {courseStats.map((course, index) => (
+            <CardHeader>
+              <CardTitle>Course-wise Attendance</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {courseStats.length === 0 ? (
+                <p className="text-center text-muted-foreground py-8">No attendance data available</p>
+              ) : (
+                courseStats.map((course, index) => (
                   <div key={index} className="flex items-center justify-between p-4 border rounded-lg">
                     <div className="flex-1">
                       <h4 className="font-medium">{course.course_name}</h4>
@@ -313,20 +511,24 @@ const AttendanceOverview: React.FC<AttendanceOverviewProps> = ({ studentData }) 
                       </div>
                     </div>
                   </div>
-                ))}
-              </CardContent>
-            </Card>
-          </TabsContent>
+                ))
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
 
-          {/* Attendance History */}
-          <TabsContent value="history" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Recent Attendance</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {attendanceData.slice(0, 20).map((record, index) => (
+        {/* Attendance History Tab */}
+        <TabsContent value="history" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Recent Attendance</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {attendanceData.length === 0 ? (
+                  <p className="text-center text-muted-foreground py-8">No attendance records found</p>
+                ) : (
+                  attendanceData.slice(0, 20).map((record, index) => (
                     <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
                       <div className="flex items-center space-x-3">
                         {getAttendanceIcon(record.status)}
@@ -346,75 +548,15 @@ const AttendanceOverview: React.FC<AttendanceOverviewProps> = ({ studentData }) 
                         {record.status.charAt(0).toUpperCase() + record.status.slice(1)}
                       </Badge>
                     </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
+                  ))
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
-          {/* Calendar View */}
-          <TabsContent value="calendar" className="space-y-4">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <Card className="lg:col-span-1">
-                <CardHeader>
-                  <CardTitle>Select Month</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <Calendar
-                    mode="single"
-                    selected={selectedMonth}
-                    onSelect={(date) => date && setSelectedMonth(date)}
-                    className="rounded-md border"
-                  />
-                </CardContent>
-              </Card>
-
-              <Card className="lg:col-span-2">
-                <CardHeader>
-                  <CardTitle>Monthly Summary</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-2 gap-4 mb-6">
-                    <div className="text-center p-4 rounded-lg">
-                      <p className="text-sm text-muted-foreground">Present Days</p>
-                      <p className="text-2xl font-bold text-green-600">
-                        {attendanceData.filter(a => 
-                          a.status === 'present' && 
-                          new Date(a.class_date).getMonth() === selectedMonth.getMonth()
-                        ).length}
-                      </p>
-                    </div>
-                    <div className="text-center p-4 rounded-lg">
-                      <p className="text-sm text-muted-foreground">Absent Days</p>
-                      <p className="text-2xl font-bold text-red-600">
-                        {attendanceData.filter(a => 
-                          a.status === 'absent' && 
-                          new Date(a.class_date).getMonth() === selectedMonth.getMonth()
-                        ).length}
-                      </p>
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    {attendanceData
-                      .filter(a => new Date(a.class_date).getMonth() === selectedMonth.getMonth())
-                      .slice(0, 10)
-                      .map((record, index) => (
-                        <div key={index} className="flex items-center justify-between p-2 border rounded">
-                          <span className="text-sm">
-                            {new Date(record.class_date).toLocaleDateString()} - {record.courses?.course_code}
-                          </span>
-                          {getAttendanceIcon(record.status)}
-                        </div>
-                      ))}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
-        </Tabs>
-      </div>
-    </PermissionWrapper>
+      </Tabs>
+    </div>
   );
 };
 

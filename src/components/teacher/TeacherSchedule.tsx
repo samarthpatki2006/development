@@ -4,25 +4,23 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import QRCode from 'qrcode';
 import { 
   Calendar, 
-  Clock, 
   MapPin, 
   Users, 
-  Bell,
   AlertTriangle,
-  BookOpen,
   Plus,
-  Edit,
   ChevronLeft,
   ChevronRight,
-  Star
+  Star,
+  QrCode as QrCodeIcon,
+  Copy,
+  CheckCircle
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from '@/components/ui/use-toast';
-import PermissionWrapper from '@/components/PermissionWrapper';
+import { toast } from 'sonner';
 
 interface TeacherScheduleProps {
   teacherData: any;
@@ -31,19 +29,17 @@ interface TeacherScheduleProps {
 const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
   const [schedule, setSchedule] = useState<any[]>([]);
   const [todayClasses, setTodayClasses] = useState<any[]>([]);
-  const [reminders, setReminders] = useState<any[]>([]);
-  const [alerts, setAlerts] = useState<any[]>([]);
   const [courses, setCourses] = useState<any[]>([]);
   const [currentWeek, setCurrentWeek] = useState(new Date());
   const [loading, setLoading] = useState(true);
   const [isScheduleDialogOpen, setIsScheduleDialogOpen] = useState(false);
-
-  const [newReminder, setNewReminder] = useState({
-    class_id: '',
-    reminder_text: '',
-    reminder_time: '',
-    reminder_type: 'preparation'
-  });
+  const [selectedClass, setSelectedClass] = useState<any>(null);
+  const [qrCode, setQrCode] = useState<string>('');
+  const [sessionId, setSessionId] = useState<string>('');
+  const [isQRDialogOpen, setIsQRDialogOpen] = useState(false);
+  const [attendanceRecords, setAttendanceRecords] = useState<any[]>([]);
+  const [copiedSessionId, setCopiedSessionId] = useState(false);
+  const [courseAttendanceStats, setCourseAttendanceStats] = useState<any[]>([]);
 
   const [newSchedule, setNewSchedule] = useState({
     course_id: '',
@@ -60,18 +56,29 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
   ];
 
   useEffect(() => {
-    fetchScheduleData();
-    fetchTeacherCourses();
+    if (teacherData?.user_id) {
+      fetchScheduleData();
+      fetchTeacherCourses();
+    }
   }, [teacherData, currentWeek]);
+
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (isQRDialogOpen && sessionId) {
+      fetchAttendanceForSession();
+      interval = setInterval(fetchAttendanceForSession, 5000);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [isQRDialogOpen, sessionId]);
 
   const fetchScheduleData = async () => {
     try {
       setLoading(true);
       await Promise.all([
         fetchWeeklySchedule(),
-        fetchTodayClasses(),
-        fetchReminders(),
-        fetchAlerts()
+        fetchTodayClasses()
       ]);
     } catch (error) {
       console.error('Error fetching schedule data:', error);
@@ -97,7 +104,6 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
 
   const fetchWeeklySchedule = async () => {
     try {
-      // Get regular schedule
       const { data: regularSchedule, error: regularError } = await supabase
         .from('class_schedule')
         .select(`
@@ -111,14 +117,10 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
         `)
         .eq('courses.instructor_id', teacherData.user_id);
 
-      if (regularError) {
-        console.error('Regular schedule fetch error:', regularError);
-        throw regularError;
-      }
+      if (regularError) throw regularError;
 
       let allScheduleData = [];
 
-      // Process regular classes
       if (regularSchedule) {
         const regularScheduleData = regularSchedule.map(schedule => ({
           ...schedule,
@@ -128,13 +130,11 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
         allScheduleData = [...regularScheduleData];
       }
 
-      // Calculate week start and end dates
       const weekStart = new Date(currentWeek);
       weekStart.setDate(weekStart.getDate() - weekStart.getDay());
       const weekEnd = new Date(weekStart);
       weekEnd.setDate(weekStart.getDate() + 6);
 
-      // Get extra classes for the current week taught by this teacher
       const { data: extraClasses, error: extraError } = await supabase
         .from('extra_class_schedule')
         .select(`
@@ -159,10 +159,7 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
         .gte('scheduled_date', weekStart.toISOString().split('T')[0])
         .lte('scheduled_date', weekEnd.toISOString().split('T')[0]);
 
-      if (extraError) {
-        console.warn('Extra class fetch error:', extraError);
-      } else if (extraClasses && extraClasses.length > 0) {
-        // Process extra classes
+      if (!extraError && extraClasses && extraClasses.length > 0) {
         const extraScheduleData = extraClasses.map(extraClass => {
           const scheduledDate = new Date(extraClass.scheduled_date);
           return {
@@ -182,7 +179,7 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
               id: extraClass.course_id,
               course_name: extraClass.courses?.course_name || extraClass.title,
               course_code: extraClass.courses?.course_code || 'EXTRA',
-              enrollments: [] // Extra classes don't have regular enrollments
+              enrollments: []
             }
           };
         });
@@ -194,6 +191,7 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
 
     } catch (error) {
       console.error('Error fetching weekly schedule:', error);
+      toast.error('Failed to fetch schedule');
     }
   };
 
@@ -202,7 +200,6 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
     const todayDay = today.getDay();
     
     try {
-      // Get regular classes for today
       const { data: regularClasses, error: regularError } = await supabase
         .from('class_schedule')
         .select(`
@@ -228,7 +225,6 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
         allTodayClasses = [...regularClassesData];
       }
 
-      // Get extra classes for today
       const todayString = today.toISOString().split('T')[0];
       const { data: extraClasses, error: extraError } = await supabase
         .from('extra_class_schedule')
@@ -278,7 +274,6 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
         allTodayClasses = [...allTodayClasses, ...extraClassesData];
       }
 
-      // Sort by start time
       allTodayClasses.sort((a, b) => a.start_time.localeCompare(b.start_time));
       setTodayClasses(allTodayClasses);
 
@@ -287,51 +282,182 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
     }
   };
 
-  const fetchReminders = async () => {
-    // Simulate teacher reminders data
-    setReminders([
-      {
-        id: '1',
-        class_name: 'Data Structures & Algorithms',
-        reminder_text: 'Prepare slides for Binary Trees topic',
-        reminder_time: '08:30',
-        type: 'preparation'
-      },
-      {
-        id: '2',
-        class_name: 'Database Management',
-        reminder_text: 'Review assignment submissions',
-        reminder_time: '10:45',
-        type: 'grading'
-      }
-    ]);
+  const generateQRCode = async (classData: any) => {
+    try {
+      setSelectedClass(classData);
+      
+      const today = new Date().toISOString().split('T')[0];
+      const sessionData = {
+        course_id: classData.course_id,
+        instructor_id: teacherData.user_id,
+        session_date: classData.scheduled_date || today,
+        start_time: classData.start_time,
+        end_time: classData.end_time,
+        room_location: classData.room_location,
+        session_type: classData.is_extra_class ? classData.class_type : 'lecture',
+        topic: classData.title || classData.courses?.course_name,
+        is_active: true
+      };
+
+      const { data: session, error: sessionError } = await supabase
+        .from('attendance_sessions')
+        .insert(sessionData)
+        .select()
+        .single();
+
+      if (sessionError) throw sessionError;
+
+      const qrCodeData = `session-${session.id}`;
+      
+      await supabase
+        .from('attendance_sessions')
+        .update({ qr_code: qrCodeData })
+        .eq('id', session.id);
+
+      const qrDataUrl = await QRCode.toDataURL(qrCodeData, {
+        width: 300,
+        margin: 2,
+        color: {
+          dark: '#3b82f6',
+          light: '#ffffff',
+        },
+      });
+
+      setQrCode(qrDataUrl);
+      setSessionId(qrCodeData);
+      setIsQRDialogOpen(true);
+      setAttendanceRecords([]);
+      setCourseAttendanceStats([]);
+      toast.success('QR Code generated successfully!');
+
+      setTimeout(async () => {
+        await supabase
+          .from('attendance_sessions')
+          .update({ is_active: false })
+          .eq('id', session.id);
+        
+        if (isQRDialogOpen) {
+          toast.info('Session expired. Generate a new QR code if needed.');
+        }
+      }, 300000);
+
+    } catch (error) {
+      console.error('Error generating QR code:', error);
+      toast.error('Failed to generate QR code');
+    }
   };
 
-  const fetchAlerts = async () => {
-    // Simulate class change alerts
-    setAlerts([
-      {
-        id: '1',
-        type: 'room_change',
-        message: 'Computer Networks class moved to Lab 102',
-        class_time: '14:00',
-        severity: 'warning'
-      },
-      {
-        id: '2',
-        type: 'cancelled',
-        message: 'Database Systems class cancelled due to maintenance',
-        class_time: '16:00',
-        severity: 'error'
+  const fetchAttendanceForSession = async () => {
+    if (!sessionId) return;
+
+    try {
+      const { data: session } = await supabase
+        .from('attendance_sessions')
+        .select('id, course_id')
+        .eq('qr_code', sessionId)
+        .single();
+
+      if (!session) return;
+
+      const { data: attendance, error } = await supabase
+        .from('attendance')
+        .select(`
+          *,
+          user_profiles (
+            first_name,
+            last_name,
+            user_code
+          )
+        `)
+        .eq('session_id', session.id)
+        .order('marked_at', { ascending: false });
+
+      if (!error && attendance) {
+        setAttendanceRecords(attendance);
+        
+        // Fetch attendance statistics for each student in this course
+        if (session.course_id) {
+          await fetchCourseAttendanceStats(session.course_id, attendance);
+        }
       }
-    ]);
+    } catch (error) {
+      console.error('Error fetching attendance:', error);
+    }
   };
 
-  // Helper functions for timeline view
+  const fetchCourseAttendanceStats = async (courseId: string, currentAttendance: any[]) => {
+    try {
+      const studentIds = currentAttendance.map(a => a.student_id);
+      
+      if (studentIds.length === 0) return;
+
+      // Get total number of sessions for this course
+      const { data: totalSessions, error: sessionsError } = await supabase
+        .from('attendance_sessions')
+        .select('id', { count: 'exact' })
+        .eq('course_id', courseId)
+        .eq('is_active', false); // Only count completed sessions
+
+      const totalSessionCount = totalSessions?.length || 0;
+
+      // Get attendance count for each student
+      const { data: attendanceData, error: attendanceError } = await supabase
+        .from('attendance')
+        .select('student_id, status')
+        .eq('course_id', courseId)
+        .in('student_id', studentIds);
+
+      if (!attendanceError && attendanceData) {
+        const statsMap = new Map();
+        
+        attendanceData.forEach(record => {
+          if (!statsMap.has(record.student_id)) {
+            statsMap.set(record.student_id, { present: 0, total: 0 });
+          }
+          const stats = statsMap.get(record.student_id);
+          stats.total += 1;
+          if (record.status === 'present') {
+            stats.present += 1;
+          }
+        });
+
+        const stats = Array.from(statsMap.entries()).map(([studentId, data]: [string, any]) => ({
+          student_id: studentId,
+          present_count: data.present,
+          total_count: data.total,
+          percentage: data.total > 0 ? ((data.present / data.total) * 100).toFixed(1) : '0.0'
+        }));
+
+        setCourseAttendanceStats(stats);
+      }
+    } catch (error) {
+      console.error('Error fetching course attendance stats:', error);
+    }
+  };
+
+  const getAttendancePercentage = (studentId: string) => {
+    const stats = courseAttendanceStats.find(s => s.student_id === studentId);
+    return stats ? stats.percentage : '0.0';
+  };
+
+  const getAttendanceColor = (percentage: string) => {
+    const percent = parseFloat(percentage);
+    if (percent >= 75) return 'text-green-600';
+    if (percent >= 60) return 'text-yellow-600';
+    return 'text-red-600';
+  };
+
+  const copySessionId = () => {
+    navigator.clipboard.writeText(sessionId);
+    setCopiedSessionId(true);
+    toast.success('Session ID copied to clipboard');
+    setTimeout(() => setCopiedSessionId(false), 2000);
+  };
+
   const getWeekDays = (startDate: Date) => {
     const week = [];
     const start = new Date(startDate);
-    start.setDate(start.getDate() - start.getDay()); // Start from Sunday
+    start.setDate(start.getDate() - start.getDay());
 
     for (let i = 0; i < 7; i++) {
       const day = new Date(start);
@@ -392,28 +518,17 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
 
   const createSchedule = async () => {
     try {
-      // Validate form data
       if (!newSchedule.course_id || !newSchedule.start_time || !newSchedule.end_time) {
-        toast({
-          title: 'Error',
-          description: 'Please fill in all required fields',
-          variant: 'destructive'
-        });
+        toast.error('Please fill in all required fields');
         return;
       }
 
-      // Validate time logic
       if (newSchedule.start_time >= newSchedule.end_time) {
-        toast({
-          title: 'Error',
-          description: 'End time must be after start time',
-          variant: 'destructive'
-        });
+        toast.error('End time must be after start time');
         return;
       }
 
-      // Insert into database
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('class_schedule')
         .insert([{
           course_id: newSchedule.course_id,
@@ -421,19 +536,12 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
           start_time: newSchedule.start_time,
           end_time: newSchedule.end_time,
           room_location: newSchedule.room_location || null
-        }])
-        .select();
+        }]);
 
-      if (error) {
-        throw error;
-      }
+      if (error) throw error;
 
-      toast({
-        title: 'Success',
-        description: 'Class scheduled successfully'
-      });
+      toast.success('Class scheduled successfully');
 
-      // Reset form
       setNewSchedule({
         course_id: '',
         day_of_week: 0,
@@ -442,51 +550,12 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
         room_location: ''
       });
 
-      // Close dialog
       setIsScheduleDialogOpen(false);
-
-      // Refresh schedule data
       await fetchScheduleData();
 
     } catch (error) {
       console.error('Error creating schedule:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to schedule class. Please try again.',
-        variant: 'destructive'
-      });
-    }
-  };
-
-  const createReminder = async () => {
-    try {
-      // In a real implementation, you would save to a reminders table
-      const newReminderObj = {
-        ...newReminder,
-        id: Date.now().toString(),
-        teacher_id: teacherData.user_id
-      };
-
-      setReminders(prev => [...prev, newReminderObj]);
-
-      toast({
-        title: 'Success',
-        description: 'Reminder created successfully'
-      });
-
-      setNewReminder({
-        class_id: '',
-        reminder_text: '',
-        reminder_time: '',
-        reminder_type: 'preparation'
-      });
-    } catch (error) {
-      console.error('Error creating reminder:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to create reminder',
-        variant: 'destructive'
-      });
+      toast.error('Failed to schedule class. Please try again.');
     }
   };
 
@@ -503,364 +572,324 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
   }
 
   return (
-    <PermissionWrapper permission="mark_attendance">
-      <div className="space-y-6">
-        {/* Header with Schedule Class Button */}
-        <div className="flex justify-between items-center">
-          <h2 className="text-2xl font-bold">My Schedule</h2>
-          <Dialog open={isScheduleDialogOpen} onOpenChange={setIsScheduleDialogOpen}>
-            <DialogTrigger asChild>
-              <Button className="flex items-center gap-2">
-                <Plus className="h-4 w-4" />
-                Schedule Class
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-md">
-              <DialogHeader>
-                <DialogTitle>Schedule New Class</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium mb-2">Course *</label>
-                  <select
-                    className="w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary bg-black"
-                    value={newSchedule.course_id}
-                    onChange={(e) => setNewSchedule({...newSchedule, course_id: e.target.value})}
-                  >
-                    <option value="">Select a course</option>
-                    {courses.map((course) => (
-                      <option key={course.id} value={course.id}>
-                        {course.course_code} - {course.course_name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold">My Schedule</h2>
+        <Dialog open={isScheduleDialogOpen} onOpenChange={setIsScheduleDialogOpen}>
+          <DialogTrigger asChild>
+            <Button className="flex items-center gap-2">
+              <Plus className="h-4 w-4" />
+              Schedule Class
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Schedule New Class</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-2">Course *</label>
+                <select
+                  className="w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary bg-background"
+                  value={newSchedule.course_id}
+                  onChange={(e) => setNewSchedule({...newSchedule, course_id: e.target.value})}
+                >
+                  <option value="">Select a course</option>
+                  {courses.map((course) => (
+                    <option key={course.id} value={course.id}>
+                      {course.course_code} - {course.course_name}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-                <div>
-                  <label className="block text-sm font-medium mb-2">Day of Week *</label>
-                  <select
-                    className="w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary bg-black"
-                    value={newSchedule.day_of_week}
-                    onChange={(e) => setNewSchedule({...newSchedule, day_of_week: parseInt(e.target.value)})}
-                  >
-                    {daysOfWeek.map((day, index) => (
-                      <option key={index} value={index}>
-                        {day}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+              <div>
+                <label className="block text-sm font-medium mb-2">Day of Week *</label>
+                <select
+                  className="w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary bg-background"
+                  value={newSchedule.day_of_week}
+                  onChange={(e) => setNewSchedule({...newSchedule, day_of_week: parseInt(e.target.value)})}
+                >
+                  {daysOfWeek.map((day, index) => (
+                    <option key={index} value={index}>
+                      {day}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Start Time *</label>
-                    <Input
-                      type="time"
-                      value={newSchedule.start_time}
-                      onChange={(e) => setNewSchedule({...newSchedule, start_time: e.target.value})}
-                      className="focus:ring-2 focus:ring-primary"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2">End Time *</label>
-                    <Input
-                      type="time"
-                      value={newSchedule.end_time}
-                      onChange={(e) => setNewSchedule({...newSchedule, end_time: e.target.value})}
-                      className="focus:ring-2 focus:ring-primary"
-                    />
-                  </div>
-                </div>
-
+              <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium mb-2">Room Location</label>
+                  <label className="block text-sm font-medium mb-2">Start Time *</label>
                   <Input
-                    placeholder="e.g., Room 101, Lab A, Online"
-                    value={newSchedule.room_location}
-                    onChange={(e) => setNewSchedule({...newSchedule, room_location: e.target.value})}
-                    className="focus:ring-2 focus:ring-primary"
+                    type="time"
+                    value={newSchedule.start_time}
+                    onChange={(e) => setNewSchedule({...newSchedule, start_time: e.target.value})}
                   />
                 </div>
-
-                <div className="flex gap-3 pt-4">
-                  <Button 
-                    onClick={createSchedule} 
-                    className="flex-1"
-                    disabled={!newSchedule.course_id || !newSchedule.start_time || !newSchedule.end_time}
-                  >
-                    <Calendar className="h-4 w-4 mr-2" />
-                    Schedule Class
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    onClick={() => setIsScheduleDialogOpen(false)}
-                  >
-                    Cancel
-                  </Button>
+                <div>
+                  <label className="block text-sm font-medium mb-2">End Time *</label>
+                  <Input
+                    type="time"
+                    value={newSchedule.end_time}
+                    onChange={(e) => setNewSchedule({...newSchedule, end_time: e.target.value})}
+                  />
                 </div>
               </div>
-            </DialogContent>
-          </Dialog>
-        </div>
 
-        {/* Weekly Timeline View */}
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle className="flex items-center gap-2">
-                <Calendar className="h-5 w-5" />
-                Weekly Schedule Timeline
-              </CardTitle>
-              <div className="flex items-center space-x-2">
-                <Button variant="outline" size="sm" onClick={() => navigateWeek('prev')}>
-                  <ChevronLeft className="h-4 w-4" />
+              <div>
+                <label className="block text-sm font-medium mb-2">Room Location</label>
+                <Input
+                  placeholder="e.g., Room 101, Lab A"
+                  value={newSchedule.room_location}
+                  onChange={(e) => setNewSchedule({...newSchedule, room_location: e.target.value})}
+                />
+              </div>
+
+              <div className="flex gap-3 pt-4">
+                <Button 
+                  onClick={createSchedule} 
+                  className="flex-1"
+                  disabled={!newSchedule.course_id || !newSchedule.start_time || !newSchedule.end_time}
+                >
+                  <Calendar className="h-4 w-4 mr-2" />
+                  Schedule Class
                 </Button>
-                <span className="text-sm font-medium min-w-[140px] text-center">
-                  {currentWeek.toLocaleDateString('en-US', { 
-                    month: 'long', 
-                    day: 'numeric', 
-                    year: 'numeric' 
-                  })}
-                </span>
-                <Button variant="outline" size="sm" onClick={() => navigateWeek('next')}>
-                  <ChevronRight className="h-4 w-4" />
+                <Button 
+                  variant="outline" 
+                  onClick={() => setIsScheduleDialogOpen(false)}
+                >
+                  Cancel
                 </Button>
               </div>
             </div>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-8 gap-2">
-              {/* Time column */}
-              <div className="space-y-2">
-                <div className="h-12"></div>
-                {timeSlots.map(time => (
-                  <div key={time} className="h-16 text-xs text-muted-foreground flex items-center justify-end pr-2">
-                    {time}
-                  </div>
-                ))}
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      {/* QR Code Dialog */}
+      <Dialog open={isQRDialogOpen} onOpenChange={setIsQRDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Attendance QR Code</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-6">
+            <div className="flex flex-col items-center gap-4 p-6 bg-muted/50 rounded-lg">
+              <div className="bg-white p-4 rounded-lg shadow-md">
+                {qrCode && <img src={qrCode} alt="Attendance QR Code" className="w-[300px] h-[300px]" />}
               </div>
+              <div className="text-center space-y-2">
+                <p className="text-sm font-medium">
+                  Session ID: <span className="font-mono text-primary">{sessionId}</span>
+                </p>
+                <Button variant="outline" size="sm" onClick={copySessionId}>
+                  {copiedSessionId ? <CheckCircle className="h-4 w-4 mr-2" /> : <Copy className="h-4 w-4 mr-2" />}
+                  {copiedSessionId ? 'Copied!' : 'Copy Session ID'}
+                </Button>
+                <p className="text-xs text-muted-foreground">
+                  Active - Expires in 5 minutes
+                </p>
+              </div>
+            </div>
 
-              {/* Day columns */}
-              {getWeekDays(currentWeek).map((date, dayIndex) => (
-                <div key={dayIndex} className="space-y-2">
-                  <div className={`h-12 text-center p-2 rounded-lg ${
-                    isToday(date) ? 'bg-primary text-primary-foreground' : 'bg-muted'
-                  }`}>
-                    <div className="text-sm font-medium">{daysOfWeek[dayIndex]}</div>
-                    <div className="text-xs">{date.getDate()}</div>
-                  </div>
-                  
-                  {timeSlots.map((timeSlot, timeIndex) => {
-                    const dayClasses = getClassesForDay(dayIndex, date);
-                    const classAtTime = dayClasses.find(cls => {
-                      const startTime = formatTime(cls.start_time);
-                      return startTime === timeSlot;
-                    });
-
+            <div>
+              <h3 className="font-semibold mb-3 flex items-center gap-2">
+                <Users className="h-5 w-5" />
+                Live Attendance ({attendanceRecords.length})
+              </h3>
+              <div className="max-h-60 overflow-y-auto space-y-2">
+                {attendanceRecords.length === 0 ? (
+                  <p className="text-center text-muted-foreground py-4">
+                    Waiting for students to mark attendance...
+                  </p>
+                ) : (
+                  attendanceRecords.map((record, index) => {
+                    const attendancePercentage = getAttendancePercentage(record.student_id);
                     return (
-                      <div key={timeIndex} className="h-16 border rounded">
-                        {classAtTime && (
-                          <div className={`p-1 rounded text-xs h-full border transition-colors cursor-pointer ${getClassTypeStyle(classAtTime)}`}>
-                            <div className="font-medium truncate flex items-center">
-                              {classAtTime.is_extra_class && (
-                                <Star className="h-2 w-2 mr-1 flex-shrink-0" />
-                              )}
-                              <span className="truncate">{classAtTime.courses?.course_code}</span>
-                            </div>
-                            <div className="text-xs opacity-80 truncate">
-                              {classAtTime.room_location}
-                            </div>
-                            {classAtTime.is_extra_class ? (
-                              <div className="text-xs opacity-70 truncate capitalize">
-                                {classAtTime.class_type}
-                              </div>
-                            ) : (
-                              <div className="text-xs opacity-70 truncate flex items-center">
-                                <Users className="h-2 w-2 mr-1" />
-                                {classAtTime.courses?.enrollments?.[0]?.count || 0}
-                              </div>
-                            )}
+                      <div
+                        key={index}
+                        className="flex items-center justify-between p-3 bg-muted/50 rounded-lg"
+                      >
+                        <div className="flex-1">
+                          <p className="font-medium">
+                            {record.user_profiles?.first_name} {record.user_profiles?.last_name}
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            ID: {record.user_profiles?.user_code}
+                          </p>
+                        </div>
+                        <div className="text-right space-y-1">
+                          <p className="text-sm font-medium">
+                            {new Date(record.marked_at).toLocaleTimeString()}
+                          </p>
+                          <div className="flex items-center gap-2">
+                            <Badge variant="outline" className="text-xs">
+                              {record.status}
+                            </Badge>
+                            <span className={`text-xs font-semibold ${getAttendanceColor(attendancePercentage)}`}>
+                              {attendancePercentage}%
+                            </span>
                           </div>
-                        )}
+                        </div>
                       </div>
                     );
-                  })}
+                  })
+                )}
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Weekly Timeline */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
+              <Calendar className="h-5 w-5" />
+              Weekly Schedule Timeline
+            </CardTitle>
+            <div className="flex items-center space-x-2">
+              <Button variant="outline" size="sm" onClick={() => navigateWeek('prev')}>
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <span className="text-sm font-medium min-w-[140px] text-center">
+                {currentWeek.toLocaleDateString('en-US', { 
+                  month: 'long', 
+                  day: 'numeric', 
+                  year: 'numeric' 
+                })}
+              </span>
+              <Button variant="outline" size="sm" onClick={() => navigateWeek('next')}>
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-8 gap-2">
+            <div className="space-y-2">
+              <div className="h-12"></div>
+              {timeSlots.map(time => (
+                <div key={time} className="h-16 text-xs text-muted-foreground flex items-center justify-end pr-2">
+                  {time}
                 </div>
               ))}
             </div>
-          </CardContent>
-        </Card>
 
-        {/* Today's Schedule */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Calendar className="h-5 w-5" />
-                Today's Classes ({new Date().toLocaleDateString()})
-              </div>
-              <Dialog>
-                <DialogTrigger asChild>
-                  <Button variant="outline" size="sm">
-                    <Bell className="h-4 w-4 mr-2" />
-                    Set Reminder
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Create Class Reminder</DialogTitle>
-                  </DialogHeader>
-                  <div className="space-y-4">
-                    <select
-                      className="w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
-                      value={newReminder.class_id}
-                      onChange={(e) => setNewReminder({...newReminder, class_id: e.target.value})}
-                    >
-                      <option value="">Select Class</option>
-                      {todayClasses.map((class_item) => (
-                        <option key={class_item.id} value={class_item.id}>
-                          {class_item.courses?.course_name} - {class_item.start_time}
-                        </option>
-                      ))}
-                    </select>
-                    
-                    <Textarea
-                      placeholder="Reminder text"
-                      value={newReminder.reminder_text}
-                      onChange={(e) => setNewReminder({...newReminder, reminder_text: e.target.value})}
-                    />
-                    
-                    <Input
-                      type="time"
-                      value={newReminder.reminder_time}
-                      onChange={(e) => setNewReminder({...newReminder, reminder_time: e.target.value})}
-                    />
-                    
-                    <select
-                      className="w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
-                      value={newReminder.reminder_type}
-                      onChange={(e) => setNewReminder({...newReminder, reminder_type: e.target.value})}
-                    >
-                      <option value="preparation">Preparation</option>
-                      <option value="grading">Grading</option>
-                      <option value="meeting">Meeting</option>
-                      <option value="general">General</option>
-                    </select>
-                    
-                    <Button onClick={createReminder} className="w-full">
-                      Create Reminder
-                    </Button>
-                  </div>
-                </DialogContent>
-              </Dialog>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {todayClasses.length === 0 ? (
-              <p className="text-muted-foreground text-center py-8">No classes scheduled for today</p>
-            ) : (
-              <div className="space-y-4">
-                {todayClasses.map((class_item) => (
-                  <Card key={class_item.id} className={`p-4 ${
-                    class_item.is_extra_class ? 'border-l-4 border-l-blue-500' : ''
-                  }`}>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-4">
-                        <div className="text-center">
-                          <div className="text-lg font-bold text-primary">
-                            {formatTime(class_item.start_time)}
+            {getWeekDays(currentWeek).map((date, dayIndex) => (
+              <div key={dayIndex} className="space-y-2">
+                <div className={`h-12 text-center p-2 rounded-lg ${
+                  isToday(date) ? 'bg-primary text-primary-foreground' : 'bg-muted'
+                }`}>
+                  <div className="text-sm font-medium">{daysOfWeek[dayIndex]}</div>
+                  <div className="text-xs">{date.getDate()}</div>
+                </div>
+                
+                {timeSlots.map((timeSlot, timeIndex) => {
+                  const dayClasses = getClassesForDay(dayIndex, date);
+                  const classAtTime = dayClasses.find(cls => {
+                    const startTime = formatTime(cls.start_time);
+                    return startTime === timeSlot;
+                  });
+
+                  return (
+                    <div key={timeIndex} className="h-16 border rounded">
+                      {classAtTime && (
+                        <div 
+                          className={`p-1 rounded text-xs h-full border transition-colors cursor-pointer ${getClassTypeStyle(classAtTime)}`}
+                          onClick={() => generateQRCode(classAtTime)}
+                        >
+                          <div className="font-medium truncate flex items-center">
+                            {classAtTime.is_extra_class && (
+                              <Star className="h-2 w-2 mr-1 flex-shrink-0" />
+                            )}
+                            <span className="truncate">{classAtTime.courses?.course_code}</span>
                           </div>
-                          <div className="text-sm text-muted-foreground">
-                            {formatTime(class_item.end_time)}
+                          <div className="text-xs opacity-80 truncate">
+                            {classAtTime.room_location}
+                          </div>
+                          <div className="text-xs opacity-70 truncate flex items-center">
+                            <QrCodeIcon className="h-2 w-2 mr-1" />
+                            Click for QR
                           </div>
                         </div>
-                        <div className="flex-1">
-                          <div className="flex items-center space-x-2 flex-wrap">
-                            <h3 className="font-semibold text-lg">{class_item.courses?.course_name}</h3>
-                            {class_item.is_extra_class && (
-                              <Badge variant="secondary" className="text-xs capitalize flex items-center">
-                                <Star className="h-3 w-3 mr-1" />
-                                {class_item.class_type}
-                              </Badge>
-                            )}
-                          </div>
-                          <p className="text-sm text-muted-foreground">
-                            {class_item.courses?.course_code}
-                            {class_item.is_extra_class && class_item.title && ` • ${class_item.title}`}
-                          </p>
-                          {class_item.description && (
-                            <p className="text-xs text-muted-foreground mt-1">{class_item.description}</p>
-                          )}
-                          <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                            <div className="flex items-center gap-1">
-                              <MapPin className="h-4 w-4" />
-                              {class_item.room_location || 'Room TBD'}
-                            </div>
-                            {!class_item.is_extra_class && (
-                              <div className="flex items-center gap-1">
-                                <Users className="h-4 w-4" />
-                                {class_item.courses?.enrollments?.[0]?.count || 0} students
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                      <div className="flex gap-2">
-                        <Button size="sm" variant="outline">
-                          <BookOpen className="h-4 w-4 mr-2" />
-                          Course Page
-                        </Button>
-                        <Button size="sm">
-                          <Users className="h-4 w-4 mr-2" />
-                          Mark Attendance
-                        </Button>
-                      </div>
+                      )}
                     </div>
-                  </Card>
-                ))}
+                  );
+                })}
               </div>
-            )}
-          </CardContent>
-        </Card>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
 
-        {/* Reminders */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Bell className="h-5 w-5" />
-              My Reminders
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {reminders.length === 0 ? (
-              <p className="text-muted-foreground text-center py-4">No reminders set</p>
-            ) : (
-              <div className="space-y-3">
-                {reminders.map((reminder) => (
-                  <div key={reminder.id} className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                    <div className="flex items-center gap-3">
+      {/* Today's Classes */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Calendar className="h-5 w-5" />
+            Today's Classes ({new Date().toLocaleDateString()})
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {todayClasses.length === 0 ? (
+            <p className="text-muted-foreground text-center py-8">No classes scheduled for today</p>
+          ) : (
+            <div className="space-y-4">
+              {todayClasses.map((classItem) => (
+                <Card key={classItem.id} className={`p-4 ${
+                  classItem.is_extra_class ? 'border-l-4 border-l-blue-500' : ''
+                }`}>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4 flex-1">
                       <div className="text-center">
-                        <div className="text-sm font-bold">{reminder.reminder_time}</div>
-                        <Badge variant="outline" className="text-xs">
-                          {reminder.type}
-                        </Badge>
+                        <div className="text-lg font-bold text-primary">
+                          {formatTime(classItem.start_time)}
+                        </div>
+                        <div className="text-sm text-muted-foreground">
+                          {formatTime(classItem.end_time)}
+                        </div>
                       </div>
-                      <div>
-                        <p className="font-medium">{reminder.class_name}</p>
-                        <p className="text-sm text-muted-foreground">{reminder.reminder_text}</p>
+                      <div className="flex-1">
+                        <div className="flex items-center space-x-2 flex-wrap">
+                          <h3 className="font-semibold text-lg">{classItem.courses?.course_name}</h3>
+                          {classItem.is_extra_class && (
+                            <Badge variant="secondary" className="text-xs capitalize flex items-center">
+                              <Star className="h-3 w-3 mr-1" />
+                              {classItem.class_type}
+                            </Badge>
+                          )}
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                          {classItem.courses?.course_code}
+                        </p>
+                        <div className="flex items-center gap-4 text-sm text-muted-foreground mt-1">
+                          <div className="flex items-center gap-1">
+                            <MapPin className="h-4 w-4" />
+                            {classItem.room_location || 'Room TBD'}
+                          </div>
+                          {!classItem.is_extra_class && (
+                            <div className="flex items-center gap-1">
+                              <Users className="h-4 w-4" />
+                              {classItem.courses?.enrollments?.[0]?.count || 0} students
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
-                    <Button size="sm" variant="outline">
-                      <Edit className="h-4 w-4" />
+                    <Button onClick={() => generateQRCode(classItem)}>
+                      <QrCodeIcon className="h-4 w-4 mr-2" />
+                      Generate QR
                     </Button>
                   </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-    </PermissionWrapper>
+                </Card>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
   );
 };
 

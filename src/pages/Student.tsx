@@ -25,7 +25,8 @@ import {
   X,
   Award,
   TrendingUp,
-  UserCircle
+  UserCircle,
+  Bot
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import SidebarNavigation from '@/components/layout/SidebarNavigation';
@@ -42,6 +43,9 @@ import { supabase } from '@/integrations/supabase/client';
 import QuizTaker from '@/components/student/QuizTaker';
 import StudentGrades from '@/components/student/StudentGrades';
 import Events from '@/components/student/Events';
+import Chatbot from '@/components/student/Chatbot';
+import MarketplaceApp from '@/components/student/Marketplace';
+import Anouncements from '@/components/student/Anouncements';
 
 const Student = () => {
   const [activeView, setActiveView] = useState('dashboard');
@@ -277,10 +281,13 @@ const Student = () => {
     { id: 'schedule', label: 'Schedule', icon: Clock },
     { id: 'attendance', label: 'Attendance', icon: Calendar },
     { id: 'courses', label: 'Courses', icon: BookOpen },
+    { id: 'chatbot', label: 'Chatbot', icon: Bot },
     { id: 'quizzes', label: 'Quizzes', icon: Sparkle },
     { id: 'gradebook', label: 'Gradebook', icon: FileText },
     { id: 'events', label: 'Events', icon: Bell },
+    { id: 'marketplace', label: 'Marketplace', icon: Award },
     { id: 'communication', label: 'Communication', icon: MessageSquare },
+    { id: 'announcements', label: 'Anouncements', icon: Mail },
     { id: 'payments', label: 'Payments', icon: CreditCard },
     { id: 'hostel', label: 'Hostel', icon: Building },
     { id: 'support', label: 'Support', icon: HelpCircle },
@@ -296,14 +303,20 @@ const Student = () => {
         return <AttendanceOverview studentData={studentData} />;
       case 'courses':
         return <CoursesLearningSnapshot studentData={studentData} />;
+      case 'chatbot':
+        return <Chatbot />;
       case 'quizzes':
         return <QuizTaker />;
       case 'gradebook':
         return <StudentGrades />;
       case 'events':
         return <Events studentData={studentData} />;
+      case 'marketplace':
+        return <MarketplaceApp studentData={studentData} />;
       case 'communication':
         return <CommunicationCenter studentData={studentData} />;
+      case 'announcements':
+        return <Anouncements studentData={studentData} />;
       case 'payments':
         return <PaymentsFees studentData={studentData} />;
       case 'hostel':

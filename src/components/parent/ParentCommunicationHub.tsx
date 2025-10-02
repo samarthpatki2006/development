@@ -18,23 +18,15 @@ import {
   MoreVertical,
   Phone,
   Video,
-  Archive,
-  Star,
   Check,
-  CheckCheck,
-  Clock,
-  X,
-  Settings,
-  Bell,
-  BellOff,
-  Download,
-  Edit2,
-  Trash2
+  GraduationCap,
+  BookOpen,
+  UserCheck
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
-const CommunicationHub = ({ studentData, initialChannelId }) => {
+const ParentCommunicationHub = ({ parentData, initialChannelId }) => {
   const [activeTab, setActiveTab] = useState('chats');
   const [selectedChannel, setSelectedChannel] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -44,18 +36,18 @@ const CommunicationHub = ({ studentData, initialChannelId }) => {
   const [channels, setChannels] = useState([]);
   const [messages, setMessages] = useState([]);
   const [contacts, setContacts] = useState([]);
+  const [linkedStudents, setLinkedStudents] = useState([]);
   const [loading, setLoading] = useState(true);
   const messagesEndRef = useRef(null);
-  const messagesContainerRef = useRef(null);
   const textareaRef = useRef(null);
   const { toast } = useToast();
 
   useEffect(() => {
-    if (studentData?.user_id) {
+    if (parentData?.user_id) {
+      fetchLinkedStudents();
       fetchChannels();
       fetchContacts();
       
-      // Subscribe to real-time message updates
       const messageSubscription = supabase
         .channel('messages')
         .on('postgres_changes', 
@@ -64,7 +56,7 @@ const CommunicationHub = ({ studentData, initialChannelId }) => {
             if (selectedChannel && payload.new?.channel_id === selectedChannel.id) {
               fetchMessages(selectedChannel.id);
             }
-            fetchChannels(); // Update last message in channel list
+            fetchChannels();
           }
         )
         .subscribe();
@@ -73,9 +65,8 @@ const CommunicationHub = ({ studentData, initialChannelId }) => {
         messageSubscription.unsubscribe();
       };
     }
-  }, [studentData?.user_id]);
+  }, [parentData?.user_id]);
 
-  // Handle initial channel selection from marketplace
   useEffect(() => {
     if (initialChannelId && channels.length > 0) {
       const channel = channels.find(c => c.id === initialChannelId);
@@ -85,7 +76,6 @@ const CommunicationHub = ({ studentData, initialChannelId }) => {
     }
   }, [initialChannelId, channels]);
 
-  // Auto-resize textarea
   useEffect(() => {
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
@@ -93,13 +83,35 @@ const CommunicationHub = ({ studentData, initialChannelId }) => {
     }
   }, [newMessage]);
 
+  const fetchLinkedStudents = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('parent_student_links')
+        .select(`
+          *,
+          student:user_profiles!parent_student_links_student_id_fkey(
+            id,
+            first_name,
+            last_name,
+            user_code,
+            profile_picture_url
+          )
+        `)
+        .eq('parent_id', parentData.user_id);
+
+      if (error) throw error;
+      setLinkedStudents(data || []);
+    } catch (error) {
+      console.error('Error fetching linked students:', error);
+    }
+  };
+
   const fetchChannels = async () => {
     try {
-      // Get channels where user is a member
       const { data: memberChannels, error: memberError } = await supabase
         .from('channel_members')
         .select('channel_id')
-        .eq('user_id', studentData.user_id);
+        .eq('user_id', parentData.user_id);
 
       if (memberError) throw memberError;
 
@@ -111,7 +123,6 @@ const CommunicationHub = ({ studentData, initialChannelId }) => {
         return;
       }
 
-      // Get channel details
       const { data: channelData, error: channelError } = await supabase
         .from('communication_channels')
         .select(`
@@ -127,7 +138,6 @@ const CommunicationHub = ({ studentData, initialChannelId }) => {
 
       if (channelError) throw channelError;
 
-      // Get last message for each channel
       const channelsWithMessages = await Promise.all(
         (channelData || []).map(async (channel) => {
           const { data: lastMessage } = await supabase
@@ -142,18 +152,16 @@ const CommunicationHub = ({ studentData, initialChannelId }) => {
             .limit(1)
             .single();
 
-          // Get member count
           const { count } = await supabase
             .from('channel_members')
             .select('*', { count: 'exact', head: true })
             .eq('channel_id', channel.id);
 
-          // Get unread count
           const { data: unreadMessages } = await supabase
             .from('messages')
             .select('id')
             .eq('channel_id', channel.id)
-            .neq('sender_id', studentData.user_id)
+            .neq('sender_id', parentData.user_id)
             .gt('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString());
 
           return {
@@ -214,18 +222,50 @@ const CommunicationHub = ({ studentData, initialChannelId }) => {
 
   const fetchContacts = async () => {
     try {
-      // Get all users from the same college
-      const { data, error } = await supabase
-        .from('user_profiles')
-        .select('*')
-        .eq('college_id', studentData.college_id)
-        .neq('id', studentData.user_id)
-        .eq('is_active', true)
-        .order('first_name');
+      // Get teachers of linked students
+      const studentIds = linkedStudents.map(link => link.student.id);
+      
+      if (studentIds.length === 0) {
+        setContacts([]);
+        return;
+      }
 
-      if (error) throw error;
+      const { data: enrollments, error: enrollError } = await supabase
+        .from('enrollments')
+        .select(`
+          course_id,
+          courses!inner(
+            instructor_id,
+            course_name,
+            instructor:user_profiles!courses_instructor_id_fkey(
+              id,
+              first_name,
+              last_name,
+              user_type,
+              profile_picture_url
+            )
+          )
+        `)
+        .in('student_id', studentIds);
 
-      setContacts(data || []);
+      if (enrollError) throw enrollError;
+
+      // Get unique teachers
+      const teachersMap = new Map();
+      enrollments?.forEach(enrollment => {
+        const teacher = enrollment.courses.instructor;
+        if (teacher && !teachersMap.has(teacher.id)) {
+          teachersMap.set(teacher.id, {
+            ...teacher,
+            courses: [enrollment.courses.course_name]
+          });
+        } else if (teacher) {
+          const existing = teachersMap.get(teacher.id);
+          existing.courses.push(enrollment.courses.course_name);
+        }
+      });
+
+      setContacts(Array.from(teachersMap.values()));
     } catch (error) {
       console.error('Error fetching contacts:', error);
     }
@@ -249,7 +289,7 @@ const CommunicationHub = ({ studentData, initialChannelId }) => {
         .from('messages')
         .insert({
           channel_id: selectedChannel.id,
-          sender_id: studentData.user_id,
+          sender_id: parentData.user_id,
           message_text: messageText,
           message_type: 'text'
         });
@@ -271,11 +311,10 @@ const CommunicationHub = ({ studentData, initialChannelId }) => {
 
   const createDirectChannel = async (contactId) => {
     try {
-      // Check if direct channel already exists
       const { data: existingChannels } = await supabase
         .from('channel_members')
         .select('channel_id')
-        .eq('user_id', studentData.user_id);
+        .eq('user_id', parentData.user_id);
 
       const myChannelIds = existingChannels?.map(c => c.channel_id) || [];
 
@@ -303,27 +342,25 @@ const CommunicationHub = ({ studentData, initialChannelId }) => {
         }
       }
 
-      // Create new direct channel
       const contact = contacts.find(c => c.id === contactId);
       const { data: newChannel, error: channelError } = await supabase
         .from('communication_channels')
         .insert({
-          college_id: studentData.college_id,
+          college_id: parentData.college_id,
           channel_name: `${contact.first_name} ${contact.last_name}`,
           channel_type: 'direct_message',
           is_public: false,
-          created_by: studentData.user_id
+          created_by: parentData.user_id
         })
         .select()
         .single();
 
       if (channelError) throw channelError;
 
-      // Add both users as members
       const { error: memberError } = await supabase
         .from('channel_members')
         .insert([
-          { channel_id: newChannel.id, user_id: studentData.user_id, role: 'member' },
+          { channel_id: newChannel.id, user_id: parentData.user_id, role: 'member' },
           { channel_id: newChannel.id, user_id: contactId, role: 'member' }
         ]);
 
@@ -404,14 +441,21 @@ const CommunicationHub = ({ studentData, initialChannelId }) => {
 
   return (
     <div className="h-screen flex flex-col bg-background">
-      {/* Header */}
       <div className="bg-sidebar-background border-b border-border px-6 py-4">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-foreground">Messages</h1>
-            <p className="text-sm text-muted-foreground">Stay connected with your campus community</p>
+            <h1 className="text-2xl font-bold text-foreground">Parent Portal - Messages</h1>
+            <p className="text-sm text-muted-foreground">Connect with teachers and stay informed</p>
           </div>
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-4">
+            {linkedStudents.length > 0 && (
+              <div className="flex items-center space-x-2">
+                <GraduationCap className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm text-muted-foreground">
+                  {linkedStudents.length} {linkedStudents.length === 1 ? 'Child' : 'Children'}
+                </span>
+              </div>
+            )}
             <Dialog open={showNewChatDialog} onOpenChange={setShowNewChatDialog}>
               <DialogTrigger asChild>
                 <Button size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90">
@@ -421,18 +465,18 @@ const CommunicationHub = ({ studentData, initialChannelId }) => {
               </DialogTrigger>
               <DialogContent className="max-w-md bg-popover border-border">
                 <DialogHeader>
-                  <DialogTitle className="text-foreground">Start a New Conversation</DialogTitle>
+                  <DialogTitle className="text-foreground">Contact a Teacher</DialogTitle>
                 </DialogHeader>
                 <div className="space-y-4">
                   <Input
-                    placeholder="Search contacts..."
+                    placeholder="Search teachers..."
                     value={contactSearchQuery}
                     onChange={(e) => setContactSearchQuery(e.target.value)}
                     className="w-full bg-input border-border text-foreground"
                   />
                   <div className="max-h-80 overflow-y-auto space-y-2">
                     {filteredContacts.length === 0 ? (
-                      <p className="text-center text-muted-foreground py-8">No contacts found</p>
+                      <p className="text-center text-muted-foreground py-8">No teachers found</p>
                     ) : (
                       filteredContacts.map(contact => (
                         <div
@@ -448,7 +492,10 @@ const CommunicationHub = ({ studentData, initialChannelId }) => {
                               <p className="font-medium text-foreground">
                                 {contact.first_name} {contact.last_name}
                               </p>
-                              <p className="text-xs text-muted-foreground capitalize">{contact.user_type}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {contact.courses?.slice(0, 2).join(', ')}
+                                {contact.courses?.length > 2 ? '...' : ''}
+                              </p>
                             </div>
                           </div>
                           <Button size="sm" variant="ghost">
@@ -466,9 +513,7 @@ const CommunicationHub = ({ studentData, initialChannelId }) => {
       </div>
 
       <div className="flex-1 flex overflow-hidden">
-        {/* Sidebar */}
         <div className="w-80 bg-sidebar-background border-r border-sidebar-border flex flex-col">
-          {/* Search */}
           <div className="p-4 border-b border-sidebar-border">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -481,11 +526,10 @@ const CommunicationHub = ({ studentData, initialChannelId }) => {
             </div>
           </div>
 
-          {/* Tabs */}
           <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
             <TabsList className="grid w-full grid-cols-2 mx-3 mt-2 bg-muted">
               <TabsTrigger value="chats" className="data-[state=active]:bg-accent">Chats</TabsTrigger>
-              <TabsTrigger value="contacts" className="data-[state=active]:bg-accent">Contacts</TabsTrigger>
+              <TabsTrigger value="teachers" className="data-[state=active]:bg-accent">Teachers</TabsTrigger>
             </TabsList>
 
             <TabsContent value="chats" className="flex-1 overflow-y-auto mt-2 m-0">
@@ -500,74 +544,55 @@ const CommunicationHub = ({ studentData, initialChannelId }) => {
                       onClick={() => setShowNewChatDialog(true)}
                       className="mt-2 text-foreground/70"
                     >
-                      Start a new chat
+                      Contact a teacher
                     </Button>
                   </div>
                 ) : (
-                  filteredChannels.map(channel => {
-                    const isGroup = channel.channel_type === 'group' || channel.channel_type === 'course';
-                    
-                    return (
-                      <div
-                        key={channel.id}
-                        onClick={() => handleChannelSelect(channel)}
-                        className={`p-3 rounded-sm cursor-pointer transition-all ${
-                          selectedChannel?.id === channel.id
-                            ? 'bg-accent border-l-2 border-primary'
-                            : 'hover:bg-accent/50'
-                        }`}
-                      >
-                        <div className="flex items-start space-x-3">
-                          <div className="relative flex-shrink-0">
-                            <div className={`w-12 h-12 rounded-sm flex items-center justify-center text-foreground font-semibold border border-border ${
-                              isGroup 
-                                ? 'bg-primary/10' 
-                                : 'bg-primary/5'
-                            }`}>
-                              {channel.channel_name.substring(0, 2).toUpperCase()}
-                            </div>
-                            {isGroup && (
-                              <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-sidebar-background border-2 border-sidebar-border rounded-sm flex items-center justify-center">
-                                <Users className="h-3 w-3 text-muted-foreground" />
-                              </div>
+                  filteredChannels.map(channel => (
+                    <div
+                      key={channel.id}
+                      onClick={() => handleChannelSelect(channel)}
+                      className={`p-3 rounded-sm cursor-pointer transition-all ${
+                        selectedChannel?.id === channel.id
+                          ? 'bg-accent border-l-2 border-primary'
+                          : 'hover:bg-accent/50'
+                      }`}
+                    >
+                      <div className="flex items-start space-x-3">
+                        <div className="relative flex-shrink-0">
+                          <div className="w-12 h-12 rounded-sm flex items-center justify-center text-foreground font-semibold border border-border bg-primary/10">
+                            {channel.channel_name.substring(0, 2).toUpperCase()}
+                          </div>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between mb-1">
+                            <p className="font-semibold text-foreground truncate">{channel.channel_name}</p>
+                            {channel.lastMessageTime && (
+                              <span className="text-xs text-muted-foreground">
+                                {formatTimestamp(channel.lastMessageTime)}
+                              </span>
                             )}
                           </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center justify-between mb-1">
-                              <p className="font-semibold text-foreground truncate">{channel.channel_name}</p>
-                              {channel.lastMessageTime && (
-                                <span className="text-xs text-muted-foreground">
-                                  {formatTimestamp(channel.lastMessageTime)}
-                                </span>
-                              )}
-                            </div>
-                            <div className="flex items-center justify-between">
-                              <p className="text-sm text-muted-foreground truncate">
-                                {channel.lastMessageSender && isGroup
-                                  ? `${channel.lastMessageSender.first_name}: ${channel.lastMessage}`
-                                  : channel.lastMessage
-                                }
-                              </p>
-                              {channel.unreadCount > 0 && (
-                                <Badge className="ml-2 bg-primary text-primary-foreground">{channel.unreadCount}</Badge>
-                              )}
-                            </div>
-                            {isGroup && (
-                              <p className="text-xs text-muted-foreground mt-1">{channel.memberCount} members</p>
+                          <div className="flex items-center justify-between">
+                            <p className="text-sm text-muted-foreground truncate">
+                              {channel.lastMessage}
+                            </p>
+                            {channel.unreadCount > 0 && (
+                              <Badge className="ml-2 bg-primary text-primary-foreground">{channel.unreadCount}</Badge>
                             )}
                           </div>
                         </div>
                       </div>
-                    );
-                  })
+                    </div>
+                  ))
                 )}
               </div>
             </TabsContent>
 
-            <TabsContent value="contacts" className="flex-1 overflow-y-auto mt-2 m-0">
+            <TabsContent value="teachers" className="flex-1 overflow-y-auto mt-2 m-0">
               <div className="space-y-1 p-2">
                 {filteredContacts.length === 0 ? (
-                  <p className="text-center text-muted-foreground py-8">No contacts found</p>
+                  <p className="text-center text-muted-foreground py-8">No teachers found</p>
                 ) : (
                   filteredContacts.map(contact => (
                     <div
@@ -583,7 +608,9 @@ const CommunicationHub = ({ studentData, initialChannelId }) => {
                           <p className="font-medium text-foreground">
                             {contact.first_name} {contact.last_name}
                           </p>
-                          <p className="text-xs text-muted-foreground capitalize">{contact.user_type}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {contact.courses?.slice(0, 2).join(', ')}
+                          </p>
                         </div>
                         <Button size="sm" variant="ghost">
                           <MessageSquare className="h-4 w-4" />
@@ -597,29 +624,20 @@ const CommunicationHub = ({ studentData, initialChannelId }) => {
           </Tabs>
         </div>
 
-        {/* Chat Area */}
         {selectedChannel ? (
           <div className="flex-1 flex flex-col bg-background overflow-hidden">
-            {/* Chat Header */}
             <div className="bg-sidebar-background border-b border-border px-6 py-4 flex-shrink-0">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-4">
                   <div className="relative">
-                    <div className={`w-12 h-12 rounded-sm flex items-center justify-center text-foreground font-semibold border border-border ${
-                      selectedChannel.channel_type === 'group' || selectedChannel.channel_type === 'course'
-                        ? 'bg-primary/10' 
-                        : 'bg-primary/5'
-                    }`}>
+                    <div className="w-12 h-12 rounded-sm flex items-center justify-center text-foreground font-semibold border border-border bg-primary/10">
                       {selectedChannel.channel_name.substring(0, 2).toUpperCase()}
                     </div>
                   </div>
                   <div>
                     <h2 className="font-semibold text-foreground">{selectedChannel.channel_name}</h2>
                     <p className="text-sm text-muted-foreground capitalize">
-                      {selectedChannel.channel_type === 'group' || selectedChannel.channel_type === 'course'
-                        ? `${selectedChannel.memberCount} members`
-                        : selectedChannel.channel_type.replace('_', ' ')
-                      }
+                      {selectedChannel.channel_type.replace('_', ' ')}
                     </p>
                   </div>
                 </div>
@@ -640,11 +658,7 @@ const CommunicationHub = ({ studentData, initialChannelId }) => {
               </div>
             </div>
 
-            {/* Messages */}
-            <div 
-              ref={messagesContainerRef}
-              className="flex-1 overflow-y-auto p-6 space-y-4"
-            >
+            <div className="flex-1 overflow-y-auto p-6 space-y-4">
               {messages.length === 0 ? (
                 <div className="flex items-center justify-center h-full">
                   <div className="text-center">
@@ -656,8 +670,7 @@ const CommunicationHub = ({ studentData, initialChannelId }) => {
               ) : (
                 <>
                   {messages.map((message) => {
-                    const isMe = message.sender_id === studentData.user_id;
-                    const isGroup = selectedChannel.channel_type === 'group' || selectedChannel.channel_type === 'course';
+                    const isMe = message.sender_id === parentData.user_id;
                     
                     return (
                       <div
@@ -671,7 +684,7 @@ const CommunicationHub = ({ studentData, initialChannelId }) => {
                             </div>
                           )}
                           <div>
-                            {isGroup && !isMe && (
+                            {!isMe && (
                               <p className="text-xs text-muted-foreground mb-1 ml-2">
                                 {message.sender.first_name} {message.sender.last_name}
                               </p>
@@ -703,7 +716,6 @@ const CommunicationHub = ({ studentData, initialChannelId }) => {
               )}
             </div>
 
-            {/* Message Input */}
             <div className="bg-sidebar-background border-t border-border px-6 py-4 flex-shrink-0">
               <div className="flex items-end space-x-2">
                 <Button variant="ghost" size="sm" className="flex-shrink-0">
@@ -752,10 +764,10 @@ const CommunicationHub = ({ studentData, initialChannelId }) => {
                 <MessageSquare className="h-12 w-12 text-foreground" />
               </div>
               <h3 className="text-xl font-semibold text-foreground mb-2">Select a conversation</h3>
-              <p className="text-muted-foreground mb-6">Choose from your existing chats or start a new one</p>
+              <p className="text-muted-foreground mb-6">Choose from your existing chats or contact a teacher</p>
               <Button onClick={() => setShowNewChatDialog(true)} className="bg-primary text-primary-foreground hover:bg-primary/90">
                 <MessageSquare className="h-4 w-4 mr-2" />
-                Start New Chat
+                Contact Teacher
               </Button>
             </div>
           </div>
@@ -765,4 +777,4 @@ const CommunicationHub = ({ studentData, initialChannelId }) => {
   );
 };
 
-export default CommunicationHub;
+export default ParentCommunicationHub;

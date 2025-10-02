@@ -29,6 +29,7 @@ import AlumniContributions from '@/components/alumni/AlumniContributions';
 import AlumniDocuments from '@/components/alumni/AlumniDocuments';
 import AlumniSupport from '@/components/alumni/AlumniSupport';
 import { supabase } from '@/integrations/supabase/client';
+import AlumniCommunicationHub from '@/components/alumni/AlumniCommunicationHub';
 
 const Alumni = () => {
   const [activeView, setActiveView] = useState('dashboard');
@@ -200,6 +201,7 @@ const Alumni = () => {
     { id: 'events', label: 'Events', icon: Calendar },
     { id: 'networking', label: 'Networking', icon: Users },
     { id: 'contributions', label: 'Contributions', icon: Heart },
+    { id: 'communication', label: 'Communication Hub', icon: Mail },
     { id: 'documents', label: 'Documents', icon: FileText },
     { id: 'support', label: 'Support', icon: HelpCircle },
   ];
@@ -214,6 +216,8 @@ const Alumni = () => {
         return <AlumniNetworking user={user} />;
       case 'contributions':
         return <AlumniContributions user={user} />;
+      case 'communication':
+        return <AlumniCommunicationHub alumniData={user} />;
       case 'documents':
         return <AlumniDocuments user={user} />;
       case 'support':

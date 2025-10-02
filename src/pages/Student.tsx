@@ -55,6 +55,7 @@ const Student = () => {
   const [showNotifications, setShowNotifications] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [selectedChannelId, setSelectedChannelId] = useState(null);
   const navigate = useNavigate();
   
   const notificationRef = useRef(null);
@@ -135,77 +136,77 @@ const Student = () => {
 
   useEffect(() => {
     const checkUser = async () => {
-  try {
-    // First check Supabase session
-    const { data: { session }, error } = await supabase.auth.getSession();
-    
-    if (error) {
-      console.error('Session error:', error);
-      navigate('/');
-      return;
-    }
+      try {
+        // First check Supabase session
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error('Session error:', error);
+          navigate('/');
+          return;
+        }
 
-    if (session?.user) {
-      // Get user profile from database
-      const { data: profile, error: profileError } = await supabase
-        .from('user_profiles')
-        .select('*')
-        .eq('id', session.user.id)
-        .single();
+        if (session?.user) {
+          // Get user profile from database
+          const { data: profile, error: profileError } = await supabase
+            .from('user_profiles')
+            .select('*')
+            .eq('id', session.user.id)
+            .single();
 
-      if (profileError || !profile) {
-        console.error('Profile error:', profileError);
+          if (profileError || !profile) {
+            console.error('Profile error:', profileError);
+            navigate('/');
+            return;
+          }
+
+          if (profile.user_type !== 'student') {
+            toast({
+              title: 'Access Denied',
+              description: 'This area is for students only.',
+              variant: 'destructive',
+            });
+            navigate('/');
+            return;
+          }
+
+          setStudentData({
+            user_id: profile.id,
+            user_type: profile.user_type,
+            first_name: profile.first_name,
+            last_name: profile.last_name,
+            college_id: profile.college_id,
+            user_code: profile.user_code,
+            email: profile.email
+          });
+        } else {
+          // Fallback to localStorage
+          const userData = localStorage.getItem('colcord_user');
+          if (!userData) {
+            navigate('/');
+            return;
+          }
+
+          const parsedUser = JSON.parse(userData);
+          if (parsedUser.user_type !== 'student') {
+            toast({
+              title: 'Access Denied',
+              description: 'This area is for students only.',
+              variant: 'destructive',
+            });
+            navigate('/');
+            return;
+          }
+
+          setStudentData(parsedUser);
+        }
+      } catch (error) {
+        console.error('Error checking user:', error);
         navigate('/');
-        return;
+      } finally {
+        setLoading(false);
       }
-
-      if (profile.user_type !== 'student') {
-        toast({
-          title: 'Access Denied',
-          description: 'This area is for students only.',
-          variant: 'destructive',
-        });
-        navigate('/');
-        return;
-      }
-
-      setStudentData({
-        user_id: profile.id,
-        user_type: profile.user_type,
-        first_name: profile.first_name,
-        last_name: profile.last_name,
-        college_id: profile.college_id,
-        user_code: profile.user_code,
-        email: profile.email
-      });
-    } else {
-      // Fallback to localStorage
-      const userData = localStorage.getItem('colcord_user');
-      if (!userData) {
-        navigate('/');
-        return;
-      }
-
-      const parsedUser = JSON.parse(userData);
-      if (parsedUser.user_type !== 'student') {
-        toast({
-          title: 'Access Denied',
-          description: 'This area is for students only.',
-          variant: 'destructive',
-        });
-        navigate('/');
-        return;
-      }
-
-      setStudentData(parsedUser);
-    }
-  } catch (error) {
-    console.error('Error checking user:', error);
-    navigate('/');
-  } finally {
-    setLoading(false);
-  }
-};
+    };
 
     checkUser();
   }, [navigate]);
@@ -262,6 +263,16 @@ const Student = () => {
     }
   };
 
+  // Handler for navigating to chat from marketplace
+  const handleNavigateToChat = (channelId) => {
+    setSelectedChannelId(channelId);
+    setActiveView('communication');
+    toast({
+      title: 'Opening Chat',
+      description: 'Redirecting you to the conversation...',
+    });
+  };
+
   const unreadCount = notifications.filter(n => !n.read).length;
 
   if (loading) {
@@ -312,9 +323,9 @@ const Student = () => {
       case 'events':
         return <Events studentData={studentData} />;
       case 'marketplace':
-        return <MarketplaceApp studentData={studentData} />;
+        return <MarketplaceApp onNavigateToChat={handleNavigateToChat} />;
       case 'communication':
-        return <CommunicationCenter studentData={studentData} />;
+        return <CommunicationCenter studentData={studentData} initialChannelId={selectedChannelId} />;
       case 'announcements':
         return <Anouncements studentData={studentData} />;
       case 'payments':

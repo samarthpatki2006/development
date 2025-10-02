@@ -30,6 +30,7 @@ import PaymentsFees from '@/components/parent/PaymentsFees';
 import ParentCommunication from '@/components/parent/ParentCommunication';
 import EventsMeetings from '@/components/parent/EventsMeetings';
 import { supabase } from '@/integrations/supabase/client';
+import ParentCommunicationHub from '@/components/parent/ParentCommunicationHub';
 
 const Parent = () => {
   const [activeView, setActiveView] = useState('dashboard');
@@ -216,7 +217,7 @@ const Parent = () => {
       case 'payments':
         return <PaymentsFees user={user} />;
       case 'communication':
-        return <ParentCommunication user={user} />;
+        return <ParentCommunicationHub parentData={user} />;
       case 'events':
         return <EventsMeetings user={user} />;
       default:

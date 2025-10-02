@@ -8,10 +8,6 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Textarea } from '@/components/ui/textarea';
-import { Switch } from '@/components/ui/switch';
-import { Calendar } from '@/components/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { 
   DollarSign, 
   Plus, 
@@ -20,72 +16,23 @@ import {
   Download, 
   Search, 
   TrendingUp, 
-  TrendingDown, 
   CreditCard,
-  Calendar as CalendarIcon,
   Users,
   AlertCircle,
   CheckCircle,
-  Filter,
   RefreshCw,
   FileText,
-  Eye
+  Check,
+  X
 } from 'lucide-react';
-import { format } from "date-fns";
-import { feeManagementService, type FeeStructure, type PaymentStatistics } from '@/services/feeManagementService';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 
-interface FeePayment {
-  id: string;
-  college_id: string;
-  user_id: string;
-  fee_structure_id: string;
-  amount_paid: number;
-  payment_date: string;
-  payment_method: string;
-  status: string;
-  transaction_id: string;
-  created_at: string;
-  user_profiles?: {
-    first_name: string;
-    last_name: string;
-    user_code: string;
-  };
-  fee_structures?: {
-    fee_type: string;
-    amount: number;
-  };
-}
-
-interface UserProfile {
-  id: string;
-  college_id: string;
-  user_type: string;
-  first_name: string;
-  last_name: string;
-}
-
-interface FeeFormData {
-  fee_type: string;
-  amount: number;
-  academic_year: string;
-  semester: string;
-  user_type: string;
-}
-
-interface DashboardStats {
-  totalRevenue: number;
-  pendingPayments: number;
-  totalStudents: number;
-  collectionRate: number;
-  recentPayments: FeePayment[];
-}
-
-const FinanceManagement = ({ userProfile }: { userProfile: UserProfile }) => {
-  const [feeStructures, setFeeStructures] = useState<FeeStructure[]>([]);
-  const [payments, setPayments] = useState<FeePayment[]>([]);
-  const [dashboardStats, setDashboardStats] = useState<DashboardStats>({
+const FinanceManagement = ({ userProfile }) => {
+  const [feeStructures, setFeeStructures] = useState([]);
+  const [payments, setPayments] = useState([]);
+  const [pendingPayments, setPendingPayments] = useState([]);
+  const [dashboardStats, setDashboardStats] = useState({
     totalRevenue: 0,
     pendingPayments: 0,
     totalStudents: 0,
@@ -99,10 +46,10 @@ const FinanceManagement = ({ userProfile }: { userProfile: UserProfile }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [isAddFeeDialogOpen, setIsAddFeeDialogOpen] = useState(false);
   const [isEditFeeDialogOpen, setIsEditFeeDialogOpen] = useState(false);
-  const [editingFee, setEditingFee] = useState<FeeStructure | null>(null);
+  const [editingFee, setEditingFee] = useState(null);
   const [activeTab, setActiveTab] = useState('dashboard');
 
-  const [feeForm, setFeeForm] = useState<FeeFormData>({
+  const [feeForm, setFeeForm] = useState({
     fee_type: '',
     amount: 0,
     academic_year: '2024-25',
@@ -122,13 +69,14 @@ const FinanceManagement = ({ userProfile }: { userProfile: UserProfile }) => {
       await Promise.all([
         loadFeeStructures(),
         loadPayments(),
+        loadPendingPayments(),
         loadDashboardStats()
       ]);
     } catch (error) {
       console.error('Error loading data:', error);
       toast({
         title: "Error",
-        description: "Failed to load finance data. Please try again.",
+        description: "Failed to load finance data.",
         variant: "destructive",
       });
     } finally {
@@ -138,8 +86,14 @@ const FinanceManagement = ({ userProfile }: { userProfile: UserProfile }) => {
 
   const loadFeeStructures = async () => {
     try {
-      const structures = await feeManagementService.getFeeStructures(userProfile.college_id, false);
-      setFeeStructures(structures);
+      const { data, error } = await supabase
+        .from('fee_structures')
+        .select('*')
+        .eq('college_id', userProfile.college_id)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setFeeStructures(data || []);
     } catch (error) {
       console.error('Error loading fee structures:', error);
     }
@@ -162,6 +116,7 @@ const FinanceManagement = ({ userProfile }: { userProfile: UserProfile }) => {
           )
         `)
         .eq('college_id', userProfile.college_id)
+        .eq('status', 'completed')
         .order('created_at', { ascending: false })
         .limit(100);
 
@@ -172,9 +127,36 @@ const FinanceManagement = ({ userProfile }: { userProfile: UserProfile }) => {
     }
   };
 
+  const loadPendingPayments = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('fee_payments')
+        .select(`
+          *,
+          user_profiles (
+            first_name,
+            last_name,
+            user_code,
+            email
+          ),
+          fee_structures (
+            fee_type,
+            amount
+          )
+        `)
+        .eq('college_id', userProfile.college_id)
+        .eq('status', 'pending')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setPendingPayments(data || []);
+    } catch (error) {
+      console.error('Error loading pending payments:', error);
+    }
+  };
+
   const loadDashboardStats = async () => {
     try {
-      // Get total revenue
       const { data: revenueData, error: revenueError } = await supabase
         .from('fee_payments')
         .select('amount_paid')
@@ -183,9 +165,8 @@ const FinanceManagement = ({ userProfile }: { userProfile: UserProfile }) => {
 
       if (revenueError) throw revenueError;
 
-      const totalRevenue = revenueData?.reduce((sum, payment) => sum + payment.amount_paid, 0) || 0;
+      const totalRevenue = revenueData?.reduce((sum, payment) => sum + parseFloat(payment.amount_paid), 0) || 0;
 
-      // Get pending payments count
       const { data: pendingData, error: pendingError } = await supabase
         .from('fee_payments')
         .select('id')
@@ -194,7 +175,6 @@ const FinanceManagement = ({ userProfile }: { userProfile: UserProfile }) => {
 
       if (pendingError) throw pendingError;
 
-      // Get total students
       const { data: studentsData, error: studentsError } = await supabase
         .from('user_profiles')
         .select('id')
@@ -203,7 +183,6 @@ const FinanceManagement = ({ userProfile }: { userProfile: UserProfile }) => {
 
       if (studentsError) throw studentsError;
 
-      // Get recent payments
       const { data: recentPaymentsData, error: recentError } = await supabase
         .from('fee_payments')
         .select(`
@@ -219,12 +198,12 @@ const FinanceManagement = ({ userProfile }: { userProfile: UserProfile }) => {
           )
         `)
         .eq('college_id', userProfile.college_id)
+        .eq('status', 'completed')
         .order('created_at', { ascending: false })
         .limit(5);
 
       if (recentError) throw recentError;
 
-      // Calculate collection rate
       const { data: totalExpectedData, error: expectedError } = await supabase
         .from('fee_structures')
         .select('amount')
@@ -233,7 +212,7 @@ const FinanceManagement = ({ userProfile }: { userProfile: UserProfile }) => {
 
       if (expectedError) throw expectedError;
 
-      const totalExpected = totalExpectedData?.reduce((sum, fee) => sum + fee.amount, 0) || 1;
+      const totalExpected = (totalExpectedData?.reduce((sum, fee) => sum + parseFloat(fee.amount), 0) || 1) * (studentsData?.length || 1);
       const collectionRate = totalExpected > 0 ? (totalRevenue / totalExpected) * 100 : 0;
 
       setDashboardStats({
@@ -249,20 +228,27 @@ const FinanceManagement = ({ userProfile }: { userProfile: UserProfile }) => {
   };
 
   const handleAddFeeStructure = async () => {
-    try {
-      const feeData = {
-        college_id: userProfile.college_id,
-        fee_type: feeForm.fee_type,
-        amount: feeForm.amount,
-        academic_year: feeForm.academic_year,
-        semester: feeForm.semester || null,
-        user_type: feeForm.user_type,
-        is_active: true
-      };
+    if (!feeForm.fee_type || feeForm.amount <= 0) {
+      toast({
+        title: "Validation Error",
+        description: "Please fill all required fields correctly.",
+        variant: "destructive",
+      });
+      return;
+    }
 
+    try {
       const { error } = await supabase
         .from('fee_structures')
-        .insert([feeData]);
+        .insert([{
+          college_id: userProfile.college_id,
+          fee_type: feeForm.fee_type,
+          amount: feeForm.amount,
+          academic_year: feeForm.academic_year,
+          semester: feeForm.semester || null,
+          user_type: feeForm.user_type,
+          is_active: true
+        }]);
 
       if (error) throw error;
 
@@ -278,7 +264,7 @@ const FinanceManagement = ({ userProfile }: { userProfile: UserProfile }) => {
       console.error('Error creating fee structure:', error);
       toast({
         title: "Error",
-        description: "Failed to create fee structure. Please try again.",
+        description: error.message || "Failed to create fee structure.",
         variant: "destructive",
       });
     }
@@ -288,18 +274,16 @@ const FinanceManagement = ({ userProfile }: { userProfile: UserProfile }) => {
     if (!editingFee) return;
 
     try {
-      const feeData = {
-        fee_type: feeForm.fee_type,
-        amount: feeForm.amount,
-        academic_year: feeForm.academic_year,
-        semester: feeForm.semester || null,
-        user_type: feeForm.user_type,
-        updated_at: new Date().toISOString()
-      };
-
       const { error } = await supabase
         .from('fee_structures')
-        .update(feeData)
+        .update({
+          fee_type: feeForm.fee_type,
+          amount: feeForm.amount,
+          academic_year: feeForm.academic_year,
+          semester: feeForm.semester || null,
+          user_type: feeForm.user_type,
+          updated_at: new Date().toISOString()
+        })
         .eq('id', editingFee.id)
         .eq('college_id', userProfile.college_id);
 
@@ -318,13 +302,15 @@ const FinanceManagement = ({ userProfile }: { userProfile: UserProfile }) => {
       console.error('Error updating fee structure:', error);
       toast({
         title: "Error",
-        description: "Failed to update fee structure. Please try again.",
+        description: error.message || "Failed to update fee structure.",
         variant: "destructive",
       });
     }
   };
 
-  const handleDeleteFeeStructure = async (feeId: string) => {
+  const handleDeleteFeeStructure = async (feeId) => {
+    if (!confirm('Are you sure you want to delete this fee structure?')) return;
+
     try {
       const { error } = await supabase
         .from('fee_structures')
@@ -344,7 +330,63 @@ const FinanceManagement = ({ userProfile }: { userProfile: UserProfile }) => {
       console.error('Error deleting fee structure:', error);
       toast({
         title: "Error",
-        description: "Failed to delete fee structure. Please try again.",
+        description: error.message || "Failed to delete fee structure.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleApprovePayment = async (paymentId) => {
+    try {
+      const { error } = await supabase
+        .from('fee_payments')
+        .update({ 
+          status: 'completed',
+          payment_date: new Date().toISOString()
+        })
+        .eq('id', paymentId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Payment approved successfully.",
+      });
+
+      loadAllData();
+    } catch (error) {
+      console.error('Error approving payment:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to approve payment.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleRejectPayment = async (paymentId) => {
+    const reason = prompt('Please enter rejection reason:');
+    if (!reason) return;
+
+    try {
+      const { error } = await supabase
+        .from('fee_payments')
+        .update({ status: 'failed' })
+        .eq('id', paymentId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Payment rejected.",
+      });
+
+      loadAllData();
+    } catch (error) {
+      console.error('Error rejecting payment:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to reject payment.",
         variant: "destructive",
       });
     }
@@ -360,11 +402,11 @@ const FinanceManagement = ({ userProfile }: { userProfile: UserProfile }) => {
     });
   };
 
-  const openEditDialog = (fee: FeeStructure) => {
+  const openEditDialog = (fee) => {
     setEditingFee(fee);
     setFeeForm({
       fee_type: fee.fee_type,
-      amount: fee.amount,
+      amount: parseFloat(fee.amount),
       academic_year: fee.academic_year,
       semester: fee.semester || 'Fall',
       user_type: fee.user_type || 'student'
@@ -372,7 +414,7 @@ const FinanceManagement = ({ userProfile }: { userProfile: UserProfile }) => {
     setIsEditFeeDialogOpen(true);
   };
 
-  const formatCurrency = (amount: number) => {
+  const formatCurrency = (amount) => {
     return new Intl.NumberFormat('en-IN', {
       style: 'currency',
       currency: 'INR',
@@ -380,7 +422,17 @@ const FinanceManagement = ({ userProfile }: { userProfile: UserProfile }) => {
     }).format(amount);
   };
 
-  const getStatusBadgeVariant = (status: string) => {
+  const formatDate = (dateString) => {
+    return new Date(dateString).toLocaleDateString('en-IN', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  const getStatusBadgeVariant = (status) => {
     switch (status.toLowerCase()) {
       case 'completed':
         return 'default';
@@ -391,6 +443,29 @@ const FinanceManagement = ({ userProfile }: { userProfile: UserProfile }) => {
       default:
         return 'outline';
     }
+  };
+
+  const exportToCSV = (data, filename) => {
+    if (!data || data.length === 0) {
+      toast({
+        title: "No Data",
+        description: "No data available to export.",
+      });
+      return;
+    }
+
+    const csv = [
+      Object.keys(data[0]).join(','),
+      ...data.map(row => Object.values(row).map(val => `"${val}"`).join(','))
+    ].join('\n');
+    
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${filename}_${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    window.URL.revokeObjectURL(url);
   };
 
   const filteredFeeStructures = feeStructures.filter(fee => {
@@ -439,7 +514,7 @@ const FinanceManagement = ({ userProfile }: { userProfile: UserProfile }) => {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="dashboard">
             <TrendingUp className="h-4 w-4 mr-2" />
             Dashboard
@@ -452,13 +527,16 @@ const FinanceManagement = ({ userProfile }: { userProfile: UserProfile }) => {
             <CreditCard className="h-4 w-4 mr-2" />
             Payments
           </TabsTrigger>
+          <TabsTrigger value="pending">
+            <AlertCircle className="h-4 w-4 mr-2" />
+            Pending ({pendingPayments.length})
+          </TabsTrigger>
           <TabsTrigger value="reports">
             <FileText className="h-4 w-4 mr-2" />
             Reports
           </TabsTrigger>
         </TabsList>
 
-        {/* Dashboard Tab */}
         <TabsContent value="dashboard" className="space-y-6">
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             <Card>
@@ -468,9 +546,8 @@ const FinanceManagement = ({ userProfile }: { userProfile: UserProfile }) => {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{formatCurrency(dashboardStats.totalRevenue)}</div>
-                <p className="text-xs text-muted-foreground">
-                  <TrendingUp className="h-3 w-3 inline mr-1" />
-                  +12% from last month
+                <p className="text-xs text-muted-foreground mt-1">
+                  From completed payments
                 </p>
               </CardContent>
             </Card>
@@ -482,9 +559,8 @@ const FinanceManagement = ({ userProfile }: { userProfile: UserProfile }) => {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{dashboardStats.collectionRate.toFixed(1)}%</div>
-                <p className="text-xs text-muted-foreground">
-                  <CheckCircle className="h-3 w-3 inline mr-1" />
-                  Above target
+                <p className="text-xs text-muted-foreground mt-1">
+                  Of expected revenue
                 </p>
               </CardContent>
             </Card>
@@ -496,9 +572,8 @@ const FinanceManagement = ({ userProfile }: { userProfile: UserProfile }) => {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{dashboardStats.pendingPayments}</div>
-                <p className="text-xs text-muted-foreground">
-                  <AlertCircle className="h-3 w-3 inline mr-1" />
-                  Requires attention
+                <p className="text-xs text-muted-foreground mt-1">
+                  Awaiting verification
                 </p>
               </CardContent>
             </Card>
@@ -510,8 +585,7 @@ const FinanceManagement = ({ userProfile }: { userProfile: UserProfile }) => {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{dashboardStats.totalStudents}</div>
-                <p className="text-xs text-muted-foreground">
-                  <Users className="h-3 w-3 inline mr-1" />
+                <p className="text-xs text-muted-foreground mt-1">
                   Active students
                 </p>
               </CardContent>
@@ -543,7 +617,7 @@ const FinanceManagement = ({ userProfile }: { userProfile: UserProfile }) => {
                     <div className="text-right">
                       <p className="font-medium">{formatCurrency(payment.amount_paid)}</p>
                       <p className="text-sm text-muted-foreground">
-                        {format(new Date(payment.payment_date), 'MMM dd, yyyy')}
+                        {formatDate(payment.payment_date)}
                       </p>
                     </div>
                   </div>
@@ -558,7 +632,6 @@ const FinanceManagement = ({ userProfile }: { userProfile: UserProfile }) => {
           </Card>
         </TabsContent>
 
-        {/* Fee Structures Tab */}
         <TabsContent value="structures" className="space-y-6">
           <div className="flex justify-between items-center">
             <div className="flex items-center space-x-4">
@@ -619,7 +692,7 @@ const FinanceManagement = ({ userProfile }: { userProfile: UserProfile }) => {
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="amount">Amount *</Label>
+                      <Label htmlFor="amount">Amount (₹) *</Label>
                       <Input
                         id="amount"
                         type="number"
@@ -683,7 +756,7 @@ const FinanceManagement = ({ userProfile }: { userProfile: UserProfile }) => {
           </div>
 
           <Card>
-            <CardContent>
+            <CardContent className="p-0">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -744,7 +817,6 @@ const FinanceManagement = ({ userProfile }: { userProfile: UserProfile }) => {
           </Card>
         </TabsContent>
 
-        {/* Payments Tab */}
         <TabsContent value="payments" className="space-y-6">
           <div className="flex justify-between items-center">
             <div className="relative">
@@ -756,14 +828,14 @@ const FinanceManagement = ({ userProfile }: { userProfile: UserProfile }) => {
                 className="pl-10 w-64"
               />
             </div>
-            <Button variant="outline">
+            <Button variant="outline" onClick={() => exportToCSV(payments, 'payments')}>
               <Download className="h-4 w-4 mr-2" />
               Export
             </Button>
           </div>
 
           <Card>
-            <CardContent>
+            <CardContent className="p-0">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -774,7 +846,6 @@ const FinanceManagement = ({ userProfile }: { userProfile: UserProfile }) => {
                     <TableHead>Method</TableHead>
                     <TableHead>Transaction ID</TableHead>
                     <TableHead>Status</TableHead>
-                    <TableHead>Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -793,7 +864,7 @@ const FinanceManagement = ({ userProfile }: { userProfile: UserProfile }) => {
                       <TableCell>{payment.fee_structures?.fee_type}</TableCell>
                       <TableCell>{formatCurrency(payment.amount_paid)}</TableCell>
                       <TableCell>
-                        {format(new Date(payment.payment_date), 'MMM dd, yyyy')}
+                        {formatDate(payment.payment_date)}
                       </TableCell>
                       <TableCell>
                         <Badge variant="outline">{payment.payment_method}</Badge>
@@ -805,11 +876,6 @@ const FinanceManagement = ({ userProfile }: { userProfile: UserProfile }) => {
                         <Badge variant={getStatusBadgeVariant(payment.status)}>
                           {payment.status}
                         </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Button variant="ghost" size="sm">
-                          <Eye className="h-4 w-4" />
-                        </Button>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -824,7 +890,83 @@ const FinanceManagement = ({ userProfile }: { userProfile: UserProfile }) => {
           </Card>
         </TabsContent>
 
-        {/* Reports Tab */}
+        <TabsContent value="pending" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Pending Payment Approvals</CardTitle>
+              <CardDescription>Review and approve offline payment submissions</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {pendingPayments.map((payment) => (
+                  <div key={payment.id} className="border rounded-lg p-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center space-x-4">
+                          <div>
+                            <p className="font-medium">
+                              {payment.user_profiles?.first_name} {payment.user_profiles?.last_name}
+                            </p>
+                            <p className="text-sm text-muted-foreground">
+                              {payment.user_profiles?.user_code} • {payment.user_profiles?.email}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="mt-2 grid grid-cols-4 gap-4">
+                          <div>
+                            <p className="text-sm text-gray-600">Fee Type</p>
+                            <p className="font-medium">{payment.fee_structures?.fee_type}</p>
+                          </div>
+                          <div>
+                            <p className="text-sm text-gray-600">Amount</p>
+                            <p className="font-medium">{formatCurrency(payment.amount_paid)}</p>
+                          </div>
+                          <div>
+                            <p className="text-sm text-gray-600">Payment Method</p>
+                            <Badge variant="outline">{payment.payment_method}</Badge>
+                          </div>
+                          <div>
+                            <p className="text-sm text-gray-600">Transaction ID</p>
+                            <p className="font-mono text-sm">{payment.transaction_id}</p>
+                          </div>
+                        </div>
+                        <p className="text-sm text-muted-foreground mt-2">
+                          Submitted: {formatDate(payment.created_at)}
+                        </p>
+                      </div>
+                      <div className="flex space-x-2 ml-4">
+                        <Button
+                          size="sm"
+                          variant="default"
+                          onClick={() => handleApprovePayment(payment.id)}
+                        >
+                          <Check className="h-4 w-4 mr-1" />
+                          Approve
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => handleRejectPayment(payment.id)}
+                        >
+                          <X className="h-4 w-4 mr-1" />
+                          Reject
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                {pendingPayments.length === 0 && (
+                  <div className="text-center py-8">
+                    <CheckCircle className="h-12 w-12 text-green-600 mx-auto mb-4" />
+                    <h3 className="text-lg font-semibold text-gray-900">No Pending Payments</h3>
+                    <p className="text-muted-foreground">All payments have been processed</p>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
         <TabsContent value="reports" className="space-y-6">
           <div className="grid gap-6 md:grid-cols-2">
             <Card>
@@ -850,6 +992,14 @@ const FinanceManagement = ({ userProfile }: { userProfile: UserProfile }) => {
                     <span>Total Students:</span>
                     <span className="font-medium">{dashboardStats.totalStudents}</span>
                   </div>
+                  <div className="flex justify-between border-t pt-4">
+                    <span>Active Fee Structures:</span>
+                    <span className="font-medium">{feeStructures.filter(f => f.is_active).length}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Total Payments Processed:</span>
+                    <span className="font-medium">{payments.length}</span>
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -861,11 +1011,19 @@ const FinanceManagement = ({ userProfile }: { userProfile: UserProfile }) => {
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
-                  <Button variant="outline" className="w-full justify-start">
+                  <Button 
+                    variant="outline" 
+                    className="w-full justify-start"
+                    onClick={() => exportToCSV(payments, 'payment_report')}
+                  >
                     <Download className="h-4 w-4 mr-2" />
                     Export Payment Report
                   </Button>
-                  <Button variant="outline" className="w-full justify-start">
+                  <Button 
+                    variant="outline" 
+                    className="w-full justify-start"
+                    onClick={() => exportToCSV(feeStructures, 'fee_structure_report')}
+                  >
                     <Download className="h-4 w-4 mr-2" />
                     Export Fee Structure Report
                   </Button>
@@ -873,7 +1031,10 @@ const FinanceManagement = ({ userProfile }: { userProfile: UserProfile }) => {
                     <FileText className="h-4 w-4 mr-2" />
                     Generate Monthly Report
                   </Button>
-                  <Button variant="outline" className="w-full justify-start">
+                  <Button 
+                    variant="outline" 
+                    className="w-full justify-start"
+                  >
                     <AlertCircle className="h-4 w-4 mr-2" />
                     Overdue Payments Report
                   </Button>
@@ -881,10 +1042,33 @@ const FinanceManagement = ({ userProfile }: { userProfile: UserProfile }) => {
               </CardContent>
             </Card>
           </div>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Payment Method Distribution</CardTitle>
+              <CardDescription>Breakdown of payment methods used</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                {['online', 'bank_transfer', 'cash', 'cheque'].map(method => {
+                  const count = payments.filter(p => p.payment_method === method).length;
+                  const percentage = payments.length > 0 ? (count / payments.length * 100).toFixed(1) : 0;
+                  return (
+                    <div key={method} className="flex items-center justify-between">
+                      <div className="flex items-center space-x-2">
+                        <Badge variant="outline" className="capitalize">{method.replace('_', ' ')}</Badge>
+                        <span className="text-sm text-muted-foreground">{count} payments</span>
+                      </div>
+                      <span className="font-medium">{percentage}%</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
 
-      {/* Edit Fee Structure Dialog */}
       <Dialog open={isEditFeeDialogOpen} onOpenChange={setIsEditFeeDialogOpen}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
@@ -905,7 +1089,7 @@ const FinanceManagement = ({ userProfile }: { userProfile: UserProfile }) => {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="edit_amount">Amount *</Label>
+                <Label htmlFor="edit_amount">Amount (₹) *</Label>
                 <Input
                   id="edit_amount"
                   type="number"

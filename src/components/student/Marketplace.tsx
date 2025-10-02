@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Search, Loader2, Package, Mail, Phone, User, ArrowLeft, Plus, X, Trash2, Upload, Image as ImageIcon } from "lucide-react";
+import { Search, Loader2, Package, Mail, Phone, User, ArrowLeft, Plus, X, Trash2, Upload, MessageSquare } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 const categories = [
@@ -13,12 +13,12 @@ const categories = [
 ];
 
 const categoryStyles = {
-  books: "bg-slate-100 text-slate-800 border-slate-300",
-  electronics: "bg-zinc-100 text-zinc-800 border-zinc-300",
-  furniture: "bg-neutral-100 text-neutral-800 border-neutral-300",
-  clothing: "bg-stone-100 text-stone-800 border-stone-300",
-  sports: "bg-gray-100 text-gray-800 border-gray-300",
-  other: "bg-slate-100 text-slate-800 border-slate-300"
+  books: "bg-white/5 text-white/90 border-white/20",
+  electronics: "bg-white/5 text-white/90 border-white/20",
+  furniture: "bg-white/5 text-white/90 border-white/20",
+  clothing: "bg-white/5 text-white/90 border-white/20",
+  sports: "bg-white/5 text-white/90 border-white/20",
+  other: "bg-white/5 text-white/90 border-white/20"
 };
 
 const conditions = [
@@ -28,12 +28,12 @@ const conditions = [
   { value: "fair", label: "Fair" }
 ];
 
-const MarketplaceApp = () => {
+const MarketplaceApp = ({ onNavigateToChat }) => {
   const [view, setView] = useState("marketplace");
   const [selectedProduct, setSelectedProduct] = useState(null);
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-black">
       {view === "marketplace" && (
         <Marketplace 
           onViewProduct={(p) => { setSelectedProduct(p); setView("detail"); }} 
@@ -44,7 +44,8 @@ const MarketplaceApp = () => {
       {view === "detail" && (
         <ProductDetail 
           product={selectedProduct} 
-          onBack={() => { setView("marketplace"); setSelectedProduct(null); }} 
+          onBack={() => { setView("marketplace"); setSelectedProduct(null); }}
+          onNavigateToChat={onNavigateToChat}
         />
       )}
       {view === "sell" && (
@@ -134,18 +135,16 @@ const Marketplace = ({ onViewProduct, onSellClick, onMyListingsClick }) => {
 
   return (
     <>
-      {/* Header */}
-      <div className="bg-gradient-to-br from-gray-900 via-gray-800 to-black text-white">
+      <div className="bg-black text-white border-b border-white/15">
         <div className="container mx-auto px-6 py-20">
           <div className="max-w-4xl">
-            <h1 className="text-6xl font-bold mb-4 tracking-tight">
+            <h1 className="text-5xl md:text-6xl font-semibold mb-4 tracking-tight">
               Student Marketplace
             </h1>
-            <p className="text-xl mb-10 leading-relaxed">
+            <p className="text-xl mb-10 leading-relaxed text-white/70">
               Buy and sell used items with fellow students in your community
             </p>
             
-            {/* Search Bar */}
             <div className="relative mb-8">
               <Search className="absolute left-5 top-1/2 -translate-y-1/2 h-5 w-5 text-black" />
               <input
@@ -153,14 +152,14 @@ const Marketplace = ({ onViewProduct, onSellClick, onMyListingsClick }) => {
                 placeholder="Search for textbooks, electronics, furniture..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-14 pr-6 py-5 rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-500 shadow-2xl text-black"
+                className="w-full pl-14 pr-6 py-5 rounded-sm bg-white/8 border border-white/15 text-black focus:outline-none focus:ring-2 focus:ring-white/40 focus:border-transparent transition-all duration-300"
               />
             </div>
 
             <div className="flex gap-4">
               <button
                 onClick={onSellClick}
-                className=" px-8 py-4 rounded-xl font-semibold hover:bg-gray-400 transition-all flex items-center gap-2 shadow-lg"
+                className="px-8 py-4 rounded-sm font-semibold bg-white text-black hover:bg-white/90 transition-all duration-300 flex items-center gap-2"
               >
                 <Plus className="h-5 w-5" />
                 List an Item
@@ -168,7 +167,7 @@ const Marketplace = ({ onViewProduct, onSellClick, onMyListingsClick }) => {
               
               <button
                 onClick={onMyListingsClick}
-                className="px-8 py-4 rounded-xl font-semibold hover:bg-gray-600 transition-all flex items-center gap-2 shadow-lg"
+                className="px-8 py-4 rounded-sm font-semibold bg-white/12 text-white hover:bg-white/20 transition-all duration-300 flex items-center gap-2 border border-white/15"
               >
                 <Package className="h-5 w-5" />
                 My Listings
@@ -179,7 +178,6 @@ const Marketplace = ({ onViewProduct, onSellClick, onMyListingsClick }) => {
       </div>
 
       <div className="container mx-auto px-6 py-12">
-        {/* Category Filter */}
         <div className="mb-10 flex gap-3 overflow-x-auto pb-4 scrollbar-hide">
           {categories.map((category) => {
             const isSelected = selectedCategory === category.value;
@@ -187,10 +185,10 @@ const Marketplace = ({ onViewProduct, onSellClick, onMyListingsClick }) => {
               <button
                 key={category.value}
                 onClick={() => setSelectedCategory(category.value)}
-                className={`px-6 py-3 rounded-sm font-medium transition-all whitespace-nowrap border-2 ${
+                className={`px-6 py-3 rounded-sm font-medium transition-all duration-300 whitespace-nowrap border ${
                   isSelected
-                    ? "border-gray-900"
-                    : "bg-white text-gray-700 border-gray-200 hover:border-gray-400"
+                    ? "bg-white text-black border-white"
+                    : "bg-white/8 text-white/70 border-white/15 hover:bg-white/12 hover:border-white/20"
                 }`}
               >
                 {category.label}
@@ -199,16 +197,15 @@ const Marketplace = ({ onViewProduct, onSellClick, onMyListingsClick }) => {
           })}
         </div>
 
-        {/* Products Grid */}
         {loading ? (
           <div className="flex items-center justify-center py-20">
-            <Loader2 className="h-12 w-12 animate-spin text-gray-900" />
+            <Loader2 className="h-12 w-12 animate-spin text-white" />
           </div>
         ) : filteredProducts.length === 0 ? (
-          <div className="text-center py-20 rounded-2xl shadow-sm border">
-            <Package className="h-20 w-20 mx-auto mb-4" />
-            <p className="text-2xl font-semibold mb-2">No items found</p>
-            <p >Try adjusting your search or be the first to list something!</p>
+          <div className="text-center py-20 rounded-sm bg-white/8 border border-white/15">
+            <Package className="h-20 w-20 text-white/40 mx-auto mb-4" />
+            <p className="text-2xl font-semibold mb-2 text-white">No items found</p>
+            <p className="text-white/60">Try adjusting your search or be the first to list something!</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
@@ -229,9 +226,9 @@ const ProductCard = ({ product, onClick }) => {
   return (
     <div
       onClick={onClick}
-      className="rounded-xl overflow-hidden border-2 border-gray-500 hover:border-gray-900 hover:shadow-xl transition-all duration-300 cursor-pointer group"
+      className="bg-white/8 rounded-sm overflow-hidden border border-white/15 hover:border-white/40 hover:bg-white/12 transition-all duration-300 cursor-pointer group"
     >
-      <div className="aspect-square overflow-hidden relative">
+      <div className="aspect-square bg-white/5 overflow-hidden relative">
         {firstImage ? (
           <img 
             src={firstImage} 
@@ -240,23 +237,23 @@ const ProductCard = ({ product, onClick }) => {
           />
         ) : (
           <div className="flex items-center justify-center h-full">
-            <Package className="h-20 w-20" />
+            <Package className="h-20 w-20 text-white/20" />
           </div>
         )}
       </div>
 
       <div className="p-5">
-        <h3 className="font-bold text-lg line-clamp-2 mb-2 group-hover:text-gray-700 transition-colors">
+        <h3 className="font-bold text-lg line-clamp-2 mb-2 text-white group-hover:text-white/80 transition-colors">
           {product.title}
         </h3>
-        <p className="text-sm mb-4 line-clamp-2 leading-relaxed">
+        <p className="text-sm text-white/60 mb-4 line-clamp-2 leading-relaxed">
           {product.description}
         </p>
         <div className="flex items-center justify-between">
-          <div className="text-2xl font-bold">
-            ${product.price}
+          <div className="text-2xl font-bold text-white">
+            ₹{product.price}
           </div>
-          <span className={`px-3 py-1.5 rounded-md text-xs font-semibold border-2 ${categoryStyle}`}>
+          <span className={`px-3 py-1.5 rounded-sm text-xs font-semibold border ${categoryStyle}`}>
             {product.category}
           </span>
         </div>
@@ -265,106 +262,200 @@ const ProductCard = ({ product, onClick }) => {
   );
 };
 
-const ProductDetail = ({ product, onBack }) => {
+const ProductDetail = ({ product, onBack, onNavigateToChat }) => {
   const categoryStyle = categoryStyles[product.category] || categoryStyles.other;
   const firstImage = product.images && product.images.length > 0 ? product.images[0] : null;
   const sellerName = product.seller ? `${product.seller.first_name} ${product.seller.last_name}` : "Anonymous";
   const sellerEmail = product.seller?.email || "";
   const sellerPhone = product.seller?.phone_number;
+  const [contacting, setContacting] = useState(false);
+
+  const handleContactSeller = async () => {
+    setContacting(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        alert("Please sign in to contact the seller");
+        setContacting(false);
+        return;
+      }
+
+      const { data: myChannels } = await supabase
+        .from('channel_members')
+        .select('channel_id')
+        .eq('user_id', user.id);
+
+      const myChannelIds = myChannels?.map(c => c.channel_id) || [];
+
+      if (myChannelIds.length > 0) {
+        const { data: theirChannels } = await supabase
+          .from('channel_members')
+          .select('channel_id, communication_channels!inner(channel_type, id)')
+          .eq('user_id', product.seller_id)
+          .in('channel_id', myChannelIds);
+
+        const existingDirect = theirChannels?.find(
+          c => c.communication_channels.channel_type === 'direct_message'
+        );
+
+        if (existingDirect) {
+          if (onNavigateToChat) {
+            onNavigateToChat(existingDirect.communication_channels.id);
+          }
+          setContacting(false);
+          return;
+        }
+      }
+
+      const { data: profile } = await supabase
+        .from("user_profiles")
+        .select("college_id")
+        .eq("id", user.id)
+        .single();
+
+      const { data: newChannel, error: channelError } = await supabase
+        .from('communication_channels')
+        .insert({
+          college_id: profile.college_id,
+          channel_name: sellerName,
+          channel_type: 'direct_message',
+          is_public: false,
+          created_by: user.id
+        })
+        .select()
+        .single();
+
+      if (channelError) throw channelError;
+
+      const { error: memberError } = await supabase
+        .from('channel_members')
+        .insert([
+          { channel_id: newChannel.id, user_id: user.id, role: 'member' },
+          { channel_id: newChannel.id, user_id: product.seller_id, role: 'member' }
+        ]);
+
+      if (memberError) throw memberError;
+
+      await supabase
+        .from('messages')
+        .insert({
+          channel_id: newChannel.id,
+          sender_id: user.id,
+          message_text: `Hi! I'm interested in your listing: ${product.title} (₹${product.price})`,
+          message_type: 'text'
+        });
+
+      if (onNavigateToChat) {
+        onNavigateToChat(newChannel.id);
+      }
+    } catch (error) {
+      console.error('Error contacting seller:', error);
+      alert('Failed to contact seller: ' + error.message);
+    } finally {
+      setContacting(false);
+    }
+  };
 
   return (
     <div className="container mx-auto px-6 py-10">
       <button 
         onClick={onBack} 
-        className="flex items-center gap-2 hover:text-gray-500 mb-8 font-medium transition-colors"
+        className="flex items-center gap-2 text-white/70 hover:text-white mb-8 font-medium transition-colors duration-300"
       >
         <ArrowLeft className="h-5 w-5" />
         Back to Marketplace
       </button>
 
       <div className="grid lg:grid-cols-2 gap-10">
-        {/* Image Section */}
-        <div className="rounded-2xl overflow-hidden border-1 border-gray-500 shadow-lg">
+        <div className="bg-white/8 rounded-sm overflow-hidden border border-white/15">
           <div className="aspect-square">
             {firstImage ? (
               <img src={firstImage} alt={product.title} className="w-full h-full object-cover" />
             ) : (
-              <div className="flex items-center justify-center h-full">
-                <Package className="h-32 w-32" />
+              <div className="flex items-center justify-center h-full bg-white/5">
+                <Package className="h-32 w-32 text-white/20" />
               </div>
             )}
           </div>
         </div>
 
-        {/* Details Section */}
         <div className="space-y-6">
-          <div className="rounded-2xl p-8 border-2 border-gray-500 shadow-lg">
-            <h1 className="text-4xl font-bold mb-5 leading-tight">
+          <div className="bg-white/8 rounded-sm p-8 border border-white/15">
+            <h1 className="text-4xl font-bold mb-5 leading-tight text-white">
               {product.title}
             </h1>
             
             <div className="flex items-center gap-3 mb-6">
-              <span className={`px-4 py-2 rounded-lg text-sm font-semibold border-2 ${categoryStyle}`}>
+              <span className={`px-4 py-2 rounded-sm text-sm font-semibold border ${categoryStyle}`}>
                 {product.category}
               </span>
-              <span className="px-4 py-2 rounded-lg text-sm font-semibold border-2 border-gray-500">
+              <span className="px-4 py-2 bg-white/5 rounded-sm text-sm font-semibold border border-white/15 text-white/70">
                 {product.condition}
               </span>
             </div>
 
-            <div className="text-5xl font-bold mb-6">
-              ${product.price}
+            <div className="text-5xl font-bold text-white mb-6">
+              ₹{product.price}
             </div>
 
-            <p className="leading-relaxed text-lg">
+            <p className="text-white/70 leading-relaxed text-lg">
               {product.description}
             </p>
           </div>
 
-          {/* Seller Information */}
-          <div className=" rounded-2xl p-8 border-2 border-gray-500 shadow-lg">
-            <h2 className="text-2xl font-bold mb-6">Seller Information</h2>
+          <div className="bg-white/8 rounded-sm p-8 border border-white/15">
+            <h2 className="text-2xl font-bold mb-6 text-white">Seller Information</h2>
             
             <div className="space-y-5">
               <div className="flex items-center gap-4">
-                <div className=" rounded-full p-3">
-                  <User className="h-6 w-6 " />
+                <div className="bg-white/8 rounded-full p-3">
+                  <User className="h-6 w-6 text-white/70" />
                 </div>
                 <div>
-                  <p className="text-sm font-medium">Name</p>
-                  <p className="font-semibold text-lg">{sellerName}</p>
+                  <p className="text-sm text-white/60 font-medium">Name</p>
+                  <p className="font-semibold text-lg text-white">{sellerName}</p>
                 </div>
               </div>
 
               <div className="flex items-center gap-4">
-                <div className="rounded-full p-3">
-                  <Mail className="h-6 w-6" />
+                <div className="bg-white/8 rounded-full p-3">
+                  <Mail className="h-6 w-6 text-white/70" />
                 </div>
                 <div>
-                  <p className="text-sm font-medium">Email</p>
-                  <p className="font-semibold text-lg break-all">{sellerEmail}</p>
+                  <p className="text-sm text-white/60 font-medium">Email</p>
+                  <p className="font-semibold text-lg text-white break-all">{sellerEmail}</p>
                 </div>
               </div>
 
               {sellerPhone && (
                 <div className="flex items-center gap-4">
-                  <div className="rounded-full p-3">
-                    <Phone className="h-6 w-6" />
+                  <div className="bg-white/8 rounded-full p-3">
+                    <Phone className="h-6 w-6 text-white/70" />
                   </div>
                   <div>
-                    <p className="text-sm font-medium">Phone</p>
-                    <p className="font-semibold text-lg">{sellerPhone}</p>
+                    <p className="text-sm text-white/60 font-medium">Phone</p>
+                    <p className="font-semibold text-lg text-white">{sellerPhone}</p>
                   </div>
                 </div>
               )}
             </div>
 
             <button
-              onClick={() => window.location.href = `mailto:${sellerEmail}?subject=Interested in ${product.title}`}
-              className="w-full mt-8  py-4 rounded-xl font-semibold hover:bg-gray-800 transition-all flex items-center justify-center gap-2 shadow-lg"
+              onClick={handleContactSeller}
+              disabled={contacting}
+              className="w-full mt-8 bg-white text-black py-4 rounded-sm font-semibold hover:bg-white/90 transition-all duration-300 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <Mail className="h-5 w-5" />
-              Contact Seller
+              {contacting ? (
+                <>
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                  Opening Chat...
+                </>
+              ) : (
+                <>
+                  <MessageSquare className="h-5 w-5" />
+                  Contact Seller
+                </>
+              )}
             </button>
           </div>
         </div>
@@ -489,42 +580,42 @@ const SellItem = ({ onBack }) => {
     <div className="container mx-auto px-6 py-10 max-w-3xl">
       <button 
         onClick={onBack} 
-        className="flex items-center gap-2 hover:text-gray-500 mb-8 font-medium"
+        className="flex items-center gap-2 text-white/70 hover:text-white mb-8 font-medium transition-colors duration-300"
       >
         <ArrowLeft className="h-5 w-5" />
         Back to Marketplace
       </button>
 
-      <div className=" rounded-2xl p-10 border-2 border-gray-600 shadow-lg">
-        <h1 className="text-4xl font-bold mb-3">List Your Item</h1>
-        <p className=" text-lg mb-10">Fill in the details to sell your item to fellow students</p>
+      <div className="bg-white/8 rounded-sm p-10 border border-white/15">
+        <h1 className="text-4xl font-bold mb-3 text-white">List Your Item</h1>
+        <p className="text-white/60 text-lg mb-10">Fill in the details to sell your item to fellow students</p>
 
         <div className="space-y-6">
           <div>
-            <label className="block text-sm font-bold text-gray-900 mb-2">Item Title *</label>
+            <label className="block text-sm font-bold mb-2 text-white">Item Title *</label>
             <input
               type="text"
               value={formData.title}
               onChange={(e) => setFormData({ ...formData, title: e.target.value })}
               placeholder="e.g., Calculus Textbook - 12th Edition"
-              className="w-full px-5 py-4 rounded-xl border-2 bg-gray-800 border-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent"
+              className="w-full px-5 py-4 rounded-sm bg-white/8 border border-white/15 text-black focus:outline-none focus:ring-2 focus:ring-white/40 focus:border-transparent transition-all duration-300"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-bold mb-2">Description *</label>
+            <label className="block text-sm font-bold mb-2 text-white">Description *</label>
             <textarea
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               placeholder="Describe the condition, features, and any other relevant details..."
               rows={5}
-              className="w-full px-5 py-4 rounded-xl border-2 bg-gray-800 border-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent resize-none"
+              className="w-full px-5 py-4 rounded-sm bg-white/8 border border-white/15 text-black focus:outline-none focus:ring-2 focus:ring-white/40 focus:border-transparent resize-none transition-all duration-300"
             />
           </div>
 
           <div className="grid grid-cols-2 gap-6">
             <div>
-              <label className="block text-sm font-bold mb-2">Price(₹) *</label>
+              <label className="block text-sm font-bold mb-2 text-white">Price (₹) *</label>
               <input
                 type="number"
                 step="10"
@@ -532,43 +623,43 @@ const SellItem = ({ onBack }) => {
                 value={formData.price}
                 onChange={(e) => setFormData({ ...formData, price: e.target.value })}
                 placeholder="0"
-                className="w-full px-5 py-4 rounded-xl border-2 bg-gray-800 border-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent"
+                className="w-full px-5 py-4 rounded-sm bg-white/8 border border-white/15 text-black focus:outline-none focus:ring-2 focus:ring-white/40 focus:border-transparent transition-all duration-300"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-bold mb-2">Category *</label>
+              <label className="block text-sm font-bold mb-2 text-white">Category *</label>
               <select
                 value={formData.category}
                 onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                className="w-full px-5 py-4 rounded-xl border-2 bg-gray-800 border-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent"
+                className="w-full px-5 py-4 rounded-sm bg-white/8 border border-white/15 text-black focus:outline-none focus:ring-2 focus:ring-white/40 focus:border-transparent transition-all duration-300"
               >
-                <option value="">Select category...</option>
+                <option value="" className="bg-black">Select category...</option>
                 {categories.filter(c => c.value !== "all").map(cat => (
-                  <option key={cat.value} value={cat.value}>{cat.label}</option>
+                  <option key={cat.value} value={cat.value} className="bg-black">{cat.label}</option>
                 ))}
               </select>
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-bold mb-2">Condition *</label>
+            <label className="block text-sm font-bold mb-2 text-white">Condition *</label>
             <select
               value={formData.condition}
               onChange={(e) => setFormData({ ...formData, condition: e.target.value })}
-              className="w-full px-5 py-4 rounded-xl border-2 bg-gray-800 border-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent"
+              className="w-full px-5 py-4 rounded-sm bg-white/8 border border-white/15 text-black focus:outline-none focus:ring-2 focus:ring-white/40 focus:border-transparent transition-all duration-300"
             >
               {conditions.map(cond => (
-                <option key={cond.value} value={cond.value}>{cond.label}</option>
+                <option key={cond.value} value={cond.value} className="bg-black">{cond.label}</option>
               ))}
             </select>
           </div>
 
           <div>
-            <label className="block text-sm font-bold mb-2">Product Images</label>
-            <p className="text-sm mb-3">Upload photos of your item</p>
+            <label className="block text-sm font-bold mb-2 text-white">Product Images</label>
+            <p className="text-sm text-white/60 mb-3">Upload photos of your item</p>
             
-            <div className="border-2 border-dashed border-gray-600 rounded-xl p-6 text-center hover:border-gray-400 transition-colors">
+            <div className="border-2 border-dashed border-white/15 rounded-sm p-6 text-center hover:border-white/30 transition-colors duration-300 bg-white/5">
               <input
                 type="file"
                 accept="image/*"
@@ -584,14 +675,14 @@ const SellItem = ({ onBack }) => {
               >
                 {uploading ? (
                   <>
-                    <Loader2 className="h-12 w-12 animate-spin" />
-                    <p className="font-medium">Uploading images...</p>
+                    <Loader2 className="h-12 w-12 text-white/60 animate-spin" />
+                    <p className="font-medium text-white/70">Uploading images...</p>
                   </>
                 ) : (
                   <>
-                    <Upload className="h-12 w-12" />
-                    <p className="font-semibold">Click to upload images</p>
-                    <p className="text-sm">PNG, JPG, GIF up to 10MB</p>
+                    <Upload className="h-12 w-12 text-white/40" />
+                    <p className="font-semibold text-white/70">Click to upload images</p>
+                    <p className="text-sm text-white/50">PNG, JPG, GIF up to 10MB</p>
                   </>
                 )}
               </label>
@@ -604,11 +695,11 @@ const SellItem = ({ onBack }) => {
                     <img 
                       src={url} 
                       alt={`Upload ${idx + 1}`} 
-                      className="w-full h-32 object-cover rounded-lg border-2 border-gray-200"
+                      className="w-full h-32 object-cover rounded-sm border border-white/15"
                     />
                     <button
                       onClick={() => removeImage(idx)}
-                      className="absolute top-2 right-2 p-2 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
+                      className="absolute top-2 right-2 bg-red-600 text-white p-2 rounded-sm opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-700"
                     >
                       <X className="h-4 w-4" />
                     </button>
@@ -621,7 +712,7 @@ const SellItem = ({ onBack }) => {
           <button
             onClick={handleSubmit}
             disabled={loading || uploading}
-            className="w-full bg-gray-900 text-white py-5 rounded-xl font-bold text-lg hover:bg-gray-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg mt-8"
+            className="w-full bg-white text-black py-5 rounded-sm font-bold text-lg hover:bg-white/90 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed mt-8"
           >
             {loading ? "Listing Item..." : "List Item"}
           </button>
@@ -712,29 +803,29 @@ const MyListings = ({ onBack, onViewProduct }) => {
     <div className="container mx-auto px-6 py-10">
       <button 
         onClick={onBack} 
-        className="flex items-center gap-2 hover:text-gray-500 mb-8 font-medium"
+        className="flex items-center gap-2 text-white/70 hover:text-white mb-8 font-medium transition-colors duration-300"
       >
         <ArrowLeft className="h-5 w-5" />
         Back to Marketplace
       </button>
 
-      <div className=" rounded-2xl p-8 border-2 border-gray-600 shadow-lg mb-8">
-        <h1 className="text-4xl font-bold mb-2">My Listings</h1>
-        <p className="text-lg">Manage your marketplace items</p>
+      <div className="bg-white/8 rounded-sm p-8 border border-white/15 mb-8">
+        <h1 className="text-4xl font-bold mb-2 text-white">My Listings</h1>
+        <p className="text-lg text-white/60">Manage your marketplace items</p>
       </div>
 
       {loading ? (
         <div className="flex items-center justify-center py-20">
-          <Loader2 className="h-12 w-12 animate-spin text-gray-900" />
+          <Loader2 className="h-12 w-12 animate-spin text-white" />
         </div>
       ) : myItems.length === 0 ? (
-        <div className="text-center py-20 rounded-2xl shadow-sm border border-gray-700">
-          <Package className="h-20 w-20 mx-auto mb-4" />
-          <p className="text-2xl font-semibold mb-2">No listings yet</p>
-          <p className="mb-6">Start selling by listing your first item!</p>
+        <div className="text-center py-20 bg-white/8 rounded-sm border border-white/15">
+          <Package className="h-20 w-20 text-white/40 mx-auto mb-4" />
+          <p className="text-2xl font-semibold mb-2 text-white">No listings yet</p>
+          <p className="text-white/60 mb-6">Start selling by listing your first item!</p>
           <button
             onClick={onBack}
-            className=" px-8 py-3 rounded-xl font-semibold hover:bg-gray-800 transition-all inline-flex items-center gap-2"
+            className="bg-white text-black px-8 py-3 rounded-sm font-semibold hover:bg-white/90 transition-all duration-300 inline-flex items-center gap-2"
           >
             <Plus className="h-5 w-5" />
             List an Item
@@ -763,11 +854,10 @@ const MyListingCard = ({ item, onDelete, onMarkAsSold, onView }) => {
   const isSold = item.status === "sold";
 
   return (
-    <div className={` rounded-xl overflow-hidden border-2 ${isSold ? 'border-gray-500 opacity-75' : 'border-gray-600'} shadow-lg hover:shadow-xl transition-all`}>
+    <div className={`bg-white/8 rounded-sm overflow-hidden border ${isSold ? 'border-white/10 opacity-60' : 'border-white/15'} hover:bg-white/12 transition-all duration-300`}>
       <div className="flex flex-col md:flex-row gap-6 p-6">
-        {/* Image */}
         <div 
-          className="w-full md:w-48 h-48 flex-shrink-0 bg-gray-500 rounded-lg overflow-hidden cursor-pointer"
+          className="w-full md:w-48 h-48 flex-shrink-0 bg-white/5 rounded-sm overflow-hidden cursor-pointer"
           onClick={onView}
         >
           {firstImage ? (
@@ -778,48 +868,47 @@ const MyListingCard = ({ item, onDelete, onMarkAsSold, onView }) => {
             />
           ) : (
             <div className="flex items-center justify-center h-full">
-              <Package className="h-16 w-16" />
+              <Package className="h-16 w-16 text-white/20" />
             </div>
           )}
         </div>
 
-        {/* Details */}
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-4 mb-3">
             <div className="flex-1 min-w-0">
               <h3 
-                className="font-bold text-2xl mb-2 cursor-pointer hover:text-gray-500 transition-colors"
+                className="font-bold text-2xl mb-2 text-white cursor-pointer hover:text-white/80 transition-colors"
                 onClick={onView}
               >
                 {item.title}
               </h3>
               <div className="flex flex-wrap items-center gap-2 mb-3">
-                <span className={`px-3 py-1.5 rounded-md text-xs font-semibold border-2 ${categoryStyle}`}>
+                <span className={`px-3 py-1.5 rounded-sm text-xs font-semibold border ${categoryStyle}`}>
                   {item.category}
                 </span>
-                <span className="px-3 py-1.5 rounded-md text-xs font-semibold border-2 border-gray-300">
+                <span className="px-3 py-1.5 rounded-sm text-xs font-semibold border border-white/20 bg-white/5 text-white/70">
                   {item.condition}
                 </span>
                 {isSold && (
-                  <span className="px-3 py-1.5 rounded-md text-xs font-semibold border-2 border-red-300">
+                  <span className="px-3 py-1.5 rounded-sm text-xs font-semibold border border-red-500/30 bg-red-500/10 text-red-400">
                     SOLD
                   </span>
                 )}
               </div>
             </div>
-            <div className="text-3xl font-bold">
+            <div className="text-3xl font-bold text-white">
               ₹{item.price}
             </div>
           </div>
 
-          <p className=" mb-4 line-clamp-2 leading-relaxed">
+          <p className="text-white/60 mb-4 line-clamp-2 leading-relaxed">
             {item.description}
           </p>
 
           <div className="flex flex-wrap gap-3">
             <button
               onClick={onView}
-              className="px-5 py-2.5 rounded-lg font-semibold hover:bg-gray-800 transition-all flex items-center gap-2"
+              className="px-5 py-2.5 bg-white/12 text-white rounded-sm font-semibold hover:bg-white/20 transition-all duration-300 flex items-center gap-2 border border-white/15"
             >
               <Package className="h-4 w-4" />
               View Details
@@ -828,7 +917,7 @@ const MyListingCard = ({ item, onDelete, onMarkAsSold, onView }) => {
             {!isSold && (
               <button
                 onClick={() => onMarkAsSold(item.id)}
-                className="px-5 py-2.5 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition-all"
+                className="px-5 py-2.5 bg-green-600/20 text-green-400 rounded-sm font-semibold hover:bg-green-600/30 transition-all duration-300 border border-green-500/30"
               >
                 Mark as Sold
               </button>
@@ -836,7 +925,7 @@ const MyListingCard = ({ item, onDelete, onMarkAsSold, onView }) => {
             
             <button
               onClick={() => onDelete(item.id)}
-              className="px-5 py-2.5 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 transition-all flex items-center gap-2"
+              className="px-5 py-2.5 bg-red-600/20 text-red-400 rounded-sm font-semibold hover:bg-red-600/30 transition-all duration-300 flex items-center gap-2 border border-red-500/30"
             >
               <Trash2 className="h-4 w-4" />
               Delete

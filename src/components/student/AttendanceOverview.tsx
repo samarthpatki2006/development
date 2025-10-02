@@ -179,14 +179,34 @@ const AttendanceOverview: React.FC<AttendanceOverviewProps> = ({ studentData }) 
   const startScanner = async () => {
     try {
       setIsScanning(true);
+      
+      // Stop any existing scanner first
+      if (scannerRef.current) {
+        await scannerRef.current.stop().catch(() => {});
+        scannerRef.current = null;
+      }
+
+      // Small delay to ensure previous scanner is fully stopped
+      await new Promise(resolve => setTimeout(resolve, 100));
+
       const html5QrCode = new Html5Qrcode(scannerDivId);
       scannerRef.current = html5QrCode;
 
+      // Try to get available cameras first
+      const cameras = await Html5Qrcode.getCameras();
+      if (!cameras || cameras.length === 0) {
+        throw new Error('No cameras found on this device');
+      }
+
+      // Use the back camera if available, otherwise use the first camera
+      const cameraId = cameras.length > 1 ? cameras[cameras.length - 1].id : cameras[0].id;
+
       await html5QrCode.start(
-        { facingMode: "environment" },
+        cameraId,
         {
           fps: 10,
           qrbox: { width: 250, height: 250 },
+          aspectRatio: 1.0,
         },
         (decodedText) => {
           setQrCodeInput(decodedText);
@@ -195,9 +215,23 @@ const AttendanceOverview: React.FC<AttendanceOverviewProps> = ({ studentData }) 
         },
         () => {}
       );
-    } catch (error) {
-      toast.error('Failed to start camera. Please check permissions.');
+    } catch (error: any) {
+      console.error('Scanner error:', error);
+      let errorMessage = 'Failed to start camera. Please check permissions.';
+      
+      if (error.name === 'NotAllowedError') {
+        errorMessage = 'Camera permission denied. Please allow camera access in your browser settings.';
+      } else if (error.name === 'NotFoundError') {
+        errorMessage = 'No camera found on this device.';
+      } else if (error.name === 'NotReadableError') {
+        errorMessage = 'Camera is already in use by another application.';
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      toast.error(errorMessage);
       setIsScanning(false);
+      scannerRef.current = null;
     }
   };
 

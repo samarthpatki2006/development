@@ -361,7 +361,7 @@ const ProductDetail = ({ product, onBack }) => {
 
             <button
               onClick={() => window.location.href = `mailto:${sellerEmail}?subject=Interested in ${product.title}`}
-              className="w-full mt-8 bg-white text-black py-4 rounded-xl font-semibold hover:bg-gray-800 transition-all flex items-center justify-center gap-2 shadow-lg"
+              className="w-full mt-8  py-4 rounded-xl font-semibold hover:bg-gray-800 transition-all flex items-center justify-center gap-2 shadow-lg"
             >
               <Mail className="h-5 w-5" />
               Contact Seller
@@ -489,15 +489,15 @@ const SellItem = ({ onBack }) => {
     <div className="container mx-auto px-6 py-10 max-w-3xl">
       <button 
         onClick={onBack} 
-        className="flex items-center gap-2 text-gray-700 hover:text-gray-900 mb-8 font-medium"
+        className="flex items-center gap-2 hover:text-gray-500 mb-8 font-medium"
       >
         <ArrowLeft className="h-5 w-5" />
         Back to Marketplace
       </button>
 
-      <div className="bg-white rounded-2xl p-10 border-2 border-gray-200 shadow-lg">
-        <h1 className="text-4xl font-bold text-gray-900 mb-3">List Your Item</h1>
-        <p className="text-gray-600 text-lg mb-10">Fill in the details to sell your item to fellow students</p>
+      <div className=" rounded-2xl p-10 border-2 border-gray-600 shadow-lg">
+        <h1 className="text-4xl font-bold mb-3">List Your Item</h1>
+        <p className=" text-lg mb-10">Fill in the details to sell your item to fellow students</p>
 
         <div className="space-y-6">
           <div>
@@ -507,41 +507,41 @@ const SellItem = ({ onBack }) => {
               value={formData.title}
               onChange={(e) => setFormData({ ...formData, title: e.target.value })}
               placeholder="e.g., Calculus Textbook - 12th Edition"
-              className="w-full px-5 py-4 rounded-xl border-2 border-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent text-gray-900"
+              className="w-full px-5 py-4 rounded-xl border-2 bg-gray-800 border-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-bold text-gray-900 mb-2">Description *</label>
+            <label className="block text-sm font-bold mb-2">Description *</label>
             <textarea
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               placeholder="Describe the condition, features, and any other relevant details..."
               rows={5}
-              className="w-full px-5 py-4 rounded-xl border-2 border-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent resize-none text-gray-900"
+              className="w-full px-5 py-4 rounded-xl border-2 bg-gray-800 border-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent resize-none"
             />
           </div>
 
           <div className="grid grid-cols-2 gap-6">
             <div>
-              <label className="block text-sm font-bold text-gray-900 mb-2">Price ($) *</label>
+              <label className="block text-sm font-bold mb-2">Price(₹) *</label>
               <input
                 type="number"
-                step="0.01"
+                step="10"
                 min="0"
                 value={formData.price}
                 onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                placeholder="0.00"
-                className="w-full px-5 py-4 rounded-xl border-2 border-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent text-gray-900"
+                placeholder="0"
+                className="w-full px-5 py-4 rounded-xl border-2 bg-gray-800 border-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-bold text-gray-900 mb-2">Category *</label>
+              <label className="block text-sm font-bold mb-2">Category *</label>
               <select
                 value={formData.category}
                 onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                className="w-full px-5 py-4 rounded-xl border-2 border-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent text-gray-900"
+                className="w-full px-5 py-4 rounded-xl border-2 bg-gray-800 border-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent"
               >
                 <option value="">Select category...</option>
                 {categories.filter(c => c.value !== "all").map(cat => (
@@ -552,11 +552,11 @@ const SellItem = ({ onBack }) => {
           </div>
 
           <div>
-            <label className="block text-sm font-bold text-gray-900 mb-2">Condition *</label>
+            <label className="block text-sm font-bold mb-2">Condition *</label>
             <select
               value={formData.condition}
               onChange={(e) => setFormData({ ...formData, condition: e.target.value })}
-              className="w-full px-5 py-4 rounded-xl border-2 border-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent text-gray-900"
+              className="w-full px-5 py-4 rounded-xl border-2 bg-gray-800 border-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent"
             >
               {conditions.map(cond => (
                 <option key={cond.value} value={cond.value}>{cond.label}</option>
@@ -565,10 +565,10 @@ const SellItem = ({ onBack }) => {
           </div>
 
           <div>
-            <label className="block text-sm font-bold text-gray-900 mb-2">Product Images</label>
-            <p className="text-sm text-gray-600 mb-3">Upload photos of your item</p>
+            <label className="block text-sm font-bold mb-2">Product Images</label>
+            <p className="text-sm mb-3">Upload photos of your item</p>
             
-            <div className="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center hover:border-gray-400 transition-colors">
+            <div className="border-2 border-dashed border-gray-600 rounded-xl p-6 text-center hover:border-gray-400 transition-colors">
               <input
                 type="file"
                 accept="image/*"
@@ -584,14 +584,14 @@ const SellItem = ({ onBack }) => {
               >
                 {uploading ? (
                   <>
-                    <Loader2 className="h-12 w-12 text-gray-400 animate-spin" />
-                    <p className="text-gray-600 font-medium">Uploading images...</p>
+                    <Loader2 className="h-12 w-12 animate-spin" />
+                    <p className="font-medium">Uploading images...</p>
                   </>
                 ) : (
                   <>
-                    <Upload className="h-12 w-12 text-gray-400" />
-                    <p className="text-gray-900 font-semibold">Click to upload images</p>
-                    <p className="text-sm text-gray-500">PNG, JPG, GIF up to 10MB</p>
+                    <Upload className="h-12 w-12" />
+                    <p className="font-semibold">Click to upload images</p>
+                    <p className="text-sm">PNG, JPG, GIF up to 10MB</p>
                   </>
                 )}
               </label>
@@ -608,7 +608,7 @@ const SellItem = ({ onBack }) => {
                     />
                     <button
                       onClick={() => removeImage(idx)}
-                      className="absolute top-2 right-2 bg-red-500 text-white p-2 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
+                      className="absolute top-2 right-2 p-2 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
                     >
                       <X className="h-4 w-4" />
                     </button>
@@ -712,15 +712,15 @@ const MyListings = ({ onBack, onViewProduct }) => {
     <div className="container mx-auto px-6 py-10">
       <button 
         onClick={onBack} 
-        className="flex items-center gap-2 text-gray-700 hover:text-gray-900 mb-8 font-medium"
+        className="flex items-center gap-2 hover:text-gray-500 mb-8 font-medium"
       >
         <ArrowLeft className="h-5 w-5" />
         Back to Marketplace
       </button>
 
-      <div className="bg-white rounded-2xl p-8 border-2 border-gray-200 shadow-lg mb-8">
-        <h1 className="text-4xl font-bold text-gray-900 mb-2">My Listings</h1>
-        <p className="text-gray-600 text-lg">Manage your marketplace items</p>
+      <div className=" rounded-2xl p-8 border-2 border-gray-600 shadow-lg mb-8">
+        <h1 className="text-4xl font-bold mb-2">My Listings</h1>
+        <p className="text-lg">Manage your marketplace items</p>
       </div>
 
       {loading ? (
@@ -728,13 +728,13 @@ const MyListings = ({ onBack, onViewProduct }) => {
           <Loader2 className="h-12 w-12 animate-spin text-gray-900" />
         </div>
       ) : myItems.length === 0 ? (
-        <div className="text-center py-20 bg-white rounded-2xl shadow-sm border border-gray-200">
-          <Package className="h-20 w-20 text-gray-300 mx-auto mb-4" />
-          <p className="text-2xl text-gray-900 font-semibold mb-2">No listings yet</p>
-          <p className="text-gray-600 mb-6">Start selling by listing your first item!</p>
+        <div className="text-center py-20 rounded-2xl shadow-sm border border-gray-700">
+          <Package className="h-20 w-20 mx-auto mb-4" />
+          <p className="text-2xl font-semibold mb-2">No listings yet</p>
+          <p className="mb-6">Start selling by listing your first item!</p>
           <button
             onClick={onBack}
-            className="bg-gray-900 text-white px-8 py-3 rounded-xl font-semibold hover:bg-gray-800 transition-all inline-flex items-center gap-2"
+            className=" px-8 py-3 rounded-xl font-semibold hover:bg-gray-800 transition-all inline-flex items-center gap-2"
           >
             <Plus className="h-5 w-5" />
             List an Item
@@ -763,11 +763,11 @@ const MyListingCard = ({ item, onDelete, onMarkAsSold, onView }) => {
   const isSold = item.status === "sold";
 
   return (
-    <div className={`bg-white rounded-xl overflow-hidden border-2 ${isSold ? 'border-gray-300 opacity-75' : 'border-gray-200'} shadow-lg hover:shadow-xl transition-all`}>
+    <div className={` rounded-xl overflow-hidden border-2 ${isSold ? 'border-gray-500 opacity-75' : 'border-gray-600'} shadow-lg hover:shadow-xl transition-all`}>
       <div className="flex flex-col md:flex-row gap-6 p-6">
         {/* Image */}
         <div 
-          className="w-full md:w-48 h-48 flex-shrink-0 bg-gray-100 rounded-lg overflow-hidden cursor-pointer"
+          className="w-full md:w-48 h-48 flex-shrink-0 bg-gray-500 rounded-lg overflow-hidden cursor-pointer"
           onClick={onView}
         >
           {firstImage ? (
@@ -778,7 +778,7 @@ const MyListingCard = ({ item, onDelete, onMarkAsSold, onView }) => {
             />
           ) : (
             <div className="flex items-center justify-center h-full">
-              <Package className="h-16 w-16 text-gray-300" />
+              <Package className="h-16 w-16" />
             </div>
           )}
         </div>
@@ -788,7 +788,7 @@ const MyListingCard = ({ item, onDelete, onMarkAsSold, onView }) => {
           <div className="flex items-start justify-between gap-4 mb-3">
             <div className="flex-1 min-w-0">
               <h3 
-                className="font-bold text-2xl text-gray-900 mb-2 cursor-pointer hover:text-gray-700 transition-colors"
+                className="font-bold text-2xl mb-2 cursor-pointer hover:text-gray-500 transition-colors"
                 onClick={onView}
               >
                 {item.title}
@@ -797,29 +797,29 @@ const MyListingCard = ({ item, onDelete, onMarkAsSold, onView }) => {
                 <span className={`px-3 py-1.5 rounded-md text-xs font-semibold border-2 ${categoryStyle}`}>
                   {item.category}
                 </span>
-                <span className="px-3 py-1.5 rounded-md text-xs font-semibold bg-gray-100 text-gray-800 border-2 border-gray-300">
+                <span className="px-3 py-1.5 rounded-md text-xs font-semibold border-2 border-gray-300">
                   {item.condition}
                 </span>
                 {isSold && (
-                  <span className="px-3 py-1.5 rounded-md text-xs font-semibold bg-red-100 text-red-800 border-2 border-red-300">
+                  <span className="px-3 py-1.5 rounded-md text-xs font-semibold border-2 border-red-300">
                     SOLD
                   </span>
                 )}
               </div>
             </div>
-            <div className="text-3xl font-bold text-gray-900">
-              ${item.price}
+            <div className="text-3xl font-bold">
+              ₹{item.price}
             </div>
           </div>
 
-          <p className="text-gray-600 mb-4 line-clamp-2 leading-relaxed">
+          <p className=" mb-4 line-clamp-2 leading-relaxed">
             {item.description}
           </p>
 
           <div className="flex flex-wrap gap-3">
             <button
               onClick={onView}
-              className="px-5 py-2.5 bg-gray-900 text-white rounded-lg font-semibold hover:bg-gray-800 transition-all flex items-center gap-2"
+              className="px-5 py-2.5 rounded-lg font-semibold hover:bg-gray-800 transition-all flex items-center gap-2"
             >
               <Package className="h-4 w-4" />
               View Details

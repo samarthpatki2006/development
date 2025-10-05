@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { CheckCircle, XCircle, AlertTriangle, Camera, X, ScanLine } from 'lucide-react';
+import { CheckCircle, XCircle, AlertTriangle, Camera, X, ScanLine, Clock } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Html5Qrcode } from 'html5-qrcode';
@@ -21,7 +21,9 @@ const AttendanceOverview: React.FC<AttendanceOverviewProps> = ({ studentData }) 
   const [overallStats, setOverallStats] = useState({
     totalClasses: 0,
     attendedClasses: 0,
+    lateClasses: 0,
     percentage: 0,
+    effectiveAttendance: 0,
     status: 'good'
   });
   const [courseStats, setCourseStats] = useState<any[]>([]);
@@ -29,7 +31,6 @@ const AttendanceOverview: React.FC<AttendanceOverviewProps> = ({ studentData }) 
   const [courses, setCourses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // QR Scanner states
   const [isScanning, setIsScanning] = useState(false);
   const [qrCodeInput, setQrCodeInput] = useState('');
   const [isMarked, setIsMarked] = useState(false);
@@ -115,17 +116,23 @@ const AttendanceOverview: React.FC<AttendanceOverviewProps> = ({ studentData }) 
 
   const calculateStats = (attendance: any[]) => {
     const totalClasses = attendance.length;
-    const attendedClasses = attendance.filter(a => a.status === 'present').length;
-    const percentage = totalClasses > 0 ? Math.round((attendedClasses / totalClasses) * 100) : 0;
+    const presentClasses = attendance.filter(a => a.status === 'present').length;
+    const lateClasses = attendance.filter(a => a.status === 'late').length;
+    
+    const effectivePresent = presentClasses + (lateClasses * 0.5);
+    const percentage = totalClasses > 0 ? Math.round((presentClasses / totalClasses) * 100) : 0;
+    const effectivePercentage = totalClasses > 0 ? Math.round((effectivePresent / totalClasses) * 100) : 0;
     
     let status = 'good';
-    if (percentage < 65) status = 'critical';
-    else if (percentage < 75) status = 'warning';
+    if (effectivePercentage < 65) status = 'critical';
+    else if (effectivePercentage < 75) status = 'warning';
 
     setOverallStats({
       totalClasses,
-      attendedClasses,
+      attendedClasses: presentClasses,
+      lateClasses,
       percentage,
+      effectiveAttendance: effectivePercentage,
       status
     });
   };
@@ -166,10 +173,14 @@ const AttendanceOverview: React.FC<AttendanceOverviewProps> = ({ studentData }) 
       }
     });
 
-    const stats = Array.from(courseMap.values()).map(course => ({
-      ...course,
-      percentage: course.total > 0 ? Math.round((course.present / course.total) * 100) : 0
-    }));
+    const stats = Array.from(courseMap.values()).map(course => {
+      const effectivePresent = course.present + (course.late * 0.5);
+      return {
+        ...course,
+        percentage: course.total > 0 ? Math.round((course.present / course.total) * 100) : 0,
+        effectivePercentage: course.total > 0 ? Math.round((effectivePresent / course.total) * 100) : 0
+      };
+    });
 
     setCourseStats(stats);
   };
@@ -252,20 +263,21 @@ const AttendanceOverview: React.FC<AttendanceOverviewProps> = ({ studentData }) 
       return;
     }
 
+    const loadingToast = toast.loading('Verifying session...');
+
     try {
-      // Verify session exists
       const { data: session, error: sessionError } = await supabase
         .from('attendance_sessions')
         .select('*')
         .eq('qr_code', qrCodeInput)
+        .eq('is_active', true)
         .single();
 
       if (sessionError || !session) {
-        toast.error('Invalid session ID');
+        toast.error('Invalid or expired session ID', { id: loadingToast });
         return;
       }
 
-      // Check if student is enrolled in the course
       const { data: enrollment, error: enrollmentError } = await supabase
         .from('enrollments')
         .select('id')
@@ -275,11 +287,10 @@ const AttendanceOverview: React.FC<AttendanceOverviewProps> = ({ studentData }) 
         .single();
 
       if (enrollmentError || !enrollment) {
-        toast.error('You are not enrolled in this course');
+        toast.error('You are not enrolled in this course', { id: loadingToast });
         return;
       }
 
-      // Check if already marked
       const { data: existing } = await supabase
         .from('attendance')
         .select('id, status')
@@ -288,17 +299,15 @@ const AttendanceOverview: React.FC<AttendanceOverviewProps> = ({ studentData }) 
         .single();
 
       if (existing) {
-        toast.error(`Attendance already marked as ${existing.status} for this session`);
+        toast.error(`Attendance already marked as ${existing.status}`, { id: loadingToast });
         return;
       }
 
-      // Determine if attendance is late
       const now = new Date();
       const currentTime = now.toTimeString().slice(0, 5);
       const isLate = currentTime > session.end_time;
       const attendanceStatus = isLate ? 'late' : 'present';
 
-      // Mark attendance
       const { error: insertError } = await supabase
         .from('attendance')
         .insert({
@@ -308,7 +317,6 @@ const AttendanceOverview: React.FC<AttendanceOverviewProps> = ({ studentData }) 
           status: attendanceStatus,
           session_id: session.id,
           marked_by: studentData.user_id,
-          location_verified: false,
           device_info: {
             userAgent: navigator.userAgent,
             timestamp: new Date().toISOString()
@@ -318,25 +326,29 @@ const AttendanceOverview: React.FC<AttendanceOverviewProps> = ({ studentData }) 
       if (insertError) throw insertError;
 
       if (isLate) {
-        toast.warning('Attendance marked as LATE - You scanned after class time');
+        toast.success(
+          `Attendance marked as LATE (0.5x points)`,
+          { id: loadingToast }
+        );
       } else {
-        toast.success('Attendance marked successfully!');
+        toast.success(
+          `Attendance marked successfully!`,
+          { id: loadingToast }
+        );
       }
       
       setIsMarked(true);
       
-      // Refresh attendance data
       await fetchAttendanceData();
 
-      // Reset after 3 seconds
       setTimeout(() => {
         setQrCodeInput('');
         setIsMarked(false);
       }, 3000);
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error marking attendance:', error);
-      toast.error('Failed to mark attendance. Please try again.');
+      toast.error(error.message || 'Failed to mark attendance', { id: loadingToast });
     }
   };
 
@@ -402,17 +414,17 @@ const AttendanceOverview: React.FC<AttendanceOverviewProps> = ({ studentData }) 
         </Select>
       </div>
 
-      {/* Overall Statistics */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Overall Attendance</p>
-                <p className="text-2xl font-bold">{overallStats.percentage}%</p>
+                <p className="text-sm font-medium text-muted-foreground">Effective Attendance</p>
+                <p className="text-2xl font-bold">{overallStats.effectiveAttendance}%</p>
+                <p className="text-xs text-muted-foreground mt-1">Late = 0.5x points</p>
               </div>
             </div>
-            <Progress value={overallStats.percentage} className="mt-3" />
+            <Progress value={overallStats.effectiveAttendance} className="mt-3" />
           </CardContent>
         </Card>
 
@@ -428,7 +440,7 @@ const AttendanceOverview: React.FC<AttendanceOverviewProps> = ({ studentData }) 
         <Card>
           <CardContent className="p-6">
             <div className="text-center">
-              <p className="text-sm font-medium text-muted-foreground">Classes Attended</p>
+              <p className="text-sm font-medium text-muted-foreground">Present</p>
               <p className="text-2xl font-bold text-green-600">{overallStats.attendedClasses}</p>
             </div>
           </CardContent>
@@ -437,9 +449,18 @@ const AttendanceOverview: React.FC<AttendanceOverviewProps> = ({ studentData }) 
         <Card>
           <CardContent className="p-6">
             <div className="text-center">
-              <p className="text-sm font-medium text-muted-foreground">Classes Missed</p>
+              <p className="text-sm font-medium text-muted-foreground">Late (0.5x)</p>
+              <p className="text-2xl font-bold text-yellow-600">{overallStats.lateClasses}</p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="text-center">
+              <p className="text-sm font-medium text-muted-foreground">Absent</p>
               <p className="text-2xl font-bold text-red-600">
-                {overallStats.totalClasses - overallStats.attendedClasses}
+                {overallStats.totalClasses - overallStats.attendedClasses - overallStats.lateClasses}
               </p>
             </div>
           </CardContent>
@@ -453,7 +474,6 @@ const AttendanceOverview: React.FC<AttendanceOverviewProps> = ({ studentData }) 
           <TabsTrigger value="history">Attendance History</TabsTrigger>
         </TabsList>
 
-        {/* Mark Attendance Tab */}
         <TabsContent value="mark">
           <Card className="p-8">
             <div className="flex items-center gap-3 mb-6">
@@ -462,7 +482,7 @@ const AttendanceOverview: React.FC<AttendanceOverviewProps> = ({ studentData }) 
               </div>
               <div>
                 <h2 className="text-2xl font-bold">Mark Attendance</h2>
-                <p className="text-muted-foreground">Scan or enter the QR code session ID</p>
+                <p className="text-muted-foreground">Scan QR code to mark your attendance</p>
               </div>
             </div>
 
@@ -476,6 +496,16 @@ const AttendanceOverview: React.FC<AttendanceOverviewProps> = ({ studentData }) 
               </div>
             ) : (
               <div className="space-y-6">
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-2">
+                  <div className="flex items-start gap-2">
+                    <Clock className="h-5 w-5 text-blue-600 mt-0.5" />
+                    <div className="flex-1">
+                      <p className="font-medium text-blue-900">Late Attendance</p>
+                      <p className="text-sm text-blue-700">After class ends: Late status (0.5x points). Only faculty can change absent to late.</p>
+                    </div>
+                  </div>
+                </div>
+
                 <div className="space-y-2">
                   <Label htmlFor="qrCode" className="flex items-center gap-2">
                     <ScanLine className="h-4 w-4" />
@@ -530,6 +560,7 @@ const AttendanceOverview: React.FC<AttendanceOverviewProps> = ({ studentData }) 
                   className="w-full h-12"
                   disabled={!qrCodeInput.trim()}
                 >
+                  <CheckCircle className="h-4 w-4 mr-2" />
                   Submit Attendance
                 </Button>
               </div>
@@ -537,7 +568,6 @@ const AttendanceOverview: React.FC<AttendanceOverviewProps> = ({ studentData }) 
           </Card>
         </TabsContent>
 
-        {/* Course Summary Tab */}
         <TabsContent value="summary" className="space-y-4">
           <Card>
             <CardHeader>
@@ -554,16 +584,19 @@ const AttendanceOverview: React.FC<AttendanceOverviewProps> = ({ studentData }) 
                       <p className="text-sm text-muted-foreground">{course.course_code}</p>
                       <div className="flex items-center space-x-4 mt-2 text-xs">
                         <span className="text-green-600">Present: {course.present}</span>
+                        <span className="text-yellow-600">Late: {course.late} (0.5x)</span>
                         <span className="text-red-600">Absent: {course.absent}</span>
-                        <span className="text-yellow-600">Late: {course.late}</span>
                       </div>
                     </div>
-                    <div className="text-right">
-                      <Badge variant={getStatusBadgeVariant(course.percentage)}>
-                        {course.percentage}%
-                      </Badge>
-                      <div className="w-24 mt-2">
-                        <Progress value={course.percentage} />
+                    <div className="text-right space-y-2">
+                      <div className="space-y-1">
+                        <div className="text-sm text-muted-foreground">Effective</div>
+                        <Badge variant={getStatusBadgeVariant(course.effectivePercentage)}>
+                          {course.effectivePercentage}%
+                        </Badge>
+                      </div>
+                      <div className="w-24">
+                        <Progress value={course.effectivePercentage} />
                       </div>
                     </div>
                   </div>
@@ -573,7 +606,6 @@ const AttendanceOverview: React.FC<AttendanceOverviewProps> = ({ studentData }) 
           </Card>
         </TabsContent>
 
-        {/* Attendance History Tab */}
         <TabsContent value="history" className="space-y-4">
           <Card>
             <CardHeader>
@@ -598,6 +630,9 @@ const AttendanceOverview: React.FC<AttendanceOverviewProps> = ({ studentData }) 
                               day: 'numeric'
                             })}
                           </p>
+                          {record.status === 'late' && (
+                            <p className="text-xs text-yellow-600 mt-1">Points: 0.5x (Half credit)</p>
+                          )}
                         </div>
                       </div>
                       <Badge className={getAttendanceStatusColor(record.status)}>
@@ -610,7 +645,6 @@ const AttendanceOverview: React.FC<AttendanceOverviewProps> = ({ studentData }) 
             </CardContent>
           </Card>
         </TabsContent>
-
       </Tabs>
     </div>
   );

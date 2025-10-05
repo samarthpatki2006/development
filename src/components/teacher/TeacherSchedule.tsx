@@ -43,6 +43,8 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
   const [courseAttendanceStats, setCourseAttendanceStats] = useState<any[]>([]);
   const [timeRemaining, setTimeRemaining] = useState<number>(0);
   const [canGenerateQR, setCanGenerateQR] = useState<boolean>(false);
+  const [enrolledStudents, setEnrolledStudents] = useState<any[]>([]);
+  const [currentSessionId, setCurrentSessionId] = useState<string>('');
 
   const [newSchedule, setNewSchedule] = useState({
     course_id: '',
@@ -67,14 +69,14 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
-    if (isQRDialogOpen && sessionId) {
+    if (isQRDialogOpen && currentSessionId) {
       fetchAttendanceForSession();
       interval = setInterval(fetchAttendanceForSession, 3000);
     }
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [isQRDialogOpen, sessionId]);
+  }, [isQRDialogOpen, currentSessionId]);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -319,41 +321,98 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
     const now = new Date();
     const currentTime = now.toTimeString().slice(0, 5);
     
-    if (currentTime < classData.start_time || currentTime > classData.end_time) {
-      toast.error(`QR code can only be generated between ${formatTime(classData.start_time)} and ${formatTime(classData.end_time)}`);
+    if (currentTime < classData.start_time) {
+      toast.error(`QR code can only be generated after ${formatTime(classData.start_time)}`);
       return;
     }
 
     try {
-      setSelectedClass(classData);
-      
       const today = new Date().toISOString().split('T')[0];
-      const sessionData = {
-        course_id: classData.course_id,
-        instructor_id: teacherData.user_id,
-        session_date: classData.scheduled_date || today,
-        start_time: classData.start_time,
-        end_time: classData.end_time,
-        room_location: classData.room_location,
-        session_type: classData.is_extra_class ? classData.class_type : 'lecture',
-        topic: classData.title || classData.courses?.course_name,
-        is_active: true
-      };
+      const sessionDate = classData.scheduled_date || today;
 
-      const { data: session, error: sessionError } = await supabase
+      // Check if session already exists for this class today
+      const { data: existingSession } = await supabase
         .from('attendance_sessions')
-        .insert(sessionData)
-        .select()
+        .select('id, qr_code, is_active, end_time')
+        .eq('course_id', classData.course_id)
+        .eq('session_date', sessionDate)
+        .eq('start_time', classData.start_time)
+        .eq('instructor_id', teacherData.user_id)
         .single();
 
-      if (sessionError) throw sessionError;
+      let session;
+      let qrCodeData;
 
-      const qrCodeData = `session-${session.id}`;
-      
-      await supabase
-        .from('attendance_sessions')
-        .update({ qr_code: qrCodeData })
-        .eq('id', session.id);
+      if (existingSession) {
+        session = existingSession;
+        qrCodeData = existingSession.qr_code;
+        
+        // Reactivate session if it was closed
+        if (!existingSession.is_active) {
+          await supabase
+            .from('attendance_sessions')
+            .update({ is_active: true })
+            .eq('id', existingSession.id);
+        }
+        
+        const isAfterEndTime = currentTime > classData.end_time;
+        if (isAfterEndTime) {
+          toast.info('Reopening session - Late attendance will be marked');
+        } else {
+          toast.info('Reopening existing session');
+        }
+      } else {
+        // Create new session
+        const sessionData = {
+          course_id: classData.course_id,
+          instructor_id: teacherData.user_id,
+          session_date: sessionDate,
+          start_time: classData.start_time,
+          end_time: classData.end_time,
+          room_location: classData.room_location,
+          session_type: classData.is_extra_class ? classData.class_type : 'lecture',
+          topic: classData.title || classData.courses?.course_name,
+          is_active: true
+        };
+
+        const { data: newSession, error: sessionError } = await supabase
+          .from('attendance_sessions')
+          .insert(sessionData)
+          .select()
+          .single();
+
+        if (sessionError) throw sessionError;
+
+        qrCodeData = `session-${newSession.id}`;
+        
+        await supabase
+          .from('attendance_sessions')
+          .update({ qr_code: qrCodeData })
+          .eq('id', newSession.id);
+
+        session = newSession;
+      }
+
+      // Fetch enrolled students
+      const { data: enrollments, error: enrollError } = await supabase
+        .from('enrollments')
+        .select(`
+          student_id,
+          user_profiles (
+            id,
+            first_name,
+            last_name,
+            user_code
+          )
+        `)
+        .eq('course_id', classData.course_id)
+        .eq('status', 'enrolled');
+
+      if (enrollError) throw enrollError;
+
+      setEnrolledStudents(enrollments || []);
+      setSelectedClass(classData);
+      setCurrentSessionId(session.id);
 
       const qrDataUrl = await QRCode.toDataURL(qrCodeData, {
         width: 300,
@@ -370,24 +429,27 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
       setAttendanceRecords([]);
       setCourseAttendanceStats([]);
       checkTimeValidity(classData);
-      toast.success('QR Code generated successfully!');
+      
+      // Fetch initial attendance data immediately
+      setTimeout(() => fetchAttendanceForSession(), 500);
+      
+      if (!existingSession) {
+        toast.success('QR Code generated successfully!');
+      }
 
-      const endTimeParts = classData.end_time.split(':');
-      const endDate = new Date();
-      endDate.setHours(parseInt(endTimeParts[0]), parseInt(endTimeParts[1]), 0, 0);
-      const remainingMs = endDate.getTime() - now.getTime();
+      // Only schedule auto-close if within class time
+      if (currentTime <= classData.end_time) {
+        const endTimeParts = classData.end_time.split(':');
+        const endDate = new Date();
+        endDate.setHours(parseInt(endTimeParts[0]), parseInt(endTimeParts[1]), 0, 0);
+        const remainingMs = endDate.getTime() - now.getTime();
 
-      setTimeout(async () => {
-        await supabase
-          .from('attendance_sessions')
-          .update({ is_active: false })
-          .eq('id', session.id);
-        
-        if (isQRDialogOpen) {
-          toast.info('Session expired. Class time has ended.');
-          setIsQRDialogOpen(false);
+        if (remainingMs > 0) {
+          setTimeout(async () => {
+            await closeSession(session.id, classData.course_id, sessionDate);
+          }, remainingMs);
         }
-      }, remainingMs);
+      }
 
     } catch (error) {
       console.error('Error generating QR code:', error);
@@ -395,40 +457,126 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
     }
   };
 
+  const closeSession = async (sessionId: string, courseId: string, sessionDate: string) => {
+    try {
+      // Deactivate session
+      await supabase
+        .from('attendance_sessions')
+        .update({ is_active: false })
+        .eq('id', sessionId);
+
+      // Get all students who attended
+      const { data: attendedStudents } = await supabase
+        .from('attendance')
+        .select('student_id')
+        .eq('session_id', sessionId);
+
+      const attendedIds = new Set((attendedStudents || []).map(a => a.student_id));
+
+      // Get all enrolled students
+      const { data: enrolledStudents } = await supabase
+        .from('enrollments')
+        .select('student_id')
+        .eq('course_id', courseId)
+        .eq('status', 'enrolled');
+
+      // Mark absent for students who didn't attend
+      const absentStudents = (enrolledStudents || [])
+        .filter(e => !attendedIds.has(e.student_id))
+        .map(e => ({
+          course_id: courseId,
+          student_id: e.student_id,
+          class_date: sessionDate,
+          status: 'absent',
+          session_id: sessionId,
+          marked_by: teacherData.user_id,
+          marked_at: new Date().toISOString()
+        }));
+
+      if (absentStudents.length > 0) {
+        await supabase
+          .from('attendance')
+          .insert(absentStudents);
+      }
+
+      if (isQRDialogOpen) {
+        toast.info('Session closed. Absent students have been marked.');
+        setIsQRDialogOpen(false);
+      }
+    } catch (error) {
+      console.error('Error closing session:', error);
+    }
+  };
+
   const fetchAttendanceForSession = async () => {
-    if (!sessionId) return;
+    if (!currentSessionId || !selectedClass?.course_id) {
+      return;
+    }
 
     try {
-      const { data: session } = await supabase
-        .from('attendance_sessions')
-        .select('id, course_id')
-        .eq('qr_code', sessionId)
-        .single();
-
-      if (!session) return;
-
-      const { data: attendance, error } = await supabase
+      // Get all students who have marked attendance for this session
+      const { data: attendance, error: attError } = await supabase
         .from('attendance')
         .select(`
-          *,
-          user_profiles (
+          student_id,
+          status,
+          marked_at,
+          session_id,
+          user_profiles!attendance_student_id_fkey (
+            id,
             first_name,
             last_name,
             user_code
           )
         `)
-        .eq('session_id', session.id)
+        .eq('session_id', currentSessionId)
         .order('marked_at', { ascending: false });
 
-      if (!error && attendance) {
-        setAttendanceRecords(attendance);
-        
-        if (session.course_id) {
-          await fetchCourseAttendanceStats(session.course_id, attendance);
-        }
+      if (attError) throw attError;
+
+      // Get ALL enrolled students for comparison
+      const { data: allEnrolled, error: enrollError } = await supabase
+        .from('enrollments')
+        .select(`
+          student_id,
+          user_profiles!enrollments_student_id_fkey (
+            id,
+            first_name,
+            last_name,
+            user_code
+          )
+        `)
+        .eq('course_id', selectedClass.course_id)
+        .eq('status', 'enrolled');
+
+      if (enrollError) throw enrollError;
+
+      // Create a Set of students who have marked attendance
+      const markedStudentIds = new Set((attendance || []).map(a => a.student_id));
+
+      // Build combined list showing all students
+      const allStudentsWithStatus = (allEnrolled || []).map(enrollment => {
+        const hasMarked = markedStudentIds.has(enrollment.student_id);
+        const attendanceRecord = (attendance || []).find(a => a.student_id === enrollment.student_id);
+
+        return {
+          student_id: enrollment.student_id,
+          user_profiles: enrollment.user_profiles,
+          status: hasMarked ? 'present' : 'waiting',
+          marked_at: attendanceRecord?.marked_at || null,
+          session_id: currentSessionId
+        };
+      });
+
+      setAttendanceRecords(allStudentsWithStatus);
+      
+      // Fetch overall attendance stats for students who have marked
+      if (attendance && attendance.length > 0) {
+        await fetchCourseAttendanceStats(selectedClass.course_id, attendance);
       }
     } catch (error) {
-      console.error('Error fetching attendance:', error);
+      console.error('Error in fetchAttendanceForSession:', error);
+      toast.error('Failed to fetch attendance data');
     }
   };
 
@@ -712,7 +860,7 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
 
       {/* QR Code Dialog */}
       <Dialog open={isQRDialogOpen} onOpenChange={setIsQRDialogOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Attendance QR Code</DialogTitle>
           </DialogHeader>
@@ -725,16 +873,16 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
                 </AlertDescription>
               </Alert>
             ) : (
-              <Alert className="border-blue-200 bg-blue-50">
-                <Clock className="h-4 w-4 text-blue-600" />
-                <AlertDescription className="text-blue-800">
+              <Alert className="border-blue-200">
+                <Clock className="h-4 w-4" />
+                <AlertDescription>
                   Session will expire in {timeRemaining} minutes (at {formatTime(selectedClass?.end_time)})
                 </AlertDescription>
               </Alert>
             )}
 
             <div className="flex flex-col items-center gap-4 p-6 bg-muted/50 rounded-lg">
-              <div className="bg-white p-4 rounded-lg shadow-md">
+              <div className=" p-4 rounded-lg shadow-md">
                 {qrCode && <img src={qrCode} alt="Attendance QR Code" className="w-[300px] h-[300px]" />}
               </div>
               <div className="text-center space-y-2">
@@ -751,20 +899,23 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
             <div>
               <h3 className="font-semibold mb-3 flex items-center gap-2">
                 <Users className="h-5 w-5" />
-                Live Attendance ({attendanceRecords.length})
+                Live Attendance ({attendanceRecords.filter(r => r.status === 'present').length} / {attendanceRecords.length})
               </h3>
               <div className="max-h-60 overflow-y-auto space-y-2">
                 {attendanceRecords.length === 0 ? (
                   <p className="text-center text-muted-foreground py-4">
-                    Waiting for students to mark attendance...
+                    Loading student list...
                   </p>
                 ) : (
                   attendanceRecords.map((record, index) => {
                     const attendancePercentage = getAttendancePercentage(record.student_id);
+                    const isPresent = record.status === 'present';
                     return (
                       <div
                         key={index}
-                        className="flex items-center justify-between p-3 bg-muted/50 rounded-lg"
+                        className={`flex items-center justify-between p-3 rounded-lg ${
+                          isPresent ? 'border border-green-700' : 'bg-muted/50 border border-muted'
+                        }`}
                       >
                         <div className="flex-1">
                           <p className="font-medium">
@@ -775,17 +926,25 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
                           </p>
                         </div>
                         <div className="text-right space-y-1">
-                          <p className="text-sm font-medium">
-                            {new Date(record.marked_at).toLocaleTimeString()}
-                          </p>
-                          <div className="flex items-center gap-2">
-                            <Badge variant="outline" className="text-xs">
-                              {record.status}
+                          {isPresent ? (
+                            <>
+                              <p className="text-sm font-medium text-green-600">
+                                {new Date(record.marked_at).toLocaleTimeString()}
+                              </p>
+                              <div className="flex items-center gap-2">
+                                <Badge variant="outline" className="text-xs text-green-700 border-green-300">
+                                  Present
+                                </Badge>
+                                <span className={`text-xs font-semibold ${getAttendanceColor(attendancePercentage)}`}>
+                                  {attendancePercentage}%
+                                </span>
+                              </div>
+                            </>
+                          ) : (
+                            <Badge variant="outline" className="text-xs bg-yellow-100 text-yellow-700 border-yellow-300">
+                              Not Marked
                             </Badge>
-                            <span className={`text-xs font-semibold ${getAttendanceColor(attendancePercentage)}`}>
-                              {attendancePercentage}%
-                            </span>
-                          </div>
+                          )}
                         </div>
                       </div>
                     );

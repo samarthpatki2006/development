@@ -6,9 +6,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Calendar } from '@/components/ui/calendar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { CheckCircle, XCircle, AlertTriangle, Camera, X, ScanLine, User } from 'lucide-react';
+import { CheckCircle, XCircle, AlertTriangle, Camera, X, ScanLine } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Html5Qrcode } from 'html5-qrcode';
@@ -26,7 +25,6 @@ const AttendanceOverview: React.FC<AttendanceOverviewProps> = ({ studentData }) 
     status: 'good'
   });
   const [courseStats, setCourseStats] = useState<any[]>([]);
-  const [selectedMonth, setSelectedMonth] = useState(new Date());
   const [selectedCourse, setSelectedCourse] = useState<string>('all');
   const [courses, setCourses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -49,7 +47,7 @@ const AttendanceOverview: React.FC<AttendanceOverviewProps> = ({ studentData }) 
         scannerRef.current.stop().catch(console.error);
       }
     };
-  }, [studentData, selectedMonth, selectedCourse]);
+  }, [studentData, selectedCourse]);
 
   const fetchCourses = async () => {
     if (!studentData?.user_id) return;
@@ -180,25 +178,21 @@ const AttendanceOverview: React.FC<AttendanceOverviewProps> = ({ studentData }) 
     try {
       setIsScanning(true);
       
-      // Stop any existing scanner first
       if (scannerRef.current) {
         await scannerRef.current.stop().catch(() => {});
         scannerRef.current = null;
       }
 
-      // Small delay to ensure previous scanner is fully stopped
       await new Promise(resolve => setTimeout(resolve, 100));
 
       const html5QrCode = new Html5Qrcode(scannerDivId);
       scannerRef.current = html5QrCode;
 
-      // Try to get available cameras first
       const cameras = await Html5Qrcode.getCameras();
       if (!cameras || cameras.length === 0) {
         throw new Error('No cameras found on this device');
       }
 
-      // Use the back camera if available, otherwise use the first camera
       const cameraId = cameras.length > 1 ? cameras[cameras.length - 1].id : cameras[0].id;
 
       await html5QrCode.start(
@@ -259,31 +253,50 @@ const AttendanceOverview: React.FC<AttendanceOverviewProps> = ({ studentData }) 
     }
 
     try {
-      // Verify session exists and is active
+      // Verify session exists
       const { data: session, error: sessionError } = await supabase
         .from('attendance_sessions')
         .select('*')
         .eq('qr_code', qrCodeInput)
-        .eq('is_active', true)
         .single();
 
       if (sessionError || !session) {
-        toast.error('Invalid or expired session ID');
+        toast.error('Invalid session ID');
+        return;
+      }
+
+      // Check if student is enrolled in the course
+      const { data: enrollment, error: enrollmentError } = await supabase
+        .from('enrollments')
+        .select('id')
+        .eq('student_id', studentData.user_id)
+        .eq('course_id', session.course_id)
+        .eq('status', 'enrolled')
+        .single();
+
+      if (enrollmentError || !enrollment) {
+        toast.error('You are not enrolled in this course');
         return;
       }
 
       // Check if already marked
       const { data: existing } = await supabase
         .from('attendance')
-        .select('id')
+        .select('id, status')
         .eq('session_id', session.id)
         .eq('student_id', studentData.user_id)
         .single();
 
       if (existing) {
-        toast.error('Attendance already marked for this session');
+        toast.error(`Attendance already marked as ${existing.status} for this session`);
         return;
       }
+
+      // Determine if attendance is late
+      const now = new Date();
+      const currentTime = now.toTimeString().slice(0, 5);
+      const isLate = currentTime > session.end_time;
+      const attendanceStatus = isLate ? 'late' : 'present';
 
       // Mark attendance
       const { error: insertError } = await supabase
@@ -292,15 +305,24 @@ const AttendanceOverview: React.FC<AttendanceOverviewProps> = ({ studentData }) 
           course_id: session.course_id,
           student_id: studentData.user_id,
           class_date: session.session_date,
-          status: 'present',
+          status: attendanceStatus,
           session_id: session.id,
           marked_by: studentData.user_id,
-          location_verified: false
+          location_verified: false,
+          device_info: {
+            userAgent: navigator.userAgent,
+            timestamp: new Date().toISOString()
+          }
         });
 
       if (insertError) throw insertError;
 
-      toast.success('Attendance marked successfully!');
+      if (isLate) {
+        toast.warning('Attendance marked as LATE - You scanned after class time');
+      } else {
+        toast.success('Attendance marked successfully!');
+      }
+      
       setIsMarked(true);
       
       // Refresh attendance data
@@ -446,10 +468,10 @@ const AttendanceOverview: React.FC<AttendanceOverviewProps> = ({ studentData }) 
 
             {isMarked ? (
               <div className="flex flex-col items-center justify-center py-12">
-                <div className="h-20 w-20 rounded-full bg-success/10 flex items-center justify-center mb-4 animate-in zoom-in">
-                  <CheckCircle className="h-12 w-12 text-success" />
+                <div className="h-20 w-20 rounded-full bg-green-50 flex items-center justify-center mb-4 animate-in zoom-in">
+                  <CheckCircle className="h-12 w-12 text-green-600" />
                 </div>
-                <h3 className="text-2xl font-bold text-success mb-2">Attendance Marked!</h3>
+                <h3 className="text-2xl font-bold text-green-600 mb-2">Attendance Marked!</h3>
                 <p className="text-muted-foreground">You're all set for today</p>
               </div>
             ) : (

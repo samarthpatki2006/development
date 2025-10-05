@@ -201,7 +201,7 @@ const AlumniContributions = ({ user }: AlumniContributionsProps) => {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium mb-2">Donation Amount ($)</label>
+                  <label className="block text-sm font-medium mb-2">Donation Amount (₹)</label>
                   <Input
                     type="number"
                     placeholder="Enter amount"
@@ -234,7 +234,6 @@ const AlumniContributions = ({ user }: AlumniContributionsProps) => {
                 </div>
 
                 <Button onClick={handleDonation} className="w-full">
-                  <DollarSign className="h-4 w-4 mr-2" />
                   Donate Now
                 </Button>
               </CardContent>
@@ -250,14 +249,14 @@ const AlumniContributions = ({ user }: AlumniContributionsProps) => {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-2 gap-3">
-                  {[25, 50, 100, 250, 500, 1000].map((amount) => (
+                  {[1000, 5000, 10000, 25000, 50000, 100000].map((amount) => (
                     <Button
                       key={amount}
                       variant="outline"
                       onClick={() => setDonationAmount(amount.toString())}
                       className="h-12"
                     >
-                      ${amount}
+                      ₹{amount}
                     </Button>
                   ))}
                 </div>
@@ -265,10 +264,10 @@ const AlumniContributions = ({ user }: AlumniContributionsProps) => {
                 <div className="mt-6 p-4 bg-blue-50 rounded-lg">
                   <h4 className="font-medium text-blue-900 mb-2">Impact of Your Donation</h4>
                   <ul className="text-sm text-blue-800 space-y-1">
-                    <li>• $25 - Provides textbooks for one student</li>
-                    <li>• $100 - Supports laboratory equipment</li>
-                    <li>• $500 - Funds a scholarship for one semester</li>
-                    <li>• $1000 - Supports campus infrastructure</li>
+                    <li>• ₹1000 - Provides textbooks for one student</li>
+                    <li>• ₹5000 - Supports laboratory equipment</li>
+                    <li>• ₹30000 - Funds a scholarship for one semester</li>
+                    <li>• ₹50000 - Supports campus infrastructure</li>
                   </ul>
                 </div>
               </CardContent>

@@ -1,17 +1,17 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { 
-  Settings, 
-  Users, 
-  BookOpen, 
-  Calendar, 
-  DollarSign, 
-  FileText, 
-  Shield, 
-  Activity, 
-  Building, 
-  Bell, 
+import {
+  Settings,
+  Users,
+  BookOpen,
+  Calendar,
+  DollarSign,
+  FileText,
+  Shield,
+  Activity,
+  Building,
+  Bell,
   User,
   LogOut,
   Mail,
@@ -46,7 +46,7 @@ const Admin = () => {
   const [showNotifications, setShowNotifications] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
-  
+
   const notificationRef = useRef(null);
   const userMenuRef = useRef(null);
 
@@ -125,71 +125,43 @@ const Admin = () => {
 
   useEffect(() => {
     const checkAuth = async () => {
-  try {
-    // First check Supabase session
-    const { data: { session }, error } = await supabase.auth.getSession();
-    
-    if (error) {
-      console.error('Session error:', error);
-      navigate('/');
-      return;
-    }
+      try {
+        // First check Supabase session
+        const { data: { session }, error } = await supabase.auth.getSession();
 
-    if (session?.user) {
-      // Get user profile from database
-      const { data: profile, error: profileError } = await supabase
-        .from('user_profiles')
-        .select('*')
-        .eq('id', session.user.id)
-        .single();
+        if (error) {
+          console.error('Session error:', error);
+          navigate('/');
+          return;
+        }
 
-      if (profileError || !profile) {
-        console.error('Profile error:', profileError);
-        navigate('/');
-        return;
-      }
+        if (session?.user) {
+          // Get user profile from database
+          const { data: profile, error: profileError } = await supabase
+            .from('user_profiles')
+            .select('*')
+            .eq('id', session.user.id)
+            .single();
 
-      // Set session data
-      const userData = {
-        user_id: profile.id,
-        user_type: profile.user_type,
-        first_name: profile.first_name,
-        last_name: profile.last_name,
-        college_id: profile.college_id,
-        user_code: profile.user_code,
-        email: profile.email
-      };
+          if (profileError || !profile) {
+            console.error('Profile error:', profileError);
+            navigate('/');
+            return;
+          }
 
-      setSessionData(userData);
-      setIsAuthenticated(true);
-      setUserProfile(profile);
-      setAdminRoles([{
-        role_type: 'super_admin',
-        permissions: { all: true },
-        assigned_at: new Date().toISOString()
-      }]);
-    } else {
-      // Fallback to localStorage for development
-      const storedSession = localStorage.getItem('colcord_user');
-      if (storedSession) {
-        const parsedSession = JSON.parse(storedSession);
-        if (parsedSession.user_type && parsedSession.user_id) {
-          setSessionData(parsedSession);
-          setIsAuthenticated(true);
-          
-          const profile = {
-            id: parsedSession.user_id,
-            first_name: parsedSession.first_name || 'Admin',
-            last_name: parsedSession.last_name || 'User',
-            email: parsedSession.email || '',
-            user_code: parsedSession.user_code || 'ADM001',
-            user_type: parsedSession.user_type || 'admin',
-            is_active: true,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-            college_id: parsedSession.college_id || '',
-            hierarchy_level: parsedSession.user_type || 'admin'
+          // Set session data
+          const userData = {
+            user_id: profile.id,
+            user_type: profile.user_type,
+            first_name: profile.first_name,
+            last_name: profile.last_name,
+            college_id: profile.college_id,
+            user_code: profile.user_code,
+            email: profile.email
           };
+
+          setSessionData(userData);
+          setIsAuthenticated(true);
           setUserProfile(profile);
           setAdminRoles([{
             role_type: 'super_admin',
@@ -197,19 +169,47 @@ const Admin = () => {
             assigned_at: new Date().toISOString()
           }]);
         } else {
-          navigate('/');
+          // Fallback to localStorage for development
+          const storedSession = localStorage.getItem('colcord_user');
+          if (storedSession) {
+            const parsedSession = JSON.parse(storedSession);
+            if (parsedSession.user_type && parsedSession.user_id) {
+              setSessionData(parsedSession);
+              setIsAuthenticated(true);
+
+              const profile = {
+                id: parsedSession.user_id,
+                first_name: parsedSession.first_name || 'Admin',
+                last_name: parsedSession.last_name || 'User',
+                email: parsedSession.email || '',
+                user_code: parsedSession.user_code || 'ADM001',
+                user_type: parsedSession.user_type || 'admin',
+                is_active: true,
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+                college_id: parsedSession.college_id || '',
+                hierarchy_level: parsedSession.user_type || 'admin'
+              };
+              setUserProfile(profile);
+              setAdminRoles([{
+                role_type: 'super_admin',
+                permissions: { all: true },
+                assigned_at: new Date().toISOString()
+              }]);
+            } else {
+              navigate('/');
+            }
+          } else {
+            navigate('/');
+          }
         }
-      } else {
+      } catch (error) {
+        console.error('Auth check error:', error);
         navigate('/');
+      } finally {
+        setIsLoading(false);
       }
-    }
-  } catch (error) {
-    console.error('Auth check error:', error);
-    navigate('/');
-  } finally {
-    setIsLoading(false);
-  }
-};
+    };
 
     checkAuth();
   }, [navigate]);
@@ -308,13 +308,13 @@ const Admin = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background overflow-x-hidden">
       {/* Background Grid */}
       <div className="fixed inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:40px_40px] pointer-events-none"></div>
-      
+
       {/* Header */}
       <div className="relative z-[100] bg-background/95 backdrop-blur-sm border-b border-white/10">
-        <div className="container px-4 mx-auto">
+        <div className="container px-3 sm:px-4 mx-auto">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-6">
               <Button
@@ -330,28 +330,28 @@ const Admin = () => {
                   <div className="w-full h-0.5 bg-foreground"></div>
                 </div>
               </Button>
-              <h1 className="text-2xl font-bold text-foreground">ColCord</h1>
+              <h1 className="text-xl sm:text-2xl font-bold text-foreground">ColCord</h1>
               {!isMobile && (
                 <>
                   <div className="h-6 w-px bg-white/20"></div>
                   <div className="flex items-center space-x-2">
                     <div className="h-2 w-2 bg-role-admin rounded-full animate-pulse-indicator"></div>
-                    <span className="text-lg font-medium text-foreground">Admin Portal</span>
+                    <span className="text-sm sm:text-lg font-medium text-foreground">Admin Portal</span>
                   </div>
                 </>
               )}
             </div>
             <div className="flex items-center space-x-3">
               {!isMobile && (
-                <span className="text-sm text-muted-foreground">
+                <span className="hidden sm:inline text-sm text-muted-foreground">
                   Welcome, {sessionData.first_name} {sessionData.last_name}
                 </span>
               )}
-              
+
               {/* Notifications Dropdown */}
               <div className="relative" ref={notificationRef}>
-                <Button 
-                  variant="ghost" 
+                <Button
+                  variant="ghost"
                   size="icon"
                   onClick={toggleNotifications}
                   className="h-9 w-9 rounded-lg hover:bg-white/10 transition-colors relative"
@@ -366,7 +366,7 @@ const Admin = () => {
 
                 {/* Notifications Panel */}
                 {showNotifications && (
-                  <div className="absolute right-0 mt-2 w-80 max-w-[90vw] bg-background/95 backdrop-blur-md border border-white/20 rounded-xl shadow-2xl z-[9999]">
+                  <div className="absolute right-2 sm:right-0 mt-2 w-72 sm:w-80 max-w-[95vw] bg-background/95 backdrop-blur-md border border-white/20 rounded-xl shadow-2xl z-[9999]">
                     <div className="p-4 border-b border-white/10">
                       <div className="flex items-center justify-between">
                         <h3 className="text-lg font-semibold text-foreground">Notifications</h3>
@@ -389,9 +389,8 @@ const Admin = () => {
                       {notifications.map((notification) => (
                         <div
                           key={notification.id}
-                          className={`p-4 border-b border-white/5 hover:bg-white/5 transition-colors ${
-                            !notification.read ? 'bg-white/5' : ''
-                          }`}
+                          className={`p-4 border-b border-white/5 hover:bg-white/5 transition-colors ${!notification.read ? 'bg-white/5' : ''
+                            }`}
                         >
                           <div className="flex items-start space-x-3">
                             {getNotificationIcon(notification.type)}
@@ -423,11 +422,11 @@ const Admin = () => {
                   </div>
                 )}
               </div>
-              
+
               {/* User Menu Dropdown */}
               <div className="relative" ref={userMenuRef}>
-                <Button 
-                  variant="ghost" 
+                <Button
+                  variant="ghost"
                   size="icon"
                   onClick={toggleUserMenu}
                   className="h-9 w-9 rounded-lg hover:bg-white/10 transition-colors"
@@ -437,7 +436,7 @@ const Admin = () => {
 
                 {/* User Menu Panel */}
                 {showUserMenu && (
-                  <div className="absolute right-0 mt-2 w-72 max-w-[90vw] bg-background/95 backdrop-blur-md border border-white/20 rounded-xl shadow-2xl z-[9999]">
+                  <div className="absolute right-2 sm:right-0 mt-2 w-64 sm:w-72 max-w-[95vw] bg-background/95 backdrop-blur-md border border-white/20 rounded-xl shadow-2xl z-[9999]">
                     <div className="p-4 border-b border-white/10">
                       <div className="flex items-center space-x-3">
                         <div className="h-12 w-12 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
@@ -463,7 +462,7 @@ const Admin = () => {
                         </div>
                       </div>
                     </div>
-                    
+
                     <div className="p-2">
                       <Button
                         variant="ghost"
@@ -476,9 +475,9 @@ const Admin = () => {
                         <Settings className="h-4 w-4 mr-3" />
                         Account Settings
                       </Button>
-                      
+
                       <div className="my-2 h-px bg-white/10"></div>
-                      
+
                       <Button
                         variant="ghost"
                         className="w-full justify-start text-left hover:bg-red-500/10 text-red-400 hover:text-red-300"
@@ -504,19 +503,19 @@ const Admin = () => {
           activeItem={activeView}
           onItemClick={setActiveView}
           userType="admin"
-          collapsed={isMobile || sidebarCollapsed}
+          collapsed={isMobile ? true : sidebarCollapsed}
         />
 
         {/* Main Content */}
-        <div className={`flex-1 p-4 md:p-6 ${isMobile ? 'ml-0' : ''}`}>
+        <div className={`flex-1 p-3 sm:p-4 md:p-6 transition-all duration-300 ${isMobile ? 'ml-0' : ''}`}>
           {renderContent()}
         </div>
       </div>
-      
+
       {/* Mobile overlay when sidebar is open */}
       {isMobile && !sidebarCollapsed && (
-        <div 
-          className="fixed inset-0 bg-black/50 z-[50] md:hidden"
+        <div
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] md:hidden transition-opacity"
           onClick={() => setSidebarCollapsed(true)}
         />
       )}

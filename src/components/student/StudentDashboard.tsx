@@ -144,12 +144,12 @@ const StudentDashboard = ({ studentData, onNavigate }: StudentDashboardProps) =>
   };
 
   return (
-    <div className="space-y-6 animate-fade-in-up">
+    <div className="space-y-6 animate-fade-in-up px-3 sm:px-4 md:px-6 overflow-x-hidden w-full">
       {/* Welcome Section */}
-      <div className="bg-card border border-white/10 rounded-lg p-6 ">
+      <div className="bg-card border border-white/10 rounded-lg p-4 sm:p-5 md:p-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold  mb-2">
+            <h1 className="text-xl sm:text-2xl font-bold mb-2">
               Welcome back, {studentData.first_name}
             </h1>
             <p >Student ID: {studentData.user_code}</p>
@@ -162,23 +162,24 @@ const StudentDashboard = ({ studentData, onNavigate }: StudentDashboardProps) =>
       </div>
 
       {/* Quick Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4 w-ful">
+
         {quickStats.map((stat, index) => {
           const Icon = stat.icon;
           return (
             <PermissionWrapper key={index} permission={stat.permission}>
-              <Card 
-                className="hover:shadow-md transition-all duration-300 hover:border-role-student/20 cursor-pointer hover:scale-105"
+              <Card
+                className="hover:shadow-md transition-all duration-300 hover:border-role-student/20 cursor-pointer hover:scale-[1.01] sm:hover:scale-[1.03] md:hover:scale-105"
                 onClick={() => handleStatCardClick(stat.title)}
               >
-                <CardContent className="p-6">
+                <CardContent className="p-3 sm:p-4 md:p-5">
                   <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-muted-foreground">{stat.title}</p>
-                      <p className="text-2xl font-bold text-card-foreground">{stat.value}</p>
+                    <div className="min-w-0">
+                      <p className="text-xs sm:text-sm font-medium text-muted-foreground truncate">{stat.title}</p>
+                      <p className="text-xs sm:text-sm font-medium text-muted-foreground truncate">{stat.value}</p>
                     </div>
-                    <div className="p-3 rounded-lg bg-white/5">
-                      <Icon className="h-6 w-6 " />
+                    <div className="p-2 sm:p-3 rounded-lg bg-white/5 flex-shrink-0">
+                      <Icon className="h-5 w-5 sm:h-6 sm:w-6" />
                     </div>
                   </div>
                 </CardContent>
@@ -188,11 +189,12 @@ const StudentDashboard = ({ studentData, onNavigate }: StudentDashboardProps) =>
         })}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+
         {/* Recent Activities */}
         <Card className="border-white/10">
           <CardHeader>
-            <CardTitle className="text-2xl font-bold text-card-foreground">Recent Activities</CardTitle>
+            <CardTitle className="text-xl sm:text-2xl font-bold text-card-foreground">Recent Activities</CardTitle>
             <CardDescription>Your latest academic activities</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -214,25 +216,27 @@ const StudentDashboard = ({ studentData, onNavigate }: StudentDashboardProps) =>
         {/* Quick Actions */}
         <Card >
           <CardHeader>
-            <CardTitle className="text-2xl font-bold text-card-foreground">Quick Actions</CardTitle>
-            <CardDescription>Frequently used features - click to navigate</CardDescription>
+            <CardTitle className="text-lg sm:text-xl md:text-2xl font-bold text-card-foreground">Quick Actions</CardTitle>
+            <CardDescription className="text-sm sm:text-base">Frequently used features - click to navigate</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-3">
+          <CardContent className="space-y-2 sm:space-y-3">
             {quickActions.map((action, index) => {
               const Icon = action.icon;
               return (
                 <PermissionWrapper key={index} permission={action.permission}>
                   <Button
                     variant="ghost"
-                    className="w-full h-auto p-4 flex items-center justify-start space-x-4 rounded-lg border border-white/10 transition-all duration-200"
+                    className="w-full h-auto p-3 sm:p-4 flex flex-wrap sm:flex-nowrap items-center justify-start gap-3 sm:gap-4 rounded-lg border border-white/10 transition-all duration-200 hover:bg-accent/10"
                     onClick={() => handleQuickActionClick(action.navigateTo, action.title)}
                   >
-                    <div className="p-3 rounded-lg ">
-                      <Icon className="h-5 w-5" />
+                    {/* Icon Section */}
+                    <div className="p-2 rounded-lg flex-shrink-0 ">
+                      <Icon className="h-5 w-5 sm:h-6 sm:w-6" />
                     </div>
-                    <div className="flex-1 text-left">
-                      <p className="font-medium text-sm">{action.title}</p>
-                      <p className="text-xs opacity-80">{action.description}</p>
+                    {/* Text Section */}
+                    <div className="flex-1 text-left min-w-0">
+                      <p className="font-medium text-sm sm:text-base break-words whitespace-normal">{action.title}</p>
+                      <p className="text-xs sm:text-sm opacity-80 break-words whitespace-normal">{action.description}</p>
                     </div>
                   </Button>
                 </PermissionWrapper>
@@ -246,19 +250,19 @@ const StudentDashboard = ({ studentData, onNavigate }: StudentDashboardProps) =>
       <PermissionWrapper permission="view_submit_assignments">
         <Card className="border-white/10">
           <CardHeader>
-            <CardTitle className="text-2xl font-bold text-card-foreground">Current Courses</CardTitle>
+            <CardTitle className="text-xl sm:text-2xl font-bold text-card-foreground">Current Courses</CardTitle>
             <CardDescription>Your enrolled courses this semester - click to view details</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
               {[
                 { name: 'Data Structures & Algorithms', code: 'CS301', instructor: 'Dr. Smith', progress: 75 },
                 { name: 'Database Management Systems', code: 'CS302', instructor: 'Dr. Johnson', progress: 60 },
                 { name: 'Computer Networks', code: 'CS303', instructor: 'Dr. Brown', progress: 80 }
               ].map((course, index) => (
-                <div 
-                  key={index} 
-                  className="p-6 border border-white/10 rounded-lg bg-white/5 hover:border-role-student/20 transition-all duration-300 hover-translate-up cursor-pointer hover:scale-105"
+                <div
+                  key={index}
+                  className="p-6 border border-white/10 rounded-lg bg-white/5 hover:border-role-student/20 transition-all duration-300 hover-translate-up cursor-pointer hover:scale-[1.02] sm:hover:scale-105"
                   onClick={handleCourseClick}
                 >
                   <div className="flex justify-between items-start mb-4">
@@ -272,8 +276,8 @@ const StudentDashboard = ({ studentData, onNavigate }: StudentDashboardProps) =>
                       <span className="text-card-foreground font-medium">{course.progress}%</span>
                     </div>
                     <div className="w-full  rounded-full h-2">
-                      <div 
-                        className=" h-2 rounded-full transition-all duration-500" 
+                      <div
+                        className=" h-2 rounded-full transition-all duration-500"
                         style={{ width: `${course.progress}%` }}
                       ></div>
                     </div>
@@ -281,11 +285,11 @@ const StudentDashboard = ({ studentData, onNavigate }: StudentDashboardProps) =>
                 </div>
               ))}
             </div>
-            <div className="mt-6 text-center">
-              <Button 
-                variant="outline" 
+            <div className="mt-8 text-center">
+              <Button
+                variant="outline"
                 onClick={handleCourseClick}
-                className="hover:bg-role-student/10 hover:text-role-student hover:border-role-student/20"
+                className="mt-8 hover:bg-role-student/10 hover:text-role-student hover:border-role-student/20"
               >
                 View All Courses
               </Button>

@@ -30,7 +30,7 @@ const StudentDashboard = ({ studentData, onNavigate }: StudentDashboardProps) =>
       title: 'Current CGPA',
       value: '8.5',
       icon: Award,
-      color: 'text-green-600',
+      color: 'text-purple-600',
       permission: 'view_grades' as const
     },
     {
@@ -86,7 +86,7 @@ const StudentDashboard = ({ studentData, onNavigate }: StudentDashboardProps) =>
       title: 'Apply for Hostel',
       description: 'Submit hostel accommodation request',
       icon: Home,
-      color: 'bg-green-50 text-green-600 hover:bg-green-100',
+      color: 'bg-purple-50 text-purple-600 hover:bg-purple-100',
       permission: 'apply_hostel' as const,
       navigateTo: 'hostel' // Maps to HostelFacility
     },
@@ -192,20 +192,22 @@ const StudentDashboard = ({ studentData, onNavigate }: StudentDashboardProps) =>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
 
         {/* Recent Activities */}
-        <Card className="border-white/10">
-          <CardHeader>
+        <Card className="h-[510px] border-white/20 bg-gradient-to-br from-card/60 to-card/40 backdrop-blur-md shadow-2xl overflow-hidden group">
+          <CardHeader className="sticky top-0 z-10 bg-gradient-to-b from-card/95 to-card/80 backdrop-blur-sm border-b border-white/10 pb-4">
             <CardTitle className="text-xl sm:text-2xl font-bold text-card-foreground">Recent Activities</CardTitle>
             <CardDescription>Your latest academic activities</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="h-[calc(100%-100px)] overflow-y-auto overflow-x-hidden scroll-smooth space-y-3 sm:space-y-4 p-4 sm:p-6 scrollbar-hide">
             {recentActivities.map((activity, index) => (
               <PermissionWrapper key={index} permission={activity.permission}>
-                <div className="flex items-start space-x-4 p-3 rounded-lg bg-white/5 hover:bg-white/10 transition-colors duration-300">
-                  <div className="w-2 h-2  rounded-full mt-3 animate-pulse-indicator"></div>
-                  <div className="flex-1">
-                    <p className="font-medium text-card-foreground">{activity.title}</p>
-                    <p className="text-sm text-muted-foreground">{activity.description}</p>
-                    <p className="text-xs  font-mono">{activity.time}</p>
+                <div className="flex flex-col sm:flex-row items-start sm:items-start space-y-2 sm:space-y-0 sm:space-x-4 p-4 rounded-lg border border-white/10 hover:border-green-400/40 hover:bg-white/10 cursor-pointer transition-all duration-300 hover:shadow-lg hover:shadow-green-500/10 hover:-translate-y-0.5 will-change-transform">
+                  <div className="flex-shrink-0">
+                    <div className="w-2 h-2 bg-green-400 rounded-full mt-3 animate-pulse shadow-lg shadow-green-400/50"></div>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-card-foreground text-sm sm:text-base truncate">{activity.title}</p>
+                    <p className="text-xs sm:text-sm text-muted-foreground line-clamp-2">{activity.description}</p>
+                    <p className="text-[11px] sm:text-xs text-white/40 font-mono mt-1">{activity.time}</p>
                   </div>
                 </div>
               </PermissionWrapper>
@@ -214,29 +216,29 @@ const StudentDashboard = ({ studentData, onNavigate }: StudentDashboardProps) =>
         </Card>
 
         {/* Quick Actions */}
-        <Card >
-          <CardHeader>
+        <Card className="h-[510px] border-white/20 bg-gradient-to-br from-card/60 to-card/40 backdrop-blur-md shadow-2xl overflow-hidden group">
+          <CardHeader className="sticky top-0 z-10 bg-gradient-to-b from-card/95 to-card/80 backdrop-blur-sm border-b border-white/10 pb-4">
             <CardTitle className="text-lg sm:text-xl md:text-2xl font-bold text-card-foreground">Quick Actions</CardTitle>
             <CardDescription className="text-sm sm:text-base">Frequently used features - click to navigate</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-2 sm:space-y-3">
+          <CardContent className="h-[calc(100%-100px)] overflow-y-auto overflow-x-hidden scroll-smooth space-y-3 sm:space-y-4 p-4 sm:p-6 scrollbar-hide">
             {quickActions.map((action, index) => {
               const Icon = action.icon;
               return (
                 <PermissionWrapper key={index} permission={action.permission}>
                   <Button
                     variant="ghost"
-                    className="w-full h-auto p-3 sm:p-4 flex flex-wrap sm:flex-nowrap items-center justify-start gap-3 sm:gap-4 rounded-lg border border-white/10 transition-all duration-200 hover:bg-accent/10"
+                    className="w-full flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-4 p-4 rounded-lg border border-white/10 hover:border-green-400/40 hover:bg-white/10 cursor-pointer transition-all duration-300 hover:shadow-lg hover:shadow-green-500/10 hover:scale-[1.01] sm:hover:scale-[1.03] md:hover:scale-105 h-auto will-change-transform"
                     onClick={() => handleQuickActionClick(action.navigateTo, action.title)}
                   >
                     {/* Icon Section */}
-                    <div className="p-2 rounded-lg flex-shrink-0 ">
-                      <Icon className="h-5 w-5 sm:h-6 sm:w-6" />
+                    <div className="p-2 sm:p-3 rounded-lg bg-green-500/20 flex-shrink-0">
+                      <Icon className="h-5 w-5 sm:h-6 sm:w-6 text-green-400" />
                     </div>
                     {/* Text Section */}
                     <div className="flex-1 text-left min-w-0">
                       <p className="font-medium text-sm sm:text-base break-words whitespace-normal">{action.title}</p>
-                      <p className="text-xs sm:text-sm opacity-80 break-words whitespace-normal">{action.description}</p>
+                      <p className="text-xs sm:text-sm text-muted-foreground opacity-80 break-words whitespace-normal">{action.description}</p>
                     </div>
                   </Button>
                 </PermissionWrapper>

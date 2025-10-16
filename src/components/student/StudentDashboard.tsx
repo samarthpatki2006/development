@@ -175,11 +175,11 @@ const StudentDashboard = ({ studentData, onNavigate }: StudentDashboardProps) =>
                 <CardContent className="p-3 sm:p-4 md:p-5">
                   <div className="flex items-center justify-between">
                     <div className="min-w-0">
-                      <p className="text-xs sm:text-sm font-medium text-muted-foreground truncate">{stat.title}</p>
-                      <p className="text-xs sm:text-sm font-medium text-muted-foreground truncate">{stat.value}</p>
+                      <p className="text-xs sm:text-sm font-medium text-muted-foreground truncate mb-1">{stat.title}</p>
+                      <p className="text-lg sm:text-xl md:text-2xl font-bold text-foreground truncate">{stat.value}</p>
                     </div>
-                    <div className="p-2 sm:p-3 rounded-lg bg-white/5 flex-shrink-0">
-                      <Icon className="h-5 w-5 sm:h-6 sm:w-6" />
+                    <div className="p-2 sm:p-3 rounded-lg bg-primary/10 flex-shrink-0 ml-3">
+                      <Icon className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
                     </div>
                   </div>
                 </CardContent>

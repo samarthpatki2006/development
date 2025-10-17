@@ -373,7 +373,7 @@ const Student = () => {
                 variant="ghost"
                 size="icon"
                 onClick={handleSidebarToggle}
-                 className="h-9 w-9 rounded-lg hover:bg-white/10 transition-all duration-200 ease-in-out"
+                className="h-9 w-9 rounded-lg hover:bg-white/10 transition-all duration-200 ease-in-out"
               >
                 <span className="sr-only">Toggle sidebar</span>
                 <Menu className="h-7 w-7" />

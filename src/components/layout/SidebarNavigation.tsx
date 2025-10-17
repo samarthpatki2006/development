@@ -66,9 +66,9 @@ const SidebarNavigation = ({
           "bg-black flex md:flex-col overflow-hidden",
           "translate-x-0 opacity-100 -translate-x-full md:translate-x-0 opacity-0 md:opacity-100",
           "transition-all duration-300 ease-in-out",
-          collapsed ? "md:w-16" : "md:w-64",
+          collapsed ? "md:w-16" : "md:w-64", 
           mobileOpen
-          ? "translate-x-0 opacity-100"
+          ? "translate-x-0 opacity-100 mt-[60px]"
             : "-translate-x-full md:translate-x-0 opacity-0 md:opacity-100"
         )}
       >

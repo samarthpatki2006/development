@@ -303,7 +303,11 @@ const Student = () => {
     { id: 'hostel', label: 'Hostel', icon: Building },
     { id: 'support', label: 'Support', icon: HelpCircle },
   ];
-
+  const isFullWidthView = () => {
+  // Pages that handle their own padding and spacing internally
+  const fullWidthPages = ['dashboard', 'courses'];
+  return fullWidthPages.includes(activeView);
+};
   const renderContent = () => {
     switch (activeView) {
       case 'dashboard':
@@ -595,7 +599,7 @@ const Student = () => {
         />
 
         {/* Main Content */}
-        <div className={`flex-1 p-3 sm:p-6 ${isMobile ? 'ml-0' : ''}`}>
+        <div className={`flex-1 ${isMobile ? 'ml-0' : ''} ${isFullWidthView() ? '' : 'p-3 sm:p-6'}`}>
           {renderContent()}
         </div>
       </div>

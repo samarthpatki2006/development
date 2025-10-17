@@ -7,10 +7,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
-import { 
-  Building, 
-  Bed, 
-  Wrench, 
+import {
+  Building,
+  Bed,
+  Wrench,
   Plus,
   MapPin,
   Users,
@@ -62,24 +62,24 @@ const HostelFacility: React.FC<HostelFacilityProps> = ({ studentData }) => {
 
   // Check if student has applied for a specific room
   const hasAppliedForRoom = (roomId: string) => {
-    return applications.some(app => 
-      app.room_id === roomId && 
+    return applications.some(app =>
+      app.room_id === roomId &&
       ['pending', 'approved', 'allocated'].includes(app.status)
     );
   };
 
   // Check if student has applied for any room in a block
   const hasAppliedForBlock = (blockName: string) => {
-    return applications.some(app => 
-      app.hostel_rooms?.block_name === blockName && 
+    return applications.some(app =>
+      app.hostel_rooms?.block_name === blockName &&
       ['pending', 'approved', 'allocated'].includes(app.status)
     );
   };
 
   // Get available rooms in a block that student hasn't applied for
   const getAvailableRoomsInBlock = (rooms: any[]) => {
-    return rooms.filter(room => 
-      room.current_occupancy < room.capacity && 
+    return rooms.filter(room =>
+      room.current_occupancy < room.capacity &&
       !hasAppliedForRoom(room.id)
     );
   };
@@ -206,63 +206,63 @@ const HostelFacility: React.FC<HostelFacilityProps> = ({ studentData }) => {
 
   return (
     <div className="space-y-4 sm:space-y-6 px-3 sm:px-4 md:px-6 w-full max-w-full">
-  <div className="flex flex-col xs:flex-row justify-between items-start xs:items-center gap-3">
-    <h2 className="text-lg sm:text-xl md:text-2xl font-bold">Hostel & Facilities</h2>
-    <div className="flex flex-wrap gap-2">
-      <Badge variant="outline" className="px-2 sm:px-3 py-1 text-xs sm:text-sm whitespace-nowrap">
-        {Object.keys(hostelBlocks).length} Hostel Blocks
-      </Badge>
-      {pendingApplications.length > 0 && (
-        <Badge variant="secondary" className="px-2 sm:px-3 py-1 text-xs sm:text-sm whitespace-nowrap">
-          {pendingApplications.length} Pending
-        </Badge>
-      )}
-    </div>
-  </div>
-
-  <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-    <div className="w-full">
-      <TabsList className="grid w-full grid-cols-3 h-auto">
-        <TabsTrigger value="hostels" className="flex flex-col xs:flex-row items-center gap-1 text-[10px] xs:text-xs sm:text-sm px-1 xs:px-2 sm:px-3 py-2">
-          <Building className="h-3 w-3 xs:h-3.5 xs:w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
-          <span className="truncate">Hostels</span>
-        </TabsTrigger>
-        <TabsTrigger value="applications" className="flex flex-col xs:flex-row items-center gap-1 text-[10px] xs:text-xs sm:text-sm px-1 xs:px-2 sm:px-3 py-2">
-          <Bed className="h-3 w-3 xs:h-3.5 xs:w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
-          <span className="truncate">Applications</span>
-          {applications.length > 0 && (
-            <Badge variant="secondary" className="ml-1 text-[8px] xs:text-[10px]">
-              {applications.length}
+      <div className="flex flex-col xs:flex-row justify-between items-start xs:items-center gap-3">
+        <h2 className="text-lg sm:text-xl md:text-2xl font-bold">Hostel & Facilities</h2>
+        <div className="flex flex-wrap gap-2">
+          <Badge variant="outline" className="px-2 sm:px-3 py-1 text-xs sm:text-sm whitespace-nowrap">
+            {Object.keys(hostelBlocks).length} Hostel Blocks
+          </Badge>
+          {pendingApplications.length > 0 && (
+            <Badge variant="secondary" className="px-2 sm:px-3 py-1 text-xs sm:text-sm whitespace-nowrap">
+              {pendingApplications.length} Pending
             </Badge>
           )}
-        </TabsTrigger>
-        <TabsTrigger value="facilities" className="flex flex-col xs:flex-row items-center gap-1 text-[10px] xs:text-xs sm:text-sm px-1 xs:px-2 sm:px-3 py-2">
-          <Wrench className="h-3 w-3 xs:h-3.5 xs:w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
-          <span className="truncate">Facilities</span>
-        </TabsTrigger>
-      </TabsList>
-    </div>
+        </div>
+      </div>
 
-    <TabsContent value="hostels" className="space-y-4 sm:space-y-6">
-      {pendingApplications.length > 0 && (
-        <Card className="border-l-4 border-l-blue-500 w-full">
-          <CardContent className="p-3 sm:p-4">
-            <div className="flex items-start gap-2">
-              <AlertCircle className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600 flex-shrink-0 mt-0.5" />
-              <p className="text-xs sm:text-sm break-words">
-                <span className="font-medium">Tip:</span> You can apply to multiple hostels to increase your chances! 
-                You currently have {pendingApplications.length} pending application{pendingApplications.length > 1 ? 's' : ''}.
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <div className="w-full">
+          <TabsList className="grid w-full grid-cols-3 h-auto">
+            <TabsTrigger value="hostels" className="flex flex-col xs:flex-row items-center gap-1 text-[10px] xs:text-xs sm:text-sm px-1 xs:px-2 sm:px-3 py-2">
+              <Building className="h-3 w-3 xs:h-3.5 xs:w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
+              <span className="truncate">Hostels</span>
+            </TabsTrigger>
+            <TabsTrigger value="applications" className="flex flex-col xs:flex-row items-center gap-1 text-[10px] xs:text-xs sm:text-sm px-1 xs:px-2 sm:px-3 py-2">
+              <Bed className="h-3 w-3 xs:h-3.5 xs:w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
+              <span className="truncate">Applications</span>
+              {applications.length > 0 && (
+                <Badge variant="secondary" className="ml-1 text-[8px] xs:text-[10px]">
+                  {applications.length}
+                </Badge>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="facilities" className="flex flex-col xs:flex-row items-center gap-1 text-[10px] xs:text-xs sm:text-sm px-1 xs:px-2 sm:px-3 py-2">
+              <Wrench className="h-3 w-3 xs:h-3.5 xs:w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
+              <span className="truncate">Facilities</span>
+            </TabsTrigger>
+          </TabsList>
+        </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-        {Object.entries(hostelBlocks).map(([blockName, rooms]) => {
-          const availableRooms = getAvailableRoomsInBlock(rooms);
-          const hasBlockApplication = hasAppliedForBlock(blockName);
-              
+        <TabsContent value="hostels" className="space-y-4 sm:space-y-6">
+          {pendingApplications.length > 0 && (
+            <Card className="border-l-4 border-l-blue-500 w-full">
+              <CardContent className="p-3 sm:p-4">
+                <div className="flex items-start gap-2">
+                  <AlertCircle className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                  <p className="text-xs sm:text-sm break-words">
+                    <span className="font-medium">Tip:</span> You can apply to multiple hostels to increase your chances!
+                    You currently have {pendingApplications.length} pending application{pendingApplications.length > 1 ? 's' : ''}.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+            {Object.entries(hostelBlocks).map(([blockName, rooms]) => {
+              const availableRooms = getAvailableRoomsInBlock(rooms);
+              const hasBlockApplication = hasAppliedForBlock(blockName);
+
               return (
                 <Card key={blockName} className={`border-l-4 ${hasBlockApplication ? 'border-l-green-500 ' : 'border-l-blue-500'}`}>
                   <CardHeader className="pb-3">
@@ -285,7 +285,7 @@ const HostelFacility: React.FC<HostelFacilityProps> = ({ studentData }) => {
                         <Building className="h-4 w-4 mr-2" />
                         {rooms.length} Total Rooms
                       </div>
-                      
+
                       <div className="flex justify-between text-sm">
                         <span className="flex items-center">
                           <Users className="h-4 w-4 mr-1" />
@@ -306,8 +306,8 @@ const HostelFacility: React.FC<HostelFacilityProps> = ({ studentData }) => {
                         </div>
                       )}
 
-                      <HostelApplicationDialog 
-                        onApply={(roomId, preferredRoomType, comments) => 
+                      <HostelApplicationDialog
+                        onApply={(roomId, preferredRoomType, comments) =>
                           applyForHostel(roomId, preferredRoomType, comments, blockName)
                         }
                         rooms={availableRooms}
@@ -376,7 +376,7 @@ const HostelFacility: React.FC<HostelFacilityProps> = ({ studentData }) => {
                           <div>
                             <p className="font-medium">Application #{application.id.slice(-8)}</p>
                             <p className="text-sm font-semibold">
-                              {application.hostel_rooms ? 
+                              {application.hostel_rooms ?
                                 `${application.hostel_rooms.block_name} - Room ${application.hostel_rooms.room_number}` :
                                 'No specific room requested'
                               }
@@ -405,103 +405,103 @@ const HostelFacility: React.FC<HostelFacilityProps> = ({ studentData }) => {
         </TabsContent>
 
         <TabsContent value="facilities" className="space-y-4 sm:space-y-6">
-      <div className="flex justify-end">
-        <FacilityRequestDialog onSubmit={submitFacilityRequest} facilities={facilities} />
-      </div>
+          <div className="flex justify-end">
+            <FacilityRequestDialog onSubmit={submitFacilityRequest} facilities={facilities} />
+          </div>
 
           <Card className="w-full">
-        <CardHeader className="p-4 sm:p-5 md:p-6">
-          <CardTitle className="text-base sm:text-lg">My Facility Requests</CardTitle>
-        </CardHeader>
-        <CardContent className="p-4 sm:p-5 md:p-6">
-          {facilityRequests.length === 0 ? (
-            <div className="text-center py-6 sm:py-8">
-              <Wrench className="h-10 w-10 sm:h-12 sm:w-12 text-gray-400 mx-auto mb-3 sm:mb-4" />
-              <p className="text-sm sm:text-base">No facility requests submitted yet</p>
-            </div>
-          ) : (
-            <div className="space-y-3 sm:space-y-4 max-h-[600px] overflow-y-auto pr-2">
-              {facilityRequests.map((request: any) => (
-                <Card key={request.id} className="border w-full">
-                  <CardContent className="p-3 sm:p-4">
-                    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3 mb-3">
-                      <div className="flex-1 min-w-0">
-                        <h4 className="font-semibold text-sm sm:text-base break-words">{request.title}</h4>
-                        <p className="text-xs sm:text-sm capitalize text-gray-600">
-                          {request.request_type} Request
-                        </p>
-                        {request.facilities && (
-                          <p className="text-xs sm:text-sm text-gray-600 break-words">
-                            Facility: {request.facilities.facility_name}
-                          </p>
+            <CardHeader className="p-4 sm:p-5 md:p-6">
+              <CardTitle className="text-base sm:text-lg">My Facility Requests</CardTitle>
+            </CardHeader>
+            <CardContent className="p-4 sm:p-5 md:p-6">
+              {facilityRequests.length === 0 ? (
+                <div className="text-center py-6 sm:py-8">
+                  <Wrench className="h-10 w-10 sm:h-12 sm:w-12 text-gray-400 mx-auto mb-3 sm:mb-4" />
+                  <p className="text-sm sm:text-base">No facility requests submitted yet</p>
+                </div>
+              ) : (
+                <div className="space-y-3 sm:space-y-4 max-h-[600px] overflow-y-auto pr-2">
+                  {facilityRequests.map((request: any) => (
+                    <Card key={request.id} className="border w-full">
+                      <CardContent className="p-3 sm:p-4">
+                        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3 mb-3">
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-semibold text-sm sm:text-base break-words">{request.title}</h4>
+                            <p className="text-xs sm:text-sm capitalize text-gray-600">
+                              {request.request_type} Request
+                            </p>
+                            {request.facilities && (
+                              <p className="text-xs sm:text-sm text-gray-600 break-words">
+                                Facility: {request.facilities.facility_name}
+                              </p>
+                            )}
+                          </div>
+                          <div className="text-left sm:text-right flex-shrink-0">
+                            <Badge variant={getStatusColor(request.status)} className="text-xs">
+                              {request.status}
+                            </Badge>
+                            <p className="text-[10px] sm:text-xs text-gray-600 mt-1">
+                              {new Date(request.submitted_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                            </p>
+                          </div>
+                        </div>
+
+                        <p className="text-xs sm:text-sm mb-3 break-words">{request.description}</p>
+
+                        <Badge variant="outline" className="capitalize text-xs">
+                          {request.priority} Priority
+                        </Badge>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card className="w-full">
+            <CardHeader className="p-4 sm:p-5 md:p-6">
+              <CardTitle className="text-base sm:text-lg">Campus Facilities</CardTitle>
+            </CardHeader>
+            <CardContent className="p-4 sm:p-5 md:p-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+                {facilities.map((facility: any) => (
+                  <Card key={facility.id} className="border hover:shadow-md transition-shadow w-full">
+                    <CardContent className="p-3 sm:p-4">
+                      <h4 className="font-semibold text-sm sm:text-base mb-2 break-words">{facility.facility_name}</h4>
+                      <div className="space-y-1 text-xs sm:text-sm">
+                        <div className="flex items-center gap-2">
+                          <Building className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
+                          <span className="capitalize truncate">{facility.facility_type}</span>
+                        </div>
+                        {facility.location && (
+                          <div className="flex items-center gap-2">
+                            <MapPin className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
+                            <span className="truncate">{facility.location}</span>
+                          </div>
+                        )}
+                        {facility.capacity && (
+                          <div className="flex items-center gap-2">
+                            <Users className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
+                            <span>Capacity: {facility.capacity}</span>
+                          </div>
                         )}
                       </div>
-                      <div className="text-left sm:text-right flex-shrink-0">
-                        <Badge variant={getStatusColor(request.status)} className="text-xs">
-                          {request.status}
-                        </Badge>
-                        <p className="text-[10px] sm:text-xs text-gray-600 mt-1">
-                          {new Date(request.submitted_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                        </p>
-                      </div>
-                    </div>
-                    
-                    <p className="text-xs sm:text-sm mb-3 break-words">{request.description}</p>
-                    
-                    <Badge variant="outline" className="capitalize text-xs">
-                      {request.priority} Priority
-                    </Badge>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
 
-          <Card className="w-full">
-        <CardHeader className="p-4 sm:p-5 md:p-6">
-          <CardTitle className="text-base sm:text-lg">Campus Facilities</CardTitle>
-        </CardHeader>
-        <CardContent className="p-4 sm:p-5 md:p-6">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-            {facilities.map((facility: any) => (
-              <Card key={facility.id} className="border hover:shadow-md transition-shadow w-full">
-                <CardContent className="p-3 sm:p-4">
-                  <h4 className="font-semibold text-sm sm:text-base mb-2 break-words">{facility.facility_name}</h4>
-                  <div className="space-y-1 text-xs sm:text-sm">
-                    <div className="flex items-center gap-2">
-                      <Building className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
-                      <span className="capitalize truncate">{facility.facility_type}</span>
-                    </div>
-                    {facility.location && (
-                      <div className="flex items-center gap-2">
-                        <MapPin className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
-                        <span className="truncate">{facility.location}</span>
+                      <div className="mt-3 pt-3 border-t">
+                        <Badge variant={facility.is_available ? 'default' : 'destructive'} className="text-xs">
+                          {facility.is_available ? 'Available' : 'Unavailable'}
+                        </Badge>
                       </div>
-                    )}
-                    {facility.capacity && (
-                      <div className="flex items-center gap-2">
-                        <Users className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
-                        <span>Capacity: {facility.capacity}</span>
-                      </div>
-                    )}
-                  </div>
-                  
-                  <div className="mt-3 pt-3 border-t">
-                    <Badge variant={facility.is_available ? 'default' : 'destructive'} className="text-xs">
-                      {facility.is_available ? 'Available' : 'Unavailable'}
-                    </Badge>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-    </TabsContent>
-  </Tabs>
-</div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+    </div>
   );
 };
 
@@ -545,8 +545,8 @@ const HostelApplicationDialog: React.FC<{
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button 
-          disabled={isDisabled} 
+        <Button
+          disabled={isDisabled}
           className="w-full mt-4 text-xs sm:text-sm"
           variant={hasBlockApplication ? "outline" : "default"}
         >
@@ -558,7 +558,7 @@ const HostelApplicationDialog: React.FC<{
         <DialogHeader>
           <DialogTitle className="text-base sm:text-lg break-words">{getDialogTitle()}</DialogTitle>
           <DialogDescription className="text-xs sm:text-sm">
-            {hasAllocation ? 
+            {hasAllocation ?
               `Submit an application for room change in ${blockName}.` :
               `Submit your application for hostel accommodation in ${blockName}. You can apply to multiple hostels.`
             }
@@ -728,8 +728,8 @@ const FacilityRequestDialog: React.FC<{
             </Select>
           </div>
 
-          <Button 
-            onClick={handleSubmit} 
+          <Button
+            onClick={handleSubmit}
             disabled={!title.trim() || !description.trim()}
             className="w-full text-xs sm:text-sm"
           >

@@ -293,8 +293,8 @@ const HostelFacility: React.FC<HostelFacilityProps> = ({ studentData }) => {
                         </span>
                       </div>
 
-                      <div className="flex justify-between text-sm">
-                        <span>Available for You:</span>
+                      <div className="flex justify-start text-sm">
+                        <span className='mr-[4px]'>Available for You:</span>
                         <span className={availableRooms.length > 0 ? 'text-green-600 font-medium' : 'text-red-500'}>
                           {availableRooms.length}
                         </span>

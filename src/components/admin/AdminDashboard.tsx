@@ -527,8 +527,8 @@ const AdminDashboard = ({ sessionData }: AdminDashboardProps) => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
               {/* Quick Actions with Enhanced Design */}
-              <Card className="h-[490px] border-white/20 bg-gradient-to-br from-card/60 to-card/40 backdrop-blur-md shadow-2xl overflow-hidden group">
-                <CardHeader className="sticky top-0 z-10   border-b border-white/10 pb-4">
+              <Card className="h-[510px] border-white/20 bg-gradient-to-br from-card/60 to-card/40 backdrop-blur-md shadow-2xl overflow-hidden group">
+                <CardHeader className="sticky top-0 z-10 bg-gradient-to-b from-card/95 to-card/80 backdrop-blur-sm border-b border-white/10 pb-4">
                   <CardTitle className="text-card-foreground text-lg sm:text-xl">Quick Actions</CardTitle>
                   <CardDescription className="text-sm">Common administrative tasks</CardDescription>
                 </CardHeader>
@@ -538,7 +538,7 @@ const AdminDashboard = ({ sessionData }: AdminDashboardProps) => {
                     return (
                       <div
                         key={index}
-                        className="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-4 p-4 rounded-lg border border-white/10 hover:border-purple-400/40 hover:bg-white/10 cursor-pointer transition-all duration-300 hover:shadow-lg hover:shadow-purple-500/10 hover:-translate-y-0.5"
+                        className="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-4 p-4 rounded-lg border border-white/10 hover:border-purple-400/40 hover:bg-white/10 cursor-pointer transition-all duration-300 hover:shadow-lg hover:shadow-purple-500/10 hover:-translate-y-0.5 will-change-transform"
                         onClick={action.action}
                       >
                         <div className="p-3 rounded-lg bg-purple-500/20 group-hover:bg-purple-500/30 transition-colors">
@@ -555,14 +555,14 @@ const AdminDashboard = ({ sessionData }: AdminDashboardProps) => {
               </Card>
 
               {/* Recent Activity with Enhanced Design */}
-              <Card className="h-[490px] border-white/20 bg-gradient-to-br from-card/60 to-card/40 backdrop-blur-md shadow-2xl overflow-hidden group">
-                <CardHeader className="sticky top-0 z-10 border-b border-white/10 pb-4">
+              <Card className="h-[510px] border-white/20 bg-gradient-to-br from-card/60 to-card/40 backdrop-blur-md shadow-2xl overflow-hidden group">
+                <CardHeader className="sticky top-0 z-10 bg-gradient-to-b from-card/95 to-card/80 backdrop-blur-sm border-b border-white/10 pb-4">
                   <CardTitle className="text-card-foreground text-lg sm:text-xl">Recent Activity</CardTitle>
                   <CardDescription className="text-sm">Latest system activities and updates</CardDescription>
                 </CardHeader>
-                <CardContent className="h-[calc(100%-100px)] overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent hover:scrollbar-thumb-white/30 scroll-smooth space-y-3 sm:space-y-4 p-4 sm:p-6">
+                <CardContent className="h-[calc(100%-100px)] overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent hover:scrollbar-thumb-white/30 scroll-smooth space-y-3 sm:space-y-4 p-4 sm:p-6 ">
                   {recentActivities.map((activity, index) => (
-                    <div key={index} className="flex flex-col sm:flex-row sm:items-start sm:space-x-4 space-y-2 sm:space-y-0 p-3 sm:p-4 rounded-lg bg-white/5 border border-white/5 hover:bg-white/10 hover:border-white/10 transition-all duration-300 hover:shadow-md hover:shadow-purple-500/5">
+                    <div key={index} className="flex flex-col sm:flex-row sm:items-start sm:space-x-4 space-y-2 sm:space-y-0 p-3 sm:p-4 rounded-lg bg-white/5 border border-white/5 hover:bg-white/10 hover:border-white/10 transition-all duration-300 hover:shadow-md hover:shadow-purple-500/5 will-change-transform">
                       <div className="flex-shrink-0">
                         <div className="w-2 h-2 bg-purple-400 rounded-full mt-1.5 sm:mt-3 animate-pulse shadow-lg shadow-purple-400/50"></div>
                       </div>

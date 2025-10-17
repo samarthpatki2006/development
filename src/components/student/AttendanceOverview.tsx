@@ -393,7 +393,7 @@ const AttendanceOverview: React.FC<AttendanceOverviewProps> = ({ studentData }) 
   }
 
   return (
-    <div className="space-y-4 sm:space-y-6 px-2 sm:px-4 md:px-0">
+    <div className="space-y-4 sm:space-y-6 px-3 sm:px-4 md:px-6 w-full max-w-full">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4">
         <div className="w-full sm:w-auto">
           <h2 className="text-xl sm:text-2xl md:text-3xl font-bold">Attendance Overview</h2>
@@ -416,8 +416,8 @@ const AttendanceOverview: React.FC<AttendanceOverviewProps> = ({ studentData }) 
 
 
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3 md:gap-4">
-        <Card className="col-span-2 sm:col-span-3 lg:col-span-1">
+      <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3 md:gap-4 w-full max-w-full">
+        <Card className="xs:col-span-2 sm:col-span-3 lg:col-span-1">
           <CardContent className="p-3 sm:p-4 md:p-6">
             <div className="flex items-center justify-between">
               <div className="min-w-0 flex-1">
@@ -469,9 +469,9 @@ const AttendanceOverview: React.FC<AttendanceOverviewProps> = ({ studentData }) 
         </Card>
       </div>
 
-      <Tabs defaultValue="mark" className="w-full max-w-full space-y-3 sm:space-y-4">
-        <div className="w-full overflow-x-auto -mx-2 px-2 sm:mx-0 sm:px-0">
-          <TabsList className="inline-flex w-full min-w-max sm:min-w-0 h-auto">
+      <Tabs defaultValue="mark" className="w-full space-y-3 sm:space-y-4">
+        <div className="w-full overflow-x-auto -mx-3 px-3 sm:mx-0 sm:px-0 pb-1">
+          <TabsList className="inline-flex w-full sm:w-auto min-w-full sm:min-w-0 h-auto">
             <TabsTrigger value="mark" className="flex-1 text-[10px] xs:text-xs sm:text-sm px-1.5 xs:px-2 sm:px-3 py-2 whitespace-nowrap">
               Mark Attendance
             </TabsTrigger>

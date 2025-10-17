@@ -344,7 +344,7 @@ const Student = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background overflow-x-hidden">
       {/* Background Grid */}
       <div className="fixed inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:40px_40px] pointer-events-none"></div>
       
@@ -599,7 +599,7 @@ const Student = () => {
         />
 
         {/* Main Content */}
-        <div className={`flex-1 ${isMobile ? 'ml-0' : ''} ${isFullWidthView() ? '' : 'p-3 sm:p-6'}`}>
+        <div className={`flex-1 w-full min-w-0 ${isMobile ? 'ml-0' : ''} ${isFullWidthView() ? '' : 'p-3 sm:p-6'}`}>
           {renderContent()}
         </div>
       </div>

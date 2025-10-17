@@ -221,24 +221,35 @@ const HostelFacility: React.FC<HostelFacilityProps> = ({ studentData }) => {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <div className="w-full">
-          <TabsList className="grid w-full grid-cols-3 h-auto">
-            <TabsTrigger value="hostels" className="flex flex-col xs:flex-row items-center gap-1 text-[10px] xs:text-xs sm:text-sm px-1 xs:px-2 sm:px-3 py-2">
-              <Building className="h-3 w-3 xs:h-3.5 xs:w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
-              <span className="truncate">Hostels</span>
+        <div className="w-full px-0">
+          <TabsList className="grid w-full grid-cols-3 h-auto gap-0">
+            <TabsTrigger
+              value="hostels"
+              className="flex flex-row items-center justify-center gap-1 xs:gap-1.5 text-xs xs:text-sm sm:text-base px-1 xs:px-2 sm:px-3 py-2.5 transition-all duration-200"
+            >
+              <Building className="h-4 w-4 xs:h-4 xs:w-4 sm:h-5 sm:w-5 flex-shrink-0" />
+              <span className="whitespace-nowrap">Hostels</span>
             </TabsTrigger>
-            <TabsTrigger value="applications" className="flex flex-col xs:flex-row items-center gap-1 text-[10px] xs:text-xs sm:text-sm px-1 xs:px-2 sm:px-3 py-2">
-              <Bed className="h-3 w-3 xs:h-3.5 xs:w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
-              <span className="truncate">Applications</span>
+
+            <TabsTrigger
+              value="applications"
+              className="flex flex-row items-center justify-center gap-0.5 xs:gap-1 text-[11px] xs:text-sm sm:text-base px-0.5 xs:px-2 sm:px-3 py-2.5 transition-all duration-200"
+            >
+              <Bed className="h-3.5 w-3.5 xs:h-4 xs:w-4 sm:h-5 sm:w-5 flex-shrink-0" />
+              <span className="whitespace-nowrap">Applications</span>
               {applications.length > 0 && (
-                <Badge variant="secondary" className="ml-1 text-[8px] xs:text-[10px]">
+                <Badge variant="secondary" className="ml-0.5 xs:ml-1 text-[8px] xs:text-[10px] px-1 xs:px-1.5 py-0">
                   {applications.length}
                 </Badge>
               )}
             </TabsTrigger>
-            <TabsTrigger value="facilities" className="flex flex-col xs:flex-row items-center gap-1 text-[10px] xs:text-xs sm:text-sm px-1 xs:px-2 sm:px-3 py-2">
-              <Wrench className="h-3 w-3 xs:h-3.5 xs:w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
-              <span className="truncate">Facilities</span>
+
+            <TabsTrigger
+              value="facilities"
+              className="flex flex-row items-center justify-center gap-1 xs:gap-1.5 text-xs xs:text-sm sm:text-base px-1 xs:px-2 sm:px-3 py-2.5 transition-all duration-200"
+            >
+              <Wrench className="h-4 w-4 xs:h-4 xs:w-4 sm:h-5 sm:w-5 flex-shrink-0" />
+              <span className="whitespace-nowrap">Facilities</span>
             </TabsTrigger>
           </TabsList>
         </div>

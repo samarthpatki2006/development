@@ -6,10 +6,10 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { 
-  MessageSquare, 
-  Bell, 
-  Users, 
+import {
+  MessageSquare,
+  Bell,
+  Users,
   Send,
   Reply,
   Eye
@@ -102,7 +102,7 @@ const Anouncements: React.FC<CommunicationCenterProps> = ({ studentData }) => {
             `)
             .eq('parent_post_id', post.id)
             .order('created_at');
-          
+
           return { ...post, replies: replies || [] };
         })
       );
@@ -172,26 +172,28 @@ const Anouncements: React.FC<CommunicationCenterProps> = ({ studentData }) => {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold">Communication Center</h2>
-        <div className="flex space-x-2">
-          <Badge variant="outline">{announcements.length} Announcements</Badge>
-          <Badge variant="outline">{forums.length} Forums</Badge>
+    <div className="space-y-4 sm:space-y-6 px-3 sm:px-4 md:px-6 w-full max-w-full">
+      <div className="flex flex-col xs:flex-row justify-between items-start xs:items-center gap-3">
+         <h2 className="text-lg sm:text-xl md:text-2xl font-bold">Communication Center</h2>
+        <div className="flex flex-wrap gap-2">
+          <Badge variant="outline" className="px-2 sm:px-3 py-1 text-xs sm:text-sm whitespace-nowrap">{announcements.length} Announcements</Badge>
+          <Badge variant="outline" className="px-2 sm:px-3 py-1 text-xs sm:text-sm whitespace-nowrap">{forums.length} Forums</Badge>
         </div>
       </div>
 
-      <Tabs defaultValue="announcements" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="announcements" className="flex items-center space-x-2">
-            <Bell className="h-4 w-4" />
-            <span>Announcements</span>
-          </TabsTrigger>
-          <TabsTrigger value="forums" className="flex items-center space-x-2">
-            <MessageSquare className="h-4 w-4" />
-            <span>Discussion Forums</span>
-          </TabsTrigger>
-        </TabsList>
+      <Tabs defaultValue="announcements" className="space-y-4 w-full">
+        <div className="w-full">
+          <TabsList className="grid w-full grid-cols-2 h-auto">
+            <TabsTrigger value="announcements" className="text-[10px] xs:text-xs sm:text-sm px-1 xs:px-2 sm:px-3 py-2">
+              <Bell className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600 flex-shrink-0" />
+              <span className="truncate">Announcements</span>
+            </TabsTrigger>
+            <TabsTrigger value="forums" className="text-[10px] xs:text-xs sm:text-sm px-1 xs:px-2 sm:px-3 py-2">
+              <MessageSquare className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600 flex-shrink-0" />
+              <span className="truncate">Discussion Forums</span>
+            </TabsTrigger>
+          </TabsList>
+        </div>
 
         <TabsContent value="announcements" className="space-y-4">
           {announcements.length === 0 ? (
@@ -241,7 +243,7 @@ const Anouncements: React.FC<CommunicationCenterProps> = ({ studentData }) => {
 
         <TabsContent value="forums" className="space-y-4">
           {selectedForum ? (
-            <ForumDiscussion 
+            <ForumDiscussion
               forum={selectedForum}
               posts={forumPosts}
               onBack={() => setSelectedForum(null)}
@@ -276,7 +278,7 @@ const Anouncements: React.FC<CommunicationCenterProps> = ({ studentData }) => {
                           <span className="text-sm text-gray-500">
                             Created: {new Date(forum.created_at).toLocaleDateString()}
                           </span>
-                          <Button 
+                          <Button
                             size="sm"
                             onClick={() => {
                               setSelectedForum(forum);
@@ -366,7 +368,7 @@ const ForumDiscussion: React.FC<{
           </Card>
         ) : (
           posts.map((post) => (
-            <ForumPost 
+            <ForumPost
               key={post.id}
               post={post}
               onReply={(content) => onCreatePost(forum.id, content, post.id)}
@@ -416,10 +418,10 @@ const ForumPost: React.FC<{
             </div>
           </div>
           <p className="text-gray-700 leading-relaxed">{post.content}</p>
-          
+
           <div className="flex items-center space-x-4 mt-4">
-            <Button 
-              variant="ghost" 
+            <Button
+              variant="ghost"
               size="sm"
               onClick={() => setShowReplyForm(!showReplyForm)}
             >

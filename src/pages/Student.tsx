@@ -395,7 +395,7 @@ const Student = () => {
             {/* Right Section */}
             <div className="flex items-center space-x-2 sm:space-x-3">
               {/* Greeting (Hidden on Mobile) */}
-              <span className="hidden lg:block text-sm text-muted-foreground truncate max-w-[150px]">
+              <span className="hidden lg:block text-sm text-muted-foreground truncate max-w-[350px]">
                 Welcome, {studentData.first_name} {studentData.last_name}
               </span>
 

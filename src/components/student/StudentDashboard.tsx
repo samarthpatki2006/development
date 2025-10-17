@@ -150,7 +150,8 @@ const StudentDashboard = ({ studentData, onNavigate }: StudentDashboardProps) =>
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-xl sm:text-2xl font-bold mb-2">
-              Welcome back, {studentData.first_name}
+              Welcome back,
+              {studentData.first_name}
             </h1>
             <p >Student ID: {studentData.user_code}</p>
           </div>

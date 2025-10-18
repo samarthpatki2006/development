@@ -276,19 +276,19 @@ const EventManagement = ({ userProfile }: { userProfile: UserProfile }) => {
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4">
             <div>
               <CardTitle className="flex items-center space-x-2">
-                <Calendar className="w-5 h-5" />
+                <Calendar className="w-5 h-5 mr-2" />
                 <span>Event & Community Management</span>
               </CardTitle>
-              <CardDescription className='ml-6 sm:ml-0'>
+              <CardDescription className='mt-2'>
                 Organize and manage campus events, workshops, and community activities.
               </CardDescription>
             </div>
             <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
               <DialogTrigger asChild>
-                <Button className="w-full sm:w-auto">
+                <Button className="w-full sm:w-60 ">
                   <Plus className="w-4 h-4 mr-2" />
                   Create Event
                 </Button>

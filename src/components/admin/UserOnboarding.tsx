@@ -484,13 +484,13 @@ const UserOnboarding = ({ userProfile }: { userProfile: UserProfile }) => {
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+          <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4">
             <div>
               <CardTitle className="flex items-center space-x-2">
-                <UserPlus className="w-7 h-7 sm:w-5 sm:h-5" />
+                <UserPlus className="w-7 h-7 mr-2" />
                 <span>User Onboarding & Email Tracking</span>
               </CardTitle>
-              <CardDescription className='ml-8 mt-2 sm:ml-0'>
+              <CardDescription className='mt-2'>
                 Add new users with automated onboarding and track email delivery status
               </CardDescription>
             </div>

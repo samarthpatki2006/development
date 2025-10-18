@@ -23,7 +23,8 @@ import {
   RefreshCw,
   FileText,
   Check,
-  X
+  X,
+  DollarSignIcon
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -501,14 +502,14 @@ const FinanceManagement = ({ userProfile }) => {
 
   return (
     <div className="space-y-4 sm:space-y-6 p-2 sm:p-4 md:p-0">
-      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+      <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4">
         <div>
           <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">Finance Management</h2>
-          <p className="text-muted-foreground text-sm sm:text-base">
+          <p className="text-muted-foreground text-sm sm:text-base mt-2">
             Manage fee structures, track payments, and monitor financial performance
           </p>
         </div>
-        <Button onClick={loadAllData} variant="default" size="sm" className="w-full sm:w-auto">
+        <Button onClick={loadAllData} variant="default" size="sm" className="w-full sm:w-60">
           <RefreshCw className="h-4 w-4 mr-2" />
           Refresh
         </Button>

@@ -217,13 +217,13 @@ const AuditLogs = ({ userProfile, adminRoles }: AuditLogsProps) => {
     <div className="space-y-4 sm:space-y-6">
       <Card>
         <CardHeader className="p-4 sm:p-6">
-          <div className="flex flex-col space-y-4 sm:flex-row sm:justify-between sm:items-start sm:space-y-0">
+          <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4">
             <div className="space-y-1.5">
               <CardTitle className="flex items-center space-x-2 text-lg sm:text-xl">
                 <Activity className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
                 <span>Audit Logs</span>
               </CardTitle>
-              <CardDescription className="text-xs sm:text-sm">
+              <CardDescription className="text-xs sm:text-sm mt-2">
                 Track all administrative actions and system changes. 
                 {isSuperAdmin() ? ' Full access to all logs.' : ' Access limited to your actions and relevant logs.'}
               </CardDescription>
@@ -232,9 +232,9 @@ const AuditLogs = ({ userProfile, adminRoles }: AuditLogsProps) => {
               onClick={exportLogs} 
               variant="default" 
               disabled={filteredLogs.length === 0}
-              className="w-full sm:w-auto text-sm"
+              className="w-full sm:w-60"
             >
-              <Download className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
+              <Download className="w-4 h-4 mr-2" />
               Export
             </Button>
           </div>

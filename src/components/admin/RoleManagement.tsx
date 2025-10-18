@@ -181,20 +181,20 @@ const RoleManagement = ({ userProfile }: RoleManagementProps) => {
     <div className="space-y-4 sm:space-y-6">
       <Card>
         <CardHeader className="p-4 sm:p-6">
-          <div className="flex flex-col space-y-4 sm:flex-row sm:justify-between sm:items-start sm:space-y-0">
+          <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4">
             <div className="space-y-1.5">
               <CardTitle className="flex items-center space-x-2 text-lg sm:text-xl">
                 <Shield className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
                 <span>Role Management</span>
               </CardTitle>
-              <CardDescription className="text-xs sm:text-sm">
+              <CardDescription className="text-xs sm:text-sm mt-2">
                 Assign and manage admin roles for your college. Only Super Admins can manage roles.
               </CardDescription>
             </div>
             <Dialog open={isAssignDialogOpen} onOpenChange={setIsAssignDialogOpen}>
               <DialogTrigger asChild>
-                <Button className="w-full sm:w-auto text-sm">
-                  <Plus className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
+                <Button className="w-full sm:w-60">
+                  <Plus className="w-4 h-4 mr-2" />
                   Assign Role
                 </Button>
               </DialogTrigger>

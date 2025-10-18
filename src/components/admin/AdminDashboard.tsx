@@ -532,7 +532,7 @@ const AdminDashboard = ({ sessionData }: AdminDashboardProps) => {
                   <CardTitle className="text-card-foreground text-lg sm:text-xl">Quick Actions</CardTitle>
                   <CardDescription className="text-sm">Common administrative tasks</CardDescription>
                 </CardHeader>
-                <CardContent className="h-[calc(100%-100px)] overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent hover:scrollbar-thumb-white/30 scroll-smooth space-y-3 sm:space-y-4 p-4 sm:p-6">
+                <CardContent className="h-[calc(100%-100px)] overflow-y-auto overflow-x-hidden scroll-smooth space-y-3 sm:space-y-4 p-4 sm:p-6">
                   {quickActions.map((action, index) => {
                     const Icon = action.icon;
                     return (
@@ -560,7 +560,7 @@ const AdminDashboard = ({ sessionData }: AdminDashboardProps) => {
                   <CardTitle className="text-card-foreground text-lg sm:text-xl">Recent Activity</CardTitle>
                   <CardDescription className="text-sm">Latest system activities and updates</CardDescription>
                 </CardHeader>
-                <CardContent className="h-[calc(100%-100px)] overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent hover:scrollbar-thumb-white/30 scroll-smooth space-y-3 sm:space-y-4 p-4 sm:p-6 ">
+                <CardContent className="h-[calc(100%-100px)] overflow-y-auto overflow-x-hidden scrollbar-thin space-y-3 sm:space-y-4 p-4 sm:p-6 ">
                   {recentActivities.map((activity, index) => (
                     <div key={index} className="flex flex-col sm:flex-row sm:items-start sm:space-x-4 space-y-2 sm:space-y-0 p-3 sm:p-4 rounded-lg bg-white/5 border border-white/5 hover:bg-white/10 hover:border-white/10 transition-all duration-300 hover:shadow-md hover:shadow-purple-500/5 will-change-transform">
                       <div className="flex-shrink-0">

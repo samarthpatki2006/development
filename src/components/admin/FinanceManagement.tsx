@@ -792,16 +792,17 @@ const FinanceManagement = ({ userProfile }) => {
                         </Badge>
                       </TableCell>
                       <TableCell className="min-w-[120px]">
-                        <div className="flex flext-items-center">
+                        <div className="flex flext-items-center gap-4">
                           <Button
-                            variant="ghost"
+                            variant="outline"
                             size="sm"
                             onClick={() => openEditDialog(fee)}
                           >
-                            <Edit className="h-3 w-3 sm:h-4 sm:w-4 text-green-500" />
+                            <Edit className="h-3 w-3 sm:h-4 sm:w-" />
                           </Button>
                           <Button
-                            variant="ghost"
+                            variant="outline"
+                            className="text-red-600 hover:text-red-700"
                             size="sm"
                             onClick={() => handleDeleteFeeStructure(fee.id)}
                           >

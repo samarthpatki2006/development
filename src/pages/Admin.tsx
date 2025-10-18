@@ -480,7 +480,7 @@ const Admin = () => {
                   <div className="fixed right-3 sm:right-4 top-20 w-60 sm:w-64 bg-background/95 backdrop-blur-xl border border-white/20 rounded-xl shadow-2xl z-[9999]">
                     <div className="p-4 border-b border-white/10">
                       <div className="flex items-center space-x-3">
-                        <div className="h-10 sm:h-12 w-10 sm:w-12 bg-purple-500 rounded-full flex items-center justify-center">
+                        <div className="h-10 sm:h-12 w-10 sm:w-12 bg-red-500 rounded-full flex items-center justify-center">
                           <UserCircle className="h-6 sm:h-8 w-6 sm:w-8 text-white" />
                         </div>
                         <div className="flex-1 min-w-0">
@@ -492,10 +492,10 @@ const Admin = () => {
                           </p>
 
                           <div className="flex items-center space-x-2 mt-2">
-                            <Badge className="bg-purple-500/20 text-purple-300 border-purple-400/30 font-medium text-xs pointer-events-none">
+                            <Badge className="bg-red-500/20 text-red-300 border-red-400/30 font-medium text-xs pointer-events-none">
                               {sessionData.user_type}
                             </Badge>
-                            <span className=" text-purple-300 border-purple-400/30 text-xs font-medium">
+                            <span className=" text-red-300 border-red-400/30 text-xs font-medium">
                               {sessionData.user_code}
                             </span>
                           </div>
@@ -506,13 +506,13 @@ const Admin = () => {
                     <div className="p-2 space-y-2 sm:space-y-0">
                       <Button
                         variant="ghost"
-                        className="w-full justify-start text-sm text-purple-400 hover:purple-300 hover:bg-purple-500/10 rounded-lg will-change-transform"
+                        className="w-full justify-start text-sm text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg will-change-transform"
                         onClick={() => {
                           setActiveView('system');
                           setShowUserMenu(false);
                         }}
                       >
-                        <Settings className="text-purple-300 h-4 w-4 mr-3" />
+                        <Settings className="text-red-300 h-4 w-4 mr-3" />
                         Account Settings
                       </Button>
 
@@ -524,9 +524,9 @@ const Admin = () => {
                           setShowUserMenu(false);
                           handleLogout();
                         }}
-                        className="w-full justify-start text-sm text-purple-400 hover:purple-300 hover:bg-purple-500/10 rounded-lg will-change-transform"
+                        className="w-full justify-start text-sm text-red-400 hover:text-red-300 hover:bg-ref-500/10 rounded-lg will-change-transform"
                       >
-                        <LogOut className="text-purple-300 h-4 w-4 mr-3" />
+                        <LogOut className="text-red-300 h-4 w-4 mr-3" />
                         Logout
                       </Button>
                     </div>

@@ -422,7 +422,7 @@ const AdminDashboard = ({ sessionData }: AdminDashboardProps) => {
               </p>
             </div>
             <div className="flex flex-col md:flex-row md:items-center gap-3 md:space-x-4 w-full md:w-fit">
-              <Badge className="bg-purple-500/20 text-purple-300 border-purple-400/30 font-medium px-3 py-1 self-start md:self-auto">
+              <Badge className="bg-purple-600/30 text-purple-100 border border-purple-300/40 font-bold px-4 py-1.5 self-start md:self-auto hover:bg-purple-600/40 hover:border-purple-300/60 hover:cursor-pointer hover:shadow-[0_0_20px_rgba(168,85,247,0.4)] transition-all duration-300">
                 {userProfile.hierarchy_level.replace('_', ' ').toUpperCase()}
               </Badge>
 
@@ -430,7 +430,7 @@ const AdminDashboard = ({ sessionData }: AdminDashboardProps) => {
                 <Button
                   variant="outline"
                   size="sm"
-                  className="w-auto border-white/20 bg-white/10 backdrop-blur-sm text-white hover:bg-white/20 hover:border-white/30"
+                  className="w-auto border-white/20 bg-white/10 backdrop-blur-sm text-white hover:bg-white/20 hover:border-white/30 will-change-transform"
                 >
                   <Bell className="w-4 h-4 mr-2" />
                   <span className="hidden sm:inline">Alerts</span>
@@ -445,7 +445,7 @@ const AdminDashboard = ({ sessionData }: AdminDashboardProps) => {
                   variant="outline"
                   size="sm"
                   onClick={handleLogout}
-                  className="w-auto border-white/20 bg-white/10 backdrop-blur-sm text-white hover:bg-white/20 hover:border-white/30"
+                  className="w-auto border-white/20 bg-white/10 backdrop-blur-sm text-white hover:bg-white/20 hover:border-white/30 will-change-transform"
                 >
                   <LogOut className="w-4 h-4 mr-2" />
                   <span className="hidden sm:inline">Logout</span>

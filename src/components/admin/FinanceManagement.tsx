@@ -761,7 +761,7 @@ const FinanceManagement = ({ userProfile }) => {
           </div>
 
           <Card>
-            <CardContent className="p-4 sm:p-6 sm:pt-6">
+            <CardContent className="p-4 sm:p-6 sm:pt-6 max-h-[350px] sm:max-h-[450px] overflow-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -844,7 +844,7 @@ const FinanceManagement = ({ userProfile }) => {
             <CardContent className="p-4 sm:p-6 sm:pt-6">
               <div className="space-y-2">
                 <div className="max-h-[400px] sm:max-h-[600px] overflow-y-auto">
-                  <div className="rounded-md border overflow-x-auto">
+                  <div className="rounded-md border overflow-x-auto  max-h-[350px] sm:max-h-[450px] overflow-auto">
                     <Table>
                       <TableHeader>
                         <TableRow>

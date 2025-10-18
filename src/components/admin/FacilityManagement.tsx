@@ -296,7 +296,7 @@ const FacilityManagement = ({ userProfile }: { userProfile: UserProfile }) => {
 
           {/* Facilities Table */}
           {filteredFacilities.length > 0 ? (
-            <div className="rounded-md border">
+            <div className="rounded-md border max-h-[350px] sm:max-h-[450px] overflow-auto">
               <Table>
                 <TableHeader>
                   <TableRow>

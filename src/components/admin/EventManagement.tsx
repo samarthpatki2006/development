@@ -423,7 +423,7 @@ const EventManagement = ({ userProfile }: { userProfile: UserProfile }) => {
           </div>
 
           {/* Events Table */}
-          <div className="rounded-md border">
+          <div className="rounded-md border max-h-[350px] sm:max-h-[450px] overflow-auto">
             <Table>
               <TableHeader>
                 <TableRow>

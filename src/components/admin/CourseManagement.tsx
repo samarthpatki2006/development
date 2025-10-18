@@ -229,7 +229,7 @@ const CourseManagement = ({ userProfile }: { userProfile: UserProfile }) => {
                 <BookOpen className="w-5 h-5" />
                 <span>Course & Academic Management</span>
               </CardTitle>
-              <CardDescription className='ml-6 sm:ml-0'>
+              <CardDescription className='ml-6 mt-2 sm:ml-0'>
                 Manage courses, enrollment, and academic schedules for your institution.
               </CardDescription>
             </div>
@@ -361,7 +361,7 @@ const CourseManagement = ({ userProfile }: { userProfile: UserProfile }) => {
 
           {/* Courses Table */}
           {filteredCourses.length > 0 ? (
-            <div className="rounded-md border">
+            <div className="rounded-md border  max-h-[350px] sm:max-h-[450px] overflow-auto">
               <Table>
                 <TableHeader>
                   <TableRow>

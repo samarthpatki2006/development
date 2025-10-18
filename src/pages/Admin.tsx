@@ -356,8 +356,9 @@ const Admin = () => {
                 variant="ghost"
                 size="icon"
                 onClick={handleSidebarToggle}
-                className="h-9 w-9 rounded-lg hover:bg-white/10 transition-all duration-300 ease-in-out"
+                className="h-9 w-9 rounded-lg hover:bg-white/10 transition-all duration-200 ease-in-out"
               >
+                <span className="sr-only">Toggle sidebar</span>
                 <Menu className="h-7 w-7" />
               </Button>
 
@@ -368,7 +369,7 @@ const Admin = () => {
                 <div className="hidden sm:flex items-center space-x-2">
                   <div className="h-6 w-px bg-white/20"></div>
                   <div className="flex items-center space-x-2">
-                    <div className="h-2 w-2 bg-role-student rounded-full animate-pulse-indicator"></div>
+                    <div className="h-2 w-2 bg-role-admin rounded-full animate-pulse-indicator"></div>
                     <span className="text-sm sm:text-lg font-medium text-foreground">Admin Portal</span>
                   </div>
                 </div>
@@ -551,17 +552,11 @@ const Admin = () => {
         />
 
         {/* Main Content */}
-        <div
-          key={activeView}
-          className={`flex-1 w-full min-w-0 p-3 sm:p-6 transition-all duration-300 ease-in-out transform-gpu will-change-transform`}
-        >
-          {/* subtle mount animation (uses Tailwind arbitrary animation syntax) */}
-          <div className="animate-[fadeIn_.28s_ease_forwards]">
-            {renderContent()}
-          </div>
+        <div className="flex-1 w-full min-w-0 transition-all duration-300 ease-in-out p-3 sm:p-6">
+          {renderContent()}
         </div>
       </div>
-    </div >
+    </div>
   );
 };
 

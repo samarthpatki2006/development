@@ -28,22 +28,40 @@ const SidebarNavigation = ({
   mobileOpen = false,
   onMobileClose
 }: SidebarNavigationProps) => {
-  const getRoleColor = (userType: string) => {
+  const getRoleStyles = (userType: string, isActive: boolean) => {
+    if (!isActive) return '';
+    
     switch (userType) {
-      case 'student': return 'role-student';
-      case 'faculty': return 'role-teacher';
-      case 'parent': return 'role-parent';
-      case 'alumni': return 'role-alumni';
-      case 'admin': return 'role-admin';
-      default: return 'primary';
+      case 'student':
+        return 'bg-role-student/20 text-role-student border border-role-student/30';
+      case 'faculty':
+        return 'bg-role-teacher/20 text-role-teacher border border-role-teacher/30';
+      case 'parent':
+        return 'bg-role-parent/20 text-role-parent border border-role-parent/30';
+      case 'alumni':
+        return 'bg-role-alumni/20 text-role-alumni border border-role-alumni/30';
+      case 'admin':
+        return 'bg-role-admin/20 text-role-admin border border-role-admin/30';
+      default:
+        return 'bg-primary/20 text-primary border border-primary/30';
     }
   };
 
-  const roleColor = getRoleColor(userType);
+  const getRoleIconColor = (userType: string, isActive: boolean) => {
+    if (!isActive) return '';
+    
+    switch (userType) {
+      case 'student': return 'text-role-student';
+      case 'faculty': return 'text-role-teacher';
+      case 'parent': return 'text-role-parent';
+      case 'alumni': return 'text-role-alumni';
+      case 'admin': return 'text-role-admin';
+      default: return 'text-primary';
+    }
+  };
 
   const handleItemClick = (itemId: string) => {
     onItemClick(itemId);
-    // Close mobile menu after selection
     if (onMobileClose) {
       onMobileClose();
     }
@@ -68,7 +86,7 @@ const SidebarNavigation = ({
           "transition-all duration-300 ease-in-out",
           collapsed ? "md:w-16" : "md:w-64", 
           mobileOpen
-          ? "translate-x-0 opacity-100 mt-[60px]"
+            ? "translate-x-0 opacity-100 mt-[60px]"
             : "-translate-x-full md:translate-x-0 opacity-0 md:opacity-100"
         )}
       >
@@ -81,7 +99,6 @@ const SidebarNavigation = ({
             <X className="h-6 w-6" />
           </button>
         </div> */}
-
         {/* Navigation Items */}
         <div className="p-4 space-y-2 overflow-y-auto flex-1">
           {items.map((item) => {
@@ -95,12 +112,15 @@ const SidebarNavigation = ({
                 className={cn(
                   "w-full flex items-center space-x-3 px-3 py-3 rounded-lg transition-all duration-200 text-left",
                   isActive
-                    ? `bg-${roleColor}/20 text-${roleColor} border border-${roleColor}/30`
+                    ? getRoleStyles(userType, true)
                     : "text-muted-foreground hover:bg-white/5 hover:text-card-foreground",
                   collapsed && "md:justify-center"
                 )}
               >
-                <Icon className={cn("h-5 w-5 flex-shrink-0", isActive && `text-${roleColor}`)} />
+                <Icon className={cn(
+                  "h-5 w-5 flex-shrink-0",
+                  getRoleIconColor(userType, isActive)
+                )} />
                 <span className={cn(
                   "font-medium text-sm",
                   collapsed && "md:hidden"

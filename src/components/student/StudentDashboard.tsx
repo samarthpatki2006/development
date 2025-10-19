@@ -149,10 +149,13 @@ const StudentDashboard = ({ studentData, onNavigate }: StudentDashboardProps) =>
       <div className="bg-card border border-white/10 rounded-lg p-4 sm:p-5 md:p-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-xl sm:text-2xl font-bold mb-2">
+            <h1 className="text-xl sm:text-2xl font-bold mb-2 inline-block">
               Welcome back,
               {studentData.first_name}
             </h1>
+            <Badge className="bg-green-600/30 text-green-100 border border-green-300/40 font-bold px-4 py-1.5 self-start md:self-auto hover:bg-green-600/40 hover:border-green-300/60 hover:cursor-pointer hover:shadow-[0_0_20px_rgba(34,197,94,0.4)] transition-all duration-300 ml-16">
+              STUDENT
+            </Badge>
             <p >Student ID: {studentData.user_code}</p>
           </div>
           <div className="text-right">
@@ -179,8 +182,8 @@ const StudentDashboard = ({ studentData, onNavigate }: StudentDashboardProps) =>
                       <p className="text-xs sm:text-sm font-medium text-muted-foreground truncate mb-1">{stat.title}</p>
                       <p className="text-lg sm:text-xl md:text-2xl font-bold text-foreground truncate">{stat.value}</p>
                     </div>
-                    <div className="p-2 sm:p-3 rounded-lg bg-primary/10 flex-shrink-0 ml-3">
-                      <Icon className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
+                    <div className={`p-2 sm:p-3 rounded-lg flex-shrink-0 ml-3`}>
+                      <Icon className={`h-5 w-5 sm:h-6 ${stat.color} sm:w-6`} />
                     </div>
                   </div>
                 </CardContent>
@@ -191,24 +194,23 @@ const StudentDashboard = ({ studentData, onNavigate }: StudentDashboardProps) =>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-
         {/* Recent Activities */}
-        <Card className="h-[510px] border-white/20 bg-gradient-to-br from-card/60 to-card/40 backdrop-blur-md shadow-2xl overflow-hidden group">
+        <Card className="h-[450px] sm:h-[510px] border-white/20 bg-gradient-to-br from-card/60 to-card/40 backdrop-blur-md shadow-2xl overflow-hidden group">
           <CardHeader className="sticky top-0 z-10 bg-gradient-to-b from-card/95 to-card/80 backdrop-blur-sm border-b border-white/10 pb-4">
-            <CardTitle className="text-xl sm:text-2xl font-bold text-card-foreground">Recent Activities</CardTitle>
-            <CardDescription>Your latest academic activities</CardDescription>
+            <CardTitle className="text-card-foreground text-lg sm:text-xl">Recent Activities</CardTitle>
+            <CardDescription className="text-sm">Your latest academic activities</CardDescription>
           </CardHeader>
-          <CardContent className="h-[calc(100%-100px)] overflow-y-auto overflow-x-hidden scroll-smooth space-y-3 sm:space-y-4 p-4 sm:p-6 scrollbar-hide">
+          <CardContent className="h-[calc(100%-100px)] overflow-y-auto overflow-x-hidden scrollbar-thin space-y-3 sm:space-y-4 p-4 sm:p-6 ">
             {recentActivities.map((activity, index) => (
               <PermissionWrapper key={index} permission={activity.permission}>
-                <div className="flex flex-col sm:flex-row items-start sm:items-start space-y-2 sm:space-y-0 sm:space-x-4 p-4 rounded-lg border border-white/10 hover:border-green-400/40 hover:bg-white/10 cursor-pointer transition-all duration-300 hover:shadow-lg hover:shadow-green-500/10 hover:-translate-y-0.5 will-change-transform">
-                  <div className="flex-shrink-0">
-                    <div className="w-2 h-2 bg-green-400 rounded-full mt-3 animate-pulse shadow-lg shadow-green-400/50"></div>
+                <div key={index} className="flex flex-row items-start justify-start space-x-2 p-3 rounded-lg bg-white/5 border border-white/5 hover:bg-white/10 hover:border-white/10 transition-all duration-300 hover:shadow-md hover:shadow-green-500/5 will-change-transform">
+                  <div className="flex-shrink-0 mt-2 sm:mt-2.5">
+                    <div className="w-2 h-2 bg-green-400 rounded-full  animate-pulse shadow-lg shadow-green-400/50"></div>
                   </div>
-                  <div className="flex-1 min-w-0">
+                  <div className="flex flex-col justify-center flex-1 min-w-0">
                     <p className="font-medium text-card-foreground text-sm sm:text-base truncate">{activity.title}</p>
-                    <p className="text-xs sm:text-sm text-muted-foreground line-clamp-2">{activity.description}</p>
-                    <p className="text-[11px] sm:text-xs text-white/40 font-mono mt-1">{activity.time}</p>
+                    <p className="text-xs sm:text-sm text-muted-foreground leading-snug line-clamp-2">{activity.description}</p>
+                    <p className="text-[10px] sm:text-xs text-white/40 font-mono mt-1">{activity.time}</p>
                   </div>
                 </div>
               </PermissionWrapper>
@@ -217,31 +219,27 @@ const StudentDashboard = ({ studentData, onNavigate }: StudentDashboardProps) =>
         </Card>
 
         {/* Quick Actions */}
-        <Card className="h-[510px] border-white/20 bg-gradient-to-br from-card/60 to-card/40 backdrop-blur-md shadow-2xl overflow-hidden group">
+        <Card className="h-[450px] sm:h-[510px] border-white/20 bg-gradient-to-br from-card/60 to-card/40 backdrop-blur-md shadow-2xl overflow-hidden group">
           <CardHeader className="sticky top-0 z-10 bg-gradient-to-b from-card/95 to-card/80 backdrop-blur-sm border-b border-white/10 pb-4">
-            <CardTitle className="text-lg sm:text-xl md:text-2xl font-bold text-card-foreground">Quick Actions</CardTitle>
-            <CardDescription className="text-sm sm:text-base">Frequently used features - click to navigate</CardDescription>
+            <CardTitle className="text-card-foreground text-lg sm:text-xl">Quick Actions</CardTitle>
+            <CardDescription className="text-sm">Frequently used features - click to navigate</CardDescription>
           </CardHeader>
-          <CardContent className="h-[calc(100%-100px)] overflow-y-auto overflow-x-hidden scroll-smooth space-y-3 sm:space-y-4 p-4 sm:p-6 scrollbar-hide">
+          <CardContent className="h-[calc(100%-100px)] overflow-y-auto overflow-x-hidden scroll-smooth space-y-3 sm:space-y-4 p-4 sm:p-6">
             {quickActions.map((action, index) => {
               const Icon = action.icon;
               return (
                 <PermissionWrapper key={index} permission={action.permission}>
-                  <Button
-                    variant="ghost"
-                    className="w-full flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-4 p-4 rounded-lg border border-white/10 hover:border-green-400/40 hover:bg-white/10 cursor-pointer transition-all duration-300 hover:shadow-lg hover:shadow-green-500/10 hover:scale-[1.01] sm:hover:scale-[1.03] md:hover:scale-105 h-auto will-change-transform"
+                  <div key={index} className="flex flex-row items-start justify-start space-x-4 p-4 rounded-lg bg-white/5 border border-white/5 hover:bg-white/10 hover:border-white/10 transition-all duration-300 hover:shadow-md hover:shadow-green-500/5 will-change-transform"
                     onClick={() => handleQuickActionClick(action.navigateTo, action.title)}
                   >
-                    {/* Icon Section */}
-                    <div className="p-2 sm:p-3 rounded-lg bg-green-500/20 flex-shrink-0">
-                      <Icon className="h-5 w-5 sm:h-6 sm:w-6 text-green-400" />
+                    <div className={`flex-shrink-0 p-2  ${action.color} transition-colors flex items-start self-start mt-1 mr-2`}>
+                      <Icon className="h-4 w-4 sm:h-5 sm:w-5 " />
                     </div>
-                    {/* Text Section */}
-                    <div className="flex-1 text-left min-w-0">
-                      <p className="font-medium text-sm sm:text-base break-words whitespace-normal">{action.title}</p>
-                      <p className="text-xs sm:text-sm text-muted-foreground opacity-80 break-words whitespace-normal">{action.description}</p>
+                    <div className="flex flex-col justify-center flex-1 min-w-0">
+                      <p className="font-medium text-card-foreground text-sm sm:text-base truncate">{action.title}</p>
+                      <p className="text-xs sm:text-sm text-muted-foreground leading-snug line-clamp-2">{action.description}</p>
                     </div>
-                  </Button>
+                  </div>
                 </PermissionWrapper>
               );
             })}

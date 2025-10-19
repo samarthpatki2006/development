@@ -346,7 +346,7 @@ const Admin = () => {
       <div className="fixed inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:40px_40px] pointer-events-none"></div>
 
       {/* Header */}
-      <div className="relative z-[100] bg-background/95 backdrop-blur-sm border-b border-white/10 sticky top-0">
+      <div className="fixed w-full z-[100] bg-background/95 backdrop-blur-sm border-b border-white/10">
         <div className="container mx-auto px-3 sm:px-4">
           <div className="flex justify-between items-center h-16">
             {/* Left Section */}
@@ -552,7 +552,7 @@ const Admin = () => {
         />
 
         {/* Main Content */}
-        <div className="flex-1 w-full min-w-0 transition-all duration-300 ease-in-out p-3 sm:p-6">
+        <div className="flex-1 w-full min-w-0 transition-all duration-300 ease-in-out p-3 sm:p-6 mt-[60px] md:mt-[50px]">
           {renderContent()}
         </div>
       </div>

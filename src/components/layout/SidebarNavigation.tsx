@@ -87,7 +87,7 @@ const SidebarNavigation = ({
           collapsed ? "md:w-16" : "md:w-64", 
           mobileOpen
             ? "translate-x-0 opacity-100 mt-[60px]"
-            : "-translate-x-full md:translate-x-0 opacity-0 md:opacity-100"
+            : "-translate-x-full md:translate-x-0 opacity-0 md:opacity-100 mt-[60px]"
         )}
       >
         {/* Mobile Close Button */}

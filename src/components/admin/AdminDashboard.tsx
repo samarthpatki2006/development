@@ -426,11 +426,11 @@ const AdminDashboard = ({ sessionData }: AdminDashboardProps) => {
                 {userProfile.hierarchy_level.replace('_', ' ').toUpperCase()}
               </Badge>
 
-              <div className="flex items-center gap-3">
+              <div className="flex-col md:flex-row space-y-4">
                 <Button
                   variant="outline"
                   size="sm"
-                  className="w-auto border-white/20 bg-white/10 backdrop-blur-sm text-white hover:bg-white/20 hover:border-white/30 will-change-transform"
+                  className="w-auto border-white/20 bg-white/10 backdrop-blur-sm text-white hover:bg-white/20 hover:border-white/30 will-change-transform mr-2 md-4"
                 >
                   <Bell className="w-4 h-4 mr-2" />
                   <span className="hidden sm:inline">Alerts</span>

@@ -220,7 +220,7 @@ Thank you for your payment!
   const totalPending = pendingFees.reduce((sum, fee) => sum + Number(fee.due_amount), 0);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-fade-in-up px-3 sm:px-4 md:px-6 overflow-x-hidden w-full">
       {/* Child Selection */}
       <Card>
         <CardHeader>
@@ -247,24 +247,24 @@ Thank you for your payment!
           {/* Payment Summary */}
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <DollarSign className="h-5 w-5" />
+              <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                <DollarSign className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
                 <span>Payment Summary - {selectedChildName}</span>
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="text-center">
-                  <div className="text-3xl font-bold text-red-600">₹{totalPending.toLocaleString()}</div>
-                  <p className="text-sm text-gray-600">Total Pending</p>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="text-center p-4 bg-gray-900/50 border border-red-500/20 rounded-lg">
+                  <div className="text-2xl sm:text-3xl font-bold text-red-400">₹{totalPending.toLocaleString()}</div>
+                  <p className="text-xs sm:text-sm text-gray-400 mt-1">Total Pending</p>
                 </div>
-                <div className="text-center">
-                  <div className="text-3xl font-bold text-blue-600">{pendingFees.length}</div>
-                  <p className="text-sm text-gray-600">Pending Payments</p>
+                <div className="text-center p-4 bg-gray-900/50 border border-blue-500/20 rounded-lg">
+                  <div className="text-2xl sm:text-3xl font-bold text-blue-400">{pendingFees.length}</div>
+                  <p className="text-xs sm:text-sm text-gray-400 mt-1">Pending Payments</p>
                 </div>
-                <div className="text-center">
-                  <div className="text-3xl font-bold text-green-600">{paymentHistory.length}</div>
-                  <p className="text-sm text-gray-600">Completed Payments</p>
+                <div className="text-center p-4 bg-gray-900/50 border border-green-500/20 rounded-lg">
+                  <div className="text-2xl sm:text-3xl font-bold text-green-400">{paymentHistory.length}</div>
+                  <p className="text-xs sm:text-sm text-gray-400 mt-1">Completed Payments</p>
                 </div>
               </div>
             </CardContent>
@@ -273,28 +273,28 @@ Thank you for your payment!
           {/* Pending Fees */}
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <Clock className="h-5 w-5" />
+              <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                <Clock className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
                 <span>Pending Fee Payments</span>
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
                 {pendingFees.map((fee) => (
-                  <div key={fee.id} className="border rounded-lg p-4">
-                    <div className="flex justify-between items-start mb-2">
-                      <div>
-                        <h4 className="font-medium">{fee.fee_structures.fee_type}</h4>
-                        <p className="text-sm text-gray-600">
+                  <div key={fee.id} className="bg-gray-900/30 border border-gray-700/50 rounded-lg p-3 sm:p-4">
+                    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3 mb-3">
+                      <div className="flex-1">
+                        <h4 className="font-medium text-sm sm:text-base">{fee.fee_structures.fee_type}</h4>
+                        <p className="text-xs sm:text-sm text-gray-400 mt-1">
                           {fee.fee_structures.academic_year} - {fee.fee_structures.semester || 'Full Year'}
                         </p>
-                        <p className="text-sm text-gray-600">
+                        <p className="text-xs sm:text-sm text-gray-400">
                           Due: {new Date(fee.due_date).toLocaleDateString()}
                         </p>
                       </div>
-                      <div className="text-right">
-                        <div className="text-xl font-bold">₹{Number(fee.due_amount).toLocaleString()}</div>
-                        <Badge className={getStatusColor(fee.status)}>
+                      <div className="text-left sm:text-right">
+                        <div className="text-lg sm:text-xl font-bold">₹{Number(fee.due_amount).toLocaleString()}</div>
+                        <Badge className={`${getStatusColor(fee.status)} mt-1 w-fit`}>
                           {fee.status.charAt(0).toUpperCase() + fee.status.slice(1)}
                         </Badge>
                       </div>
@@ -302,28 +302,28 @@ Thank you for your payment!
                     <div className="flex justify-end">
                       <Dialog>
                         <DialogTrigger asChild>
-                          <Button onClick={() => setSelectedFee(fee)}>
+                          <Button onClick={() => setSelectedFee(fee)} className="w-full sm:w-auto">
                             <CreditCard className="h-4 w-4 mr-2" />
                             Pay Now
                           </Button>
                         </DialogTrigger>
-                        <DialogContent>
+                        <DialogContent className="w-[95vw] max-w-md">
                           <DialogHeader>
                             <DialogTitle>Make Payment</DialogTitle>
                           </DialogHeader>
                           <div className="space-y-4">
                             <div>
-                              <Label>Fee Type</Label>
-                              <Input value={fee.fee_structures.fee_type} disabled />
+                              <Label className="text-sm">Fee Type</Label>
+                              <Input value={fee.fee_structures.fee_type} disabled className="mt-1" />
                             </div>
                             <div>
-                              <Label>Amount</Label>
-                              <Input value={`₹${Number(fee.due_amount).toLocaleString()}`} disabled />
+                              <Label className="text-sm">Amount</Label>
+                              <Input value={`₹${Number(fee.due_amount).toLocaleString()}`} disabled className="mt-1" />
                             </div>
                             <div>
-                              <Label>Payment Method</Label>
+                              <Label className="text-sm">Payment Method</Label>
                               <Select value={paymentMethod} onValueChange={setPaymentMethod}>
-                                <SelectTrigger>
+                                <SelectTrigger className="mt-1">
                                   <SelectValue placeholder="Select payment method" />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -345,7 +345,7 @@ Thank you for your payment!
                   </div>
                 ))}
                 {pendingFees.length === 0 && (
-                  <p className="text-center text-gray-500 py-8">No pending payments</p>
+                  <p className="text-center text-gray-500 py-8 text-sm">No pending payments</p>
                 )}
               </div>
             </CardContent>
@@ -354,43 +354,44 @@ Thank you for your payment!
           {/* Payment History */}
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <CheckCircle className="h-5 w-5" />
+              <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                <CheckCircle className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
                 <span>Payment History</span>
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
                 {paymentHistory.map((payment) => (
-                  <div key={payment.id} className="border rounded-lg p-4">
-                    <div className="flex justify-between items-start mb-2">
-                      <div>
-                        <h4 className="font-medium">{payment.fee_structures.fee_type}</h4>
-                        <p className="text-sm text-gray-600">
+                  <div key={payment.id} className="bg-gray-900/30 border border-gray-700/50 rounded-lg p-3 sm:p-4">
+                    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3 mb-3">
+                      <div className="flex-1">
+                        <h4 className="font-medium text-sm sm:text-base">{payment.fee_structures.fee_type}</h4>
+                        <p className="text-xs sm:text-sm text-gray-400 mt-1">
                           {payment.fee_structures.academic_year} - {payment.fee_structures.semester || 'Full Year'}
                         </p>
-                        <p className="text-sm text-gray-600">
+                        <p className="text-xs sm:text-sm text-gray-400">
                           Paid: {new Date(payment.payment_date).toLocaleDateString()}
                         </p>
-                        <p className="text-sm text-gray-600">
+                        <p className="text-xs sm:text-sm text-gray-400 break-all">
                           Transaction ID: {payment.transaction_id}
                         </p>
                       </div>
-                      <div className="text-right">
-                        <div className="text-xl font-bold">₹{Number(payment.amount_paid).toLocaleString()}</div>
-                        <Badge className={getPaymentStatusColor(payment.status)}>
+                      <div className="text-left sm:text-right">
+                        <div className="text-lg sm:text-xl font-bold">₹{Number(payment.amount_paid).toLocaleString()}</div>
+                        <Badge className={`${getPaymentStatusColor(payment.status)} mt-1 w-fit`}>
                           {payment.status.charAt(0).toUpperCase() + payment.status.slice(1)}
                         </Badge>
                       </div>
                     </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-600">
+                    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 pt-3 border-t border-gray-700/50">
+                      <span className="text-xs sm:text-sm text-gray-400">
                         Payment Method: {payment.payment_method}
                       </span>
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={() => downloadReceipt(payment)}
+                        className="w-full sm:w-auto"
                       >
                         <Download className="h-4 w-4 mr-2" />
                         Download Receipt
@@ -399,7 +400,7 @@ Thank you for your payment!
                   </div>
                 ))}
                 {paymentHistory.length === 0 && (
-                  <p className="text-center text-gray-500 py-8">No payment history</p>
+                  <p className="text-center text-gray-500 py-8 text-sm">No payment history</p>
                 )}
               </div>
             </CardContent>

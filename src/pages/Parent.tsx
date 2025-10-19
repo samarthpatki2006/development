@@ -2,15 +2,16 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from "@/components/ui/use-toast";
 import { Button } from '@/components/ui/button';
-import { 
-  User, 
-  BookOpen, 
-  Calendar, 
-  CreditCard, 
-  MessageSquare, 
-  Users, 
-  Bell, 
-  Settings, 
+import { Badge } from '@/components/ui/badge';
+import {
+  User,
+  BookOpen,
+  Calendar,
+  CreditCard,
+  MessageSquare,
+  Users,
+  Bell,
+  Settings,
   TrendingUp,
   LogOut,
   Mail,
@@ -20,7 +21,8 @@ import {
   X,
   GraduationCap,
   DollarSign,
-  Clock
+  Clock,
+  Menu
 } from 'lucide-react';
 import SidebarNavigation from '@/components/layout/SidebarNavigation';
 import ParentDashboard from '@/components/parent/ParentDashboard';
@@ -39,14 +41,15 @@ const Parent = () => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
   const navigate = useNavigate();
-  
+  const [isMobile, setIsMobile] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
   const notificationRef = useRef(null);
   const userMenuRef = useRef(null);
 
   // Mock notifications for parents
-  const [notifications] = useState([
+  const [notifications, setNotifications] = useState([
     {
       id: 1,
       type: 'warning',
@@ -91,17 +94,19 @@ const Parent = () => {
 
   // Check for mobile view
   useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768);
-      if (window.innerWidth < 768) {
-        setSidebarCollapsed(true);
-      }
-    };
-
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
+      const checkMobile = () => {
+        const mobile = window.innerWidth < 768;
+        setIsMobile(mobile);
+        // Close mobile menu when switching to desktop
+        if (!mobile) {
+          setMobileMenuOpen(false);
+        }
+      };
+  
+      checkMobile();
+      window.addEventListener('resize', checkMobile);
+      return () => window.removeEventListener('resize', checkMobile);
+    }, []);
 
   // Handle clicks outside dropdowns
   useEffect(() => {
@@ -117,6 +122,42 @@ const Parent = () => {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+
+
+
+
+  const handleSidebarToggle = () => {
+    if (isMobile) {
+      setMobileMenuOpen(!mobileMenuOpen);
+    } else {
+      setSidebarCollapsed(!sidebarCollapsed);
+    }
+  };
+
+  const handleNotificationClick = () => {
+    setShowNotifications(!showNotifications);
+    setShowUserMenu(false);
+  };
+
+  const clearAllNotifications = () => {
+    setNotifications([]);
+    setShowNotifications(false);
+    toast({
+      title: 'Notifications Cleared',
+      description: 'All notifications have been cleared.',
+    });
+  };
+
+  const markNotificationAsRead = (notificationId) => {
+    setNotifications(prevNotifications =>
+      prevNotifications.map(notification =>
+        notification.id === notificationId
+          ? { ...notification, read: true }
+          : notification
+      )
+    );
+  };
 
   useEffect(() => {
     const checkUser = async () => {
@@ -226,221 +267,236 @@ const Parent = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background overflow-x-hidden">
       {/* Background Grid */}
       <div className="fixed inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:40px_40px] pointer-events-none"></div>
-      
+
       {/* Header */}
-      <div className="relative z-[100] bg-background/95 backdrop-blur-sm border-b border-white/10">
-        <div className="container px-4 mx-auto">
+      <div className="fixed w-full z-[100] bg-background/95 backdrop-blur-sm border-b border-white/10">
+        <div className="container mx-auto px-3 sm:px-4">
           <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-6">
+            {/* Left Section */}
+            <div className="flex items-center space-x-3 sm:space-x-6">
+              {/* UPDATED: Sidebar Toggle */}
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-                className="h-9 w-9 rounded-lg hover:bg-white/10 transition-colors"
+                onClick={handleSidebarToggle}
+                className="h-9 w-9 rounded-lg hover:bg-white/10 transition-all duration-200 ease-in-out"
               >
                 <span className="sr-only">Toggle sidebar</span>
-                <div className="w-4 h-4 flex flex-col space-y-1">
-                  <div className="w-full h-0.5 bg-foreground"></div>
-                  <div className="w-full h-0.5 bg-foreground"></div>
-                  <div className="w-full h-0.5 bg-foreground"></div>
-                </div>
+                <Menu className="h-7 w-7" />
               </Button>
-              <h1 className="text-2xl font-bold text-foreground">ColCord</h1>
-              {!isMobile && (
-                <>
+
+
+              {/* Logo + Portal Name */}
+              <div className="flex items-center space-x-2">
+                <h1 className="text-xl sm:text-2xl font-bold text-foreground">ColCord</h1>
+                <div className="hidden sm:flex items-center space-x-2">
                   <div className="h-6 w-px bg-white/20"></div>
                   <div className="flex items-center space-x-2">
                     <div className="h-2 w-2 bg-role-parent rounded-full animate-pulse-indicator"></div>
-                    <span className="text-lg font-medium text-foreground">Parent Portal</span>
+                    <span className="text-sm sm:text-lg font-medium text-foreground">Parent Portal</span>
                   </div>
-                </>
-              )}
+                </div>
+              </div>
             </div>
-            <div className="flex items-center space-x-3">
-              {!isMobile && (
-                <span className="text-sm text-muted-foreground">
-                  Welcome, {user.first_name} {user.last_name}
-                </span>
-              )}
-              
+
+
+            <div className="flex items-center space-x-2 sm:space-x-3">
               {/* Notifications Dropdown */}
               <div className="relative" ref={notificationRef}>
-                <Button 
-                  variant="ghost" 
+                <Button
+                  variant="ghost"
                   size="icon"
-                  onClick={toggleNotifications}
-                  className="h-9 w-9 rounded-lg hover:bg-white/10 transition-colors relative"
+                  onClick={handleNotificationClick}
+                  className="h-9 w-9 rounded-lg hover:bg-white/10 transition-all relative will-change-transform"
                 >
-                  <Bell className="h-5 w-5 text-foreground" />
+                  <Bell className="h-9 w-9 text-foreground" />
                   {unreadCount > 0 && (
-                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center min-w-[20px]">
-                      {unreadCount}
-                    </span>
+                    <div className="absolute -top-1 -right-1 h-5 w-5 bg-red-500 rounded-full flex items-center justify-center">
+                      <span className="text-xs text-white font-medium">{unreadCount}</span>
+                    </div>
                   )}
                 </Button>
 
                 {/* Notifications Panel */}
                 {showNotifications && (
-                  <div className="absolute right-0 mt-2 w-80 max-w-[90vw] bg-background/95 backdrop-blur-md border border-white/20 rounded-xl shadow-2xl z-[9999]">
-                    <div className="p-4 border-b border-white/10">
-                      <div className="flex items-center justify-between">
-                        <h3 className="text-lg font-semibold text-foreground">Notifications</h3>
+                  <div className="fixed right-3 sm:right-4 top-20 w-72 sm:w-96 bg-background/95 backdrop-blur-xl border border-white/20 rounded-xl shadow-2xl z-[9999]">
+                    <div className="p-4 border-b border-white/10 flex items-center justify-between">
+                      <h3 className="text-base sm:text-lg font-semibold text-foreground">Notifications</h3>
+                      <div className="flex items-center space-x-2">
+                        {notifications.length > 0 && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={clearAllNotifications}
+                            className="text-xs text-muted-foreground hover:text-foreground"
+                          >
+                            Clear All
+                          </Button>
+                        )}
                         <Button
                           variant="ghost"
                           size="icon"
                           onClick={() => setShowNotifications(false)}
-                          className="h-6 w-6 rounded-lg hover:bg-white/10"
+                          className="h-6 w-6"
                         >
                           <X className="h-4 w-4" />
                         </Button>
                       </div>
-                      {unreadCount > 0 && (
-                        <p className="text-sm text-muted-foreground mt-1">
-                          {unreadCount} unread notification{unreadCount > 1 ? 's' : ''}
-                        </p>
-                      )}
                     </div>
-                    <div className="max-h-80 overflow-y-auto">
-                      {notifications.map((notification) => (
-                        <div
-                          key={notification.id}
-                          className={`p-4 border-b border-white/5 hover:bg-white/5 transition-colors ${
-                            !notification.read ? 'bg-white/5' : ''
-                          }`}
-                        >
-                          <div className="flex items-start space-x-3">
-                            {getNotificationIcon(notification.type)}
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center justify-between">
-                                <p className="text-sm font-medium text-foreground truncate">
-                                  {notification.title}
-                                </p>
-                                {!notification.read && (
-                                  <div className="h-2 w-2 bg-blue-500 rounded-full ml-2 flex-shrink-0"></div>
-                                )}
+
+                    <div className="max-h-80 sm:max-h-96 overflow-y-auto">
+                      {notifications.length === 0 ? (
+                        <div className="p-6 text-center">
+                          <Bell className="h-10 sm:h-12 w-10 sm:w-12 text-muted-foreground mx-auto mb-3 opacity-50" />
+                          <p className="text-sm text-muted-foreground">No notifications</p>
+                        </div>
+                      ) : (
+                        notifications.map((notification) => (
+                          <div
+                            key={notification.id}
+                            className={`p-4 border-b border-white/10 cursor-pointer hover:bg-white/5 transition-colors ${!notification.read ? 'bg-white/5' : ''
+                              }`}
+                            onClick={() => markNotificationAsRead(notification.id)}
+                          >
+                            <div className="flex items-start space-x-3">
+                              <div className="flex-shrink-0 mt-1">
+                                {getNotificationIcon(notification.type)}
                               </div>
-                              <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
-                                {notification.message}
-                              </p>
-                              <p className="text-xs text-muted-foreground mt-2">
-                                {notification.time}
-                              </p>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center justify-between">
+                                  <p className="text-sm font-medium text-foreground truncate">
+                                    {notification.title}
+                                  </p>
+                                  {!notification.read && (
+                                    <div className="h-2 w-2 bg-blue-500 rounded-full ml-2"></div>
+                                  )}
+                                </div>
+                                <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
+                                  {notification.message}
+                                </p>
+                                <p className="text-xs text-muted-foreground mt-2">
+                                  {notification.time}
+                                </p>
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      ))}
-                    </div>
-                    <div className="p-4 border-t border-white/10">
-                      <Button variant="ghost" className="w-full text-sm text-muted-foreground hover:text-foreground">
-                        View All Notifications
-                      </Button>
+                        ))
+                      )}
                     </div>
                   </div>
                 )}
               </div>
-              
-              
+
+
               {/* User Menu Dropdown */}
               <div className="relative" ref={userMenuRef}>
-                <Button 
-                  variant="ghost" 
+                <Button
+                  variant="ghost"
                   size="icon"
                   onClick={toggleUserMenu}
-                  className="h-9 w-9 rounded-lg hover:bg-white/10 transition-colors"
+                  className="h-9 w-9 rounded-lg hover:bg-white/10 transition-all will-change-transform"
                 >
-                  <User className="h-5 w-5 text-foreground" />
+                  <User className="h-9 w-9 text-foreground" />
                 </Button>
 
                 {/* User Menu Panel */}
                 {showUserMenu && (
-                  <div className="absolute right-0 mt-2 w-72 max-w-[90vw] bg-background/95 backdrop-blur-md border border-white/20 rounded-xl shadow-2xl z-[9999]">
+                  <div className="fixed right-3 sm:right-4 top-20 w-60 sm:w-64 bg-background/95 backdrop-blur-xl border border-white/20 rounded-xl shadow-2xl z-[9999]">
                     <div className="p-4 border-b border-white/10">
                       <div className="flex items-center space-x-3">
-                        <div className="h-12 w-12 rounded-full bg-gradient-to-br from-green-500 to-teal-600 flex items-center justify-center">
+                        <div className="h-10 sm:h-12 w-10 sm:w-12 bg-gradient-to-br from-green-500 to-teal-600 flex items-center justify-center">
                           <span className="text-white font-semibold text-lg">
                             {user.first_name?.[0]}{user.last_name?.[0]}
                           </span>
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-base font-semibold text-foreground truncate">
+                          <p className="text-sm font-medium text-foreground truncate">
                             {user.first_name} {user.last_name}
                           </p>
-                          <p className="text-sm text-muted-foreground truncate">
+                          <p className="text-xs text-muted-foreground truncate">
                             {user.email}
                           </p>
-                          <div className="flex items-center space-x-2 mt-1">
-                            <div className="px-2 py-1 bg-role-parent/20 text-role-parent text-xs rounded-md font-medium">
+
+                          <div className="flex items-center space-x-2 mt-2">
+                            <Badge className="bg-gray-500/20 text-gray-300 border-gray-400/30 font-medium text-xs pointer-events-none">
                               Parent
-                            </div>
-                            <span className="text-xs text-muted-foreground">
+                            </Badge>
+                            <span className=" text-gray-300 border-gray-400/30 text-xs font-medium">
                               {user.user_code || 'PAR001'}
                             </span>
                           </div>
                         </div>
                       </div>
                     </div>
-                    
-                    <div className="p-2">
+
+
+
+                    <div className="p-2 space-y-2 sm:space-y-0 ">
                       <Button
                         variant="ghost"
-                        className="w-full justify-start text-left hover:bg-white/10"
                         onClick={() => {
-                          setActiveView('academic');
                           setShowUserMenu(false);
+                          setActiveView('academic');
                         }}
+                        className="w-full justify-start text-sm text-muted-foreground hover:text-foreground hover:bg-white/5 rounded-lg will-change-transform"
                       >
                         <TrendingUp className="h-4 w-4 mr-3" />
                         Academic Progress
                       </Button>
-                      
+
                       <Button
                         variant="ghost"
-                        className="w-full justify-start text-left hover:bg-white/10"
                         onClick={() => {
-                          setActiveView('attendance');
                           setShowUserMenu(false);
+                          setActiveView('attendance');
                         }}
+                        className="w-full justify-start text-sm text-muted-foreground hover:text-foreground hover:bg-white/5 rounded-lg will-change-transform"
                       >
                         <Calendar className="h-4 w-4 mr-3" />
                         Attendance Tracking
                       </Button>
-                      
+
                       <Button
                         variant="ghost"
-                        className="w-full justify-start text-left hover:bg-white/10"
                         onClick={() => {
-                          setActiveView('payments');
                           setShowUserMenu(false);
+                          setActiveView('payments');
                         }}
+                        className="w-full justify-start text-sm text-muted-foreground hover:text-foreground hover:bg-white/5 rounded-lg will-change-transform"
                       >
                         <CreditCard className="h-4 w-4 mr-3" />
                         Payments & Fees
                       </Button>
-                      
+
                       <Button
                         variant="ghost"
-                        className="w-full justify-start text-left hover:bg-white/10"
                         onClick={() => {
-                          setActiveView('communication');
                           setShowUserMenu(false);
+                          setActiveView('communication');
                         }}
+                        className="w-full justify-start text-sm text-muted-foreground hover:text-foreground hover:bg-white/5 rounded-lg will-change-transform"
                       >
                         <MessageSquare className="h-4 w-4 mr-3" />
                         Communication
                       </Button>
-                      
-                      <div className="my-2 h-px bg-white/10"></div>
-                      
+
+
+
+                      <div className="h-px bg-white/10 my-2"></div>
+
                       <Button
                         variant="ghost"
-                        className="w-full justify-start text-left hover:bg-red-500/10 text-red-400 hover:text-red-300"
-                        onClick={handleLogout}
+                        onClick={() => {
+                          setShowUserMenu(false);
+                          handleLogout();
+                        }}
+                        className="w-full justify-start text-sm text-red-400 hover:text-red-300 hover:bg-ref-500/10 rounded-lg will-change-transform"
                       >
-                        <LogOut className="h-4 w-4 mr-3" />
-                        Sign Out
+                        <LogOut className="text-red-300 h-4 w-4 mr-3" />
+                        Logout
                       </Button>
                     </div>
                   </div>
@@ -452,29 +508,23 @@ const Parent = () => {
       </div>
 
       {/* Main Layout */}
-      <div className="relative z-10 flex">
+      <div className="relative z-10 flex min-h-[calc(100vh-4rem)]">
         {/* Sidebar */}
         <SidebarNavigation
           items={sidebarItems}
           activeItem={activeView}
           onItemClick={setActiveView}
           userType="parent"
-          collapsed={isMobile || sidebarCollapsed}
+          collapsed={sidebarCollapsed}
+          mobileOpen={mobileMenuOpen}
+          onMobileClose={() => setMobileMenuOpen(false)}
         />
 
         {/* Main Content */}
-        <div className={`flex-1 p-4 md:p-6 ${isMobile ? 'ml-0' : ''}`}>
+        <div className="flex-1 w-full min-w-0 transition-all duration-300 ease-in-out p-3 sm:p-6 mt-[60px] md:mt-[50px]">
           {renderContent()}
         </div>
       </div>
-      
-      {/* Mobile overlay when sidebar is open */}
-      {isMobile && !sidebarCollapsed && (
-        <div 
-          className="fixed inset-0 bg-black/50 z-[50] md:hidden"
-          onClick={() => setSidebarCollapsed(true)}
-        />
-      )}
     </div>
   );
 };

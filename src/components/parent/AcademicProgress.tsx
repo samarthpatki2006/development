@@ -143,229 +143,229 @@ const AcademicProgress = ({ user }: AcademicProgressProps) => {
   const selectedChildName = children.find(child => child.student_id === selectedChild)?.student_name || '';
 
   return (
-    <div className="space-y-6">
-      {/* Child Selection */}
+    <div className="space-y-6 animate-fade-in-up px-3 sm:px-4 md:px-6 overflow-x-hidden w-full">
+  {/* Child Selection */}
+  <Card>
+    <CardHeader>
+      <CardTitle>Select Child</CardTitle>
+    </CardHeader>
+    <CardContent>
+      <Select value={selectedChild} onValueChange={setSelectedChild}>
+        <SelectTrigger className="w-full">
+          <SelectValue placeholder="Select a child" />
+        </SelectTrigger>
+        <SelectContent>
+          {children.map((child) => (
+            <SelectItem key={child.student_id} value={child.student_id}>
+              {child.student_name} ({child.user_code})
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </CardContent>
+  </Card>
+
+  {selectedChild && (
+    <>
+      {/* Overall Performance */}
       <Card>
         <CardHeader>
-          <CardTitle>Select Child</CardTitle>
+          <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+            <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
+            <span>Overall Performance - {selectedChildName}</span>
+          </CardTitle>
         </CardHeader>
         <CardContent>
-          <Select value={selectedChild} onValueChange={setSelectedChild}>
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Select a child" />
-            </SelectTrigger>
-            <SelectContent>
-              {children.map((child) => (
-                <SelectItem key={child.student_id} value={child.student_id}>
-                  {child.student_name} ({child.user_code})
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="text-center p-4 bg-gray-900/50 border border-blue-500/20 rounded-lg">
+              <div className="text-2xl sm:text-3xl font-bold text-blue-400">
+                {grades.length > 0 
+                  ? Math.round(grades.reduce((sum, grade) => sum + (grade.marks_obtained / grade.max_marks * 100), 0) / grades.length)
+                  : 0}%
+              </div>
+              <p className="text-xs sm:text-sm text-gray-400 mt-1">Average Score</p>
+            </div>
+            <div className="text-center p-4 bg-gray-900/50 border border-green-500/20 rounded-lg">
+              <div className="text-2xl sm:text-3xl font-bold text-green-400">
+                {grades.length > 0 
+                  ? getGradeLetter(grades.reduce((sum, grade) => sum + (grade.marks_obtained / grade.max_marks * 100), 0) / grades.length)
+                  : 'N/A'}
+              </div>
+              <p className="text-xs sm:text-sm text-gray-400 mt-1">Overall Grade</p>
+            </div>
+            <div className="text-center p-4 bg-gray-900/50 border border-purple-500/20 rounded-lg">
+              <div className="text-2xl sm:text-3xl font-bold text-purple-400">{grades.length}</div>
+              <p className="text-xs sm:text-sm text-gray-400 mt-1">Total Assessments</p>
+            </div>
+          </div>
         </CardContent>
       </Card>
 
-      {selectedChild && (
-        <>
-          {/* Overall Performance */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <TrendingUp className="h-5 w-5" />
-                <span>Overall Performance - {selectedChildName}</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="text-center">
-                  <div className="text-3xl font-bold text-blue-600">
-                    {grades.length > 0 
-                      ? Math.round(grades.reduce((sum, grade) => sum + (grade.marks_obtained / grade.max_marks * 100), 0) / grades.length)
-                      : 0}%
+      {/* Course-wise Performance */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+            <BookOpen className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
+            <span>Course-wise Performance</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {grades.reduce((courses: any[], grade) => {
+              const existingCourse = courses.find(c => c.course_id === grade.course_id);
+              if (existingCourse) {
+                existingCourse.grades.push(grade);
+              } else {
+                courses.push({
+                  course_id: grade.course_id,
+                  course_name: grade.courses?.course_name,
+                  course_code: grade.courses?.course_code,
+                  grades: [grade]
+                });
+              }
+              return courses;
+            }, []).map((course) => {
+              const avgPercentage = course.grades.reduce((sum: number, grade: any) => 
+                sum + (grade.marks_obtained / grade.max_marks * 100), 0) / course.grades.length;
+              
+              return (
+                <div key={course.course_id} className="bg-gray-900/30 border border-gray-700/50 rounded-lg p-3 sm:p-4">
+                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 mb-3">
+                    <h4 className="font-medium text-sm sm:text-base">{course.course_name}</h4>
+                    <Badge variant="outline" className="w-fit">{course.course_code}</Badge>
                   </div>
-                  <p className="text-sm text-gray-600">Average Score</p>
-                </div>
-                <div className="text-center">
-                  <div className="text-3xl font-bold text-green-600">
-                    {grades.length > 0 
-                      ? getGradeLetter(grades.reduce((sum, grade) => sum + (grade.marks_obtained / grade.max_marks * 100), 0) / grades.length)
-                      : 'N/A'}
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-xs sm:text-sm">
+                      <span>Average Performance</span>
+                      <span className={`font-medium ${getGradeColor(avgPercentage)}`}>
+                        {Math.round(avgPercentage)}% ({getGradeLetter(avgPercentage)})
+                      </span>
+                    </div>
+                    <Progress value={avgPercentage} className="h-2" />
+                    <div className="text-xs text-gray-400">
+                      Based on {course.grades.length} assessment(s)
+                    </div>
                   </div>
-                  <p className="text-sm text-gray-600">Overall Grade</p>
                 </div>
-                <div className="text-center">
-                  <div className="text-3xl font-bold text-purple-600">{grades.length}</div>
-                  <p className="text-sm text-gray-600">Total Assessments</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+              );
+            })}
+          </div>
+        </CardContent>
+      </Card>
 
-          {/* Course-wise Performance */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <BookOpen className="h-5 w-5" />
-                <span>Course-wise Performance</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {grades.reduce((courses: any[], grade) => {
-                  const existingCourse = courses.find(c => c.course_id === grade.course_id);
-                  if (existingCourse) {
-                    existingCourse.grades.push(grade);
-                  } else {
-                    courses.push({
-                      course_id: grade.course_id,
-                      course_name: grade.courses?.course_name,
-                      course_code: grade.courses?.course_code,
-                      grades: [grade]
-                    });
-                  }
-                  return courses;
-                }, []).map((course) => {
-                  const avgPercentage = course.grades.reduce((sum: number, grade: any) => 
-                    sum + (grade.marks_obtained / grade.max_marks * 100), 0) / course.grades.length;
+      {/* Recent Assignments */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+            <FileText className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
+            <span>Recent Assignment Results</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-3">
+            {assignments.map((submission) => {
+              const percentage = submission.marks_obtained 
+                ? (submission.marks_obtained / submission.assignments.max_marks * 100)
+                : null;
+              
+              return (
+                <div key={submission.id} className="bg-gray-900/30 border border-gray-700/50 rounded-lg p-3 sm:p-4">
+                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2 sm:gap-4 mb-2">
+                    <div className="flex-1">
+                      <h4 className="font-medium text-sm sm:text-base">{submission.assignments.title}</h4>
+                      <p className="text-xs sm:text-sm text-gray-400 mt-1">
+                        {submission.assignments.courses.course_name}
+                      </p>
+                    </div>
+                    {percentage !== null ? (
+                      <div className="text-left sm:text-right">
+                        <div className={`text-lg font-bold ${getGradeColor(percentage)}`}>
+                          {submission.marks_obtained}/{submission.assignments.max_marks}
+                        </div>
+                        <div className="text-sm text-gray-400">
+                          {Math.round(percentage)}%
+                        </div>
+                      </div>
+                    ) : (
+                      <Badge variant="secondary" className="w-fit">Pending</Badge>
+                    )}
+                  </div>
+                  {submission.feedback && (
+                    <div className="mt-2 p-2 sm:p-3 bg-gray-800/50 border border-gray-700/30 rounded text-xs sm:text-sm">
+                      <strong>Feedback:</strong> {submission.feedback}
+                    </div>
+                  )}
+                  <div className="text-xs text-gray-500 mt-2">
+                    Submitted: {new Date(submission.submitted_at).toLocaleDateString()}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Progress Reports */}
+      {progressReports.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+              <Award className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
+              <span>Progress Reports</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {progressReports.map((report) => (
+                <div key={report.id} className="bg-gray-900/30 border border-gray-700/50 rounded-lg p-3 sm:p-4">
+                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 mb-3">
+                    <h4 className="font-medium text-sm sm:text-base">{report.courses.course_name}</h4>
+                    <Badge variant="outline" className="w-fit">{report.report_period}</Badge>
+                  </div>
                   
-                  return (
-                    <div key={course.course_id} className="border rounded-lg p-4">
-                      <div className="flex justify-between items-center mb-2">
-                        <h4 className="font-medium">{course.course_name}</h4>
-                        <Badge variant="outline">{course.course_code}</Badge>
+                  {report.attendance_percentage && (
+                    <div className="mb-3">
+                      <div className="flex justify-between text-xs sm:text-sm mb-1">
+                        <span>Attendance</span>
+                        <span className="font-medium">{report.attendance_percentage}%</span>
                       </div>
-                      <div className="space-y-2">
-                        <div className="flex justify-between text-sm">
-                          <span>Average Performance</span>
-                          <span className={`font-medium ${getGradeColor(avgPercentage)}`}>
-                            {Math.round(avgPercentage)}% ({getGradeLetter(avgPercentage)})
-                          </span>
-                        </div>
-                        <Progress value={avgPercentage} className="h-2" />
-                        <div className="text-xs text-gray-600">
-                          Based on {course.grades.length} assessment(s)
-                        </div>
-                      </div>
+                      <Progress value={Number(report.attendance_percentage)} className="h-2" />
                     </div>
-                  );
-                })}
-              </div>
-            </CardContent>
-          </Card>
+                  )}
 
-          {/* Recent Assignments */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <FileText className="h-5 w-5" />
-                <span>Recent Assignment Results</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {assignments.map((submission) => {
-                  const percentage = submission.marks_obtained 
-                    ? (submission.marks_obtained / submission.assignments.max_marks * 100)
-                    : null;
-                  
-                  return (
-                    <div key={submission.id} className="border rounded-lg p-4">
-                      <div className="flex justify-between items-start mb-2">
-                        <div>
-                          <h4 className="font-medium">{submission.assignments.title}</h4>
-                          <p className="text-sm text-gray-600">
-                            {submission.assignments.courses.course_name}
-                          </p>
-                        </div>
-                        {percentage !== null ? (
-                          <div className="text-right">
-                            <div className={`text-lg font-bold ${getGradeColor(percentage)}`}>
-                              {submission.marks_obtained}/{submission.assignments.max_marks}
-                            </div>
-                            <div className="text-sm text-gray-600">
-                              {Math.round(percentage)}%
-                            </div>
-                          </div>
-                        ) : (
-                          <Badge variant="secondary">Pending</Badge>
-                        )}
-                      </div>
-                      {submission.feedback && (
-                        <div className="mt-2 p-2 bg-gray-50 rounded text-sm">
-                          <strong>Feedback:</strong> {submission.feedback}
-                        </div>
-                      )}
-                      <div className="text-xs text-gray-500 mt-2">
-                        Submitted: {new Date(submission.submitted_at).toLocaleDateString()}
-                      </div>
+                  {report.strengths && (
+                    <div className="mb-3">
+                      <strong className="text-green-400 text-xs sm:text-sm">Strengths:</strong>
+                      <p className="text-xs sm:text-sm text-gray-300 mt-1">{report.strengths}</p>
                     </div>
-                  );
-                })}
-              </div>
-            </CardContent>
-          </Card>
+                  )}
 
-          {/* Progress Reports */}
-          {progressReports.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <Award className="h-5 w-5" />
-                  <span>Progress Reports</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {progressReports.map((report) => (
-                    <div key={report.id} className="border rounded-lg p-4">
-                      <div className="flex justify-between items-center mb-3">
-                        <h4 className="font-medium">{report.courses.course_name}</h4>
-                        <Badge variant="outline">{report.report_period}</Badge>
-                      </div>
-                      
-                      {report.attendance_percentage && (
-                        <div className="mb-3">
-                          <div className="flex justify-between text-sm mb-1">
-                            <span>Attendance</span>
-                            <span>{report.attendance_percentage}%</span>
-                          </div>
-                          <Progress value={Number(report.attendance_percentage)} className="h-2" />
-                        </div>
-                      )}
-
-                      {report.strengths && (
-                        <div className="mb-2">
-                          <strong className="text-green-600">Strengths:</strong>
-                          <p className="text-sm text-gray-700">{report.strengths}</p>
-                        </div>
-                      )}
-
-                      {report.areas_for_improvement && (
-                        <div className="mb-2">
-                          <strong className="text-orange-600">Areas for Improvement:</strong>
-                          <p className="text-sm text-gray-700">{report.areas_for_improvement}</p>
-                        </div>
-                      )}
-
-                      {report.behavioral_notes && (
-                        <div className="mb-2">
-                          <strong className="text-blue-600">Behavioral Notes:</strong>
-                          <p className="text-sm text-gray-700">{report.behavioral_notes}</p>
-                        </div>
-                      )}
-
-                      <div className="text-xs text-gray-500 mt-3">
-                        Generated by {report.user_profiles.first_name} {report.user_profiles.last_name} on {new Date(report.generated_at).toLocaleDateString()}
-                      </div>
+                  {report.areas_for_improvement && (
+                    <div className="mb-3">
+                      <strong className="text-orange-400 text-xs sm:text-sm">Areas for Improvement:</strong>
+                      <p className="text-xs sm:text-sm text-gray-300 mt-1">{report.areas_for_improvement}</p>
                     </div>
-                  ))}
+                  )}
+
+                  {report.behavioral_notes && (
+                    <div className="mb-3">
+                      <strong className="text-blue-400 text-xs sm:text-sm">Behavioral Notes:</strong>
+                      <p className="text-xs sm:text-sm text-gray-300 mt-1">{report.behavioral_notes}</p>
+                    </div>
+                  )}
+
+                  <div className="text-xs text-gray-500 mt-3 pt-3 border-t border-gray-700/50">
+                    Generated by {report.user_profiles.first_name} {report.user_profiles.last_name} on {new Date(report.generated_at).toLocaleDateString()}
+                  </div>
                 </div>
-              </CardContent>
-            </Card>
-          )}
-        </>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
       )}
-    </div>
+    </>
+  )}
+</div>
   );
 };
 

@@ -144,19 +144,23 @@ const ParentDashboard = ({ user, onNavigate }: ParentDashboardProps) => {
   };
 
   return (
-    <div className="space-y-6">
-      {/* Welcome Section */}
-      <Card >
-        <CardHeader>
-          <CardTitle className="flex items-center space-x-2 ">
-            <User className="h-5 w-5" />
-            <span>Welcome, {user.first_name} {user.last_name}!</span>
-          </CardTitle>
-          <CardDescription >
-            Parent Portal | Monitor your child's academic progress
-          </CardDescription>
-        </CardHeader>
-      </Card>
+    <div className="space-y-6 animate-fade-in-up px-3 sm:px-4 md:px-6 overflow-x-hidden w-full">
+      {/* Welcome Section Parent Portal | Monitor your child's academic progress */}
+      <div className="bg-card border border-white/10 rounded-lg p-4 sm:p-5 md:p-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div className="space-y-2">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+              <h1 className="text-xl sm:text-2xl font-bold">
+                Welcome, {user.first_name} {user.last_name}!
+              </h1>
+              <Badge className="bg-gray-600/30 text-gray-100 border border-gray-300/40 font-bold px-4 py-1.5 w-fit hover:bg-gray-600/40 hover:border-gray-300/60 hover:cursor-pointer hover:shadow-[0_0_20px_rgba(107,114,128,0.4)] transition-all duration-300">
+                PARENT
+              </Badge>
+            </div>
+            <p className="text-sm sm:text-base">Parent Portal | Monitor your child's academic progress</p>
+          </div>
+        </div>
+      </div>
 
       {/* Children Overview */}
       <Card>
@@ -167,16 +171,16 @@ const ParentDashboard = ({ user, onNavigate }: ParentDashboardProps) => {
         <CardContent>
           <div className="space-y-3">
             {children.map((child) => (
-              <div 
-                key={child.id} 
-                className="flex items-center justify-between p-4 border rounded-lg  transition-colors cursor-pointer hover:shadow-md"
+              <div
+                key={child.id}
+                className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4 border rounded-lg transition-colors cursor-pointer hover:shadow-md"
                 onClick={handleChildClick}
               >
                 <div>
                   <h4 className="font-medium">{child.name}</h4>
-                  <p className="text-sm ">{child.user_code} • {child.class}</p>
+                  <p className="text-sm">{child.user_code} • {child.class}</p>
                 </div>
-                <div className="flex space-x-2">
+                <div className="flex flex-wrap gap-2">
                   <PermissionWrapper permission="view_child_grades">
                     <Badge variant="secondary">CGPA: {child.cgpa}</Badge>
                   </PermissionWrapper>
@@ -191,22 +195,24 @@ const ParentDashboard = ({ user, onNavigate }: ParentDashboardProps) => {
       </Card>
 
       {/* Quick Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4 w-ful">
         {childStats.map((stat, index) => {
           const Icon = stat.icon;
           return (
             <PermissionWrapper key={index} permission={stat.permission}>
-              <Card 
-                className="hover:shadow-md transition-all duration-300 cursor-pointer hover:scale-105"
-                onClick={() => handleStatCardClick(stat.navigateTo)}
+              <Card
+                className="hover:shadow-md transition-all duration-300 hover:border-role-parent/20 cursor-pointer hover:scale-[1.01] sm:hover:scale-[1.03] md:hover:scale-105 will-change-transform"
+                onClick={() => handleStatCardClick(stat.title)}
               >
-                <CardContent className="p-6">
+                <CardContent className="p-3 sm:p-4 md:p-5">
                   <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium ">{stat.title}</p>
-                      <p className="text-2xl font-bold">{stat.value}</p>
+                    <div className="min-w-0">
+                      <p className="text-xs sm:text-sm font-medium text-muted-foreground truncate mb-1">{stat.title}</p>
+                      <p className="text-lg sm:text-xl md:text-2xl font-bold text-foreground truncate">{stat.value}</p>
                     </div>
-                    <Icon className={`h-8 w-8 ${stat.color}`} />
+                    <div className={`p-2 sm:p-3 rounded-lg flex-shrink-0 ml-3`}>
+                      <Icon className={`h-5 w-5 sm:h-6 ${stat.color} sm:w-6`} />
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -215,22 +221,24 @@ const ParentDashboard = ({ user, onNavigate }: ParentDashboardProps) => {
         })}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
         {/* Recent Activities */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Recent Updates</CardTitle>
-            <CardDescription>Latest activities for your children</CardDescription>
+        <Card className="h-[450px] sm:h-[510px] border-white/20 bg-gradient-to-br from-card/60 to-card/40 backdrop-blur-md shadow-2xl overflow-hidden group">
+          <CardHeader className="sticky top-0 z-10 bg-gradient-to-b from-card/95 to-card/80 backdrop-blur-sm border-b border-white/10 pb-4">
+            <CardTitle className="text-card-foreground text-lg sm:text-xl">Recent Activities</CardTitle>
+            <CardDescription className="text-sm">Your latest academic activities</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="h-[calc(100%-100px)] overflow-y-auto overflow-x-hidden scrollbar-thin space-y-3 sm:space-y-4 p-4 sm:p-6 ">
             {recentActivities.map((activity, index) => (
               <PermissionWrapper key={index} permission={activity.permission}>
-                <div className="flex items-start space-x-3 p-2 rounded-lg  transition-colors">
-                  <div className="w-2 h-2  rounded-full mt-2"></div>
-                  <div className="flex-1">
-                    <p className="font-medium">{activity.title}</p>
-                    <p className="text-sm ">{activity.description}</p>
-                    <p className="text-xs ">{activity.child} • {activity.time}</p>
+                <div key={index} className="flex flex-row items-start justify-start space-x-2 p-3 rounded-lg bg-white/5 border border-white/5 hover:bg-white/10 hover:border-white/10 transition-all duration-300 hover:shadow-md hover:shadow-gray-500/5 will-change-transform">
+                  <div className="flex-shrink-0 mt-2 sm:mt-2.5">
+                    <div className="w-2 h-2 bg-gray-400 rounded-full  animate-pulse shadow-lg shadow-gray-400/50"></div>
+                  </div>
+                  <div className="flex flex-col justify-center flex-1 min-w-0">
+                    <p className="font-medium text-card-foreground text-sm sm:text-base truncate">{activity.title}</p>
+                    <p className="text-xs sm:text-sm text-muted-foreground leading-snug line-clamp-2">{activity.description}</p>
+                    <p className="text-[10px] sm:text-xs text-white/40 font-mono mt-1">{activity.time}</p>
                   </div>
                 </div>
               </PermissionWrapper>
@@ -238,29 +246,29 @@ const ParentDashboard = ({ user, onNavigate }: ParentDashboardProps) => {
           </CardContent>
         </Card>
 
+
         {/* Quick Actions */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Quick Actions</CardTitle>
-            <CardDescription>Frequently used features - click to navigate</CardDescription>
+        <Card className="h-[450px] sm:h-[510px] border-white/20 bg-gradient-to-br from-card/60 to-card/40 backdrop-blur-md shadow-2xl overflow-hidden group">
+          <CardHeader className="sticky top-0 z-10 bg-gradient-to-b from-card/95 to-card/80 backdrop-blur-sm border-b border-white/10 pb-4">
+            <CardTitle className="text-card-foreground text-lg sm:text-xl">Quick Actions</CardTitle>
+            <CardDescription className="text-sm">Frequently used features - click to navigate</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-3">
+          <CardContent className="h-[calc(100%-100px)] overflow-y-auto overflow-x-hidden scroll-smooth space-y-3 sm:space-y-4 p-4 sm:p-6">
             {quickActions.map((action, index) => {
               const Icon = action.icon;
               return (
                 <PermissionWrapper key={index} permission={action.permission}>
-                  <Button
-                    className="w-full h-auto p-4 flex items-center justify-start space-x-3 rounded-lg border transition-all duration-20"
+                  <div key={index} className="flex flex-row items-start justify-start space-x-4 p-4 rounded-lg bg-white/5 border border-white/5 hover:bg-white/10 hover:border-white/10 transition-all duration-300 hover:shadow-md hover:shadow-gray-500/5 will-change-transform"
                     onClick={() => handleQuickActionClick(action.navigateTo, action.title)}
                   >
-                    <div className="p-2 rounded-lg 0">
-                      <Icon className="h-4 w-4" />
+                    <div className={`flex-shrink-0 p-2  ${action.color} transition-colors flex items-start self-start mt-1 mr-2`}>
+                      <Icon className="h-4 w-4 sm:h-5 sm:w-5 " />
                     </div>
-                    <div className="flex-1 text-left">
-                      <p className="font-medium text-sm">{action.title}</p>
-                      <p className="text-xs opacity-80">{action.description}</p>
+                    <div className="flex flex-col justify-center flex-1 min-w-0">
+                      <p className="font-medium text-card-foreground text-sm sm:text-base truncate">{action.title}</p>
+                      <p className="text-xs sm:text-sm text-muted-foreground leading-snug line-clamp-2">{action.description}</p>
                     </div>
-                  </Button>
+                  </div>
                 </PermissionWrapper>
               );
             })}
@@ -270,20 +278,21 @@ const ParentDashboard = ({ user, onNavigate }: ParentDashboardProps) => {
 
       {/* Fee Payment Alert */}
       <PermissionWrapper permission="view_child_fees">
-        <Card >
+        <Card>
           <CardHeader>
-            <CardTitle className="flex items-center space-x-2 text-yellow-800">
-              <AlertCircle className="h-5 w-5" />
+            <CardTitle className="flex items-center gap-2 text-blue-700 dark:text-blue-400 text-base sm:text-lg">
+              <AlertCircle className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0 text-blue-600 dark:text-blue-500" />
               <span>Payment Reminder</span>
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className=" mb-4">
+            <p className="mb-4 text-sm sm:text-base">
               Semester fees for Alex Johnson are due in 5 days. Amount due: ₹15,000
             </p>
             <PermissionWrapper permission="make_child_payments">
-              <Button 
+              <Button
                 onClick={handlePayNowClick}
+                className="w-full sm:w-auto"
               >
                 Pay Now
               </Button>

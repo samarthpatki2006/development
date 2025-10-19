@@ -254,7 +254,7 @@ const EventsMeetings = ({ user }: EventsMeetingsProps) => {
   const selectedChildName = children.find(child => child.student_id === selectedChild)?.student_name || '';
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-fade-in-up px-3 sm:px-4 md:px-6 overflow-x-hidden w-full">
       {/* Child Selection */}
       <Card>
         <CardHeader>
@@ -280,36 +280,36 @@ const EventsMeetings = ({ user }: EventsMeetingsProps) => {
         {/* Upcoming Events */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <CalendarIcon className="h-5 w-5" />
+            <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+              <CalendarIcon className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
               <span>Upcoming Events</span>
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
               {events.map((event) => (
-                <div key={event.id} className="border rounded-lg p-4">
-                  <div className="flex justify-between items-start mb-2">
-                    <div>
-                      <h4 className="font-medium">{event.event_name}</h4>
-                      <p className="text-sm text-gray-600">{event.description}</p>
+                <div key={event.id} className="bg-gray-900/30 border border-gray-700/50 rounded-lg p-3 sm:p-4">
+                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2 mb-3">
+                    <div className="flex-1">
+                      <h4 className="font-medium text-sm sm:text-base">{event.event_name}</h4>
+                      <p className="text-xs sm:text-sm text-gray-400 mt-1">{event.description}</p>
                     </div>
-                    <Badge variant="outline">{event.event_type}</Badge>
+                    <Badge variant="outline" className="w-fit">{event.event_type}</Badge>
                   </div>
-                  <div className="space-y-1 text-sm text-gray-600 mb-3">
-                    <div className="flex items-center space-x-1">
-                      <CalendarIcon className="h-4 w-4" />
-                      <span>{new Date(event.start_date).toLocaleDateString()} - {new Date(event.end_date).toLocaleDateString()}</span>
+                  <div className="space-y-2 text-xs sm:text-sm text-gray-400 mb-3">
+                    <div className="flex items-center gap-2">
+                      <CalendarIcon className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
+                      <span className="break-words">{new Date(event.start_date).toLocaleDateString()} - {new Date(event.end_date).toLocaleDateString()}</span>
                     </div>
                     {event.location && (
-                      <div className="flex items-center space-x-1">
-                        <MapPin className="h-4 w-4" />
-                        <span>{event.location}</span>
+                      <div className="flex items-center gap-2">
+                        <MapPin className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
+                        <span className="break-words">{event.location}</span>
                       </div>
                     )}
                     {event.max_participants && (
-                      <div className="flex items-center space-x-1">
-                        <Users className="h-4 w-4" />
+                      <div className="flex items-center gap-2">
+                        <Users className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
                         <span>Max Participants: {event.max_participants}</span>
                       </div>
                     )}
@@ -326,7 +326,7 @@ const EventsMeetings = ({ user }: EventsMeetingsProps) => {
                 </div>
               ))}
               {events.length === 0 && (
-                <p className="text-center text-gray-500 py-8">No upcoming events</p>
+                <p className="text-center text-gray-500 py-8 text-sm">No upcoming events</p>
               )}
             </div>
           </CardContent>
@@ -335,19 +335,19 @@ const EventsMeetings = ({ user }: EventsMeetingsProps) => {
         {/* Request Meeting */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <Users className="h-5 w-5" />
+            <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+              <Users className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
               <span>Request Parent-Teacher Meeting</span>
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <Label>Select Teacher</Label>
+              <Label className="text-sm">Select Teacher</Label>
               <Select
                 value={meetingRequest.teacher_id}
                 onValueChange={(value) => setMeetingRequest({ ...meetingRequest, teacher_id: value })}
               >
-                <SelectTrigger>
+                <SelectTrigger className="mt-1">
                   <SelectValue placeholder="Select a teacher" />
                 </SelectTrigger>
                 <SelectContent>
@@ -360,12 +360,12 @@ const EventsMeetings = ({ user }: EventsMeetingsProps) => {
               </Select>
             </div>
             <div>
-              <Label>Meeting Type</Label>
+              <Label className="text-sm">Meeting Type</Label>
               <Select
                 value={meetingRequest.meeting_type}
                 onValueChange={(value) => setMeetingRequest({ ...meetingRequest, meeting_type: value })}
               >
-                <SelectTrigger>
+                <SelectTrigger className="mt-1">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -376,21 +376,24 @@ const EventsMeetings = ({ user }: EventsMeetingsProps) => {
               </Select>
             </div>
             <div>
-              <Label>Preferred Date</Label>
-              <Calendar
-                mode="single"
-                selected={selectedDate}
-                onSelect={setSelectedDate}
-                className="rounded-md border"
-              />
+              <Label className="text-sm">Preferred Date</Label>
+              <div className="mt-1">
+                <Calendar
+                  mode="single"
+                  selected={selectedDate}
+                  onSelect={setSelectedDate}
+                  className="rounded-md border border-black-700/50 bg-black-700 w-full"
+                />
+              </div>
             </div>
             <div>
-              <Label>Meeting Agenda</Label>
+              <Label className="text-sm">Meeting Agenda</Label>
               <Textarea
                 placeholder="What would you like to discuss?"
                 value={meetingRequest.agenda}
                 onChange={(e) => setMeetingRequest({ ...meetingRequest, agenda: e.target.value })}
                 rows={3}
+                className="mt-1 text-sm"
               />
             </div>
             <Button onClick={requestMeeting} className="w-full">
@@ -404,48 +407,48 @@ const EventsMeetings = ({ user }: EventsMeetingsProps) => {
       {selectedChild && (
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <Clock className="h-5 w-5" />
+            <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+              <Clock className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
               <span>Meeting History - {selectedChildName}</span>
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
               {meetings.map((meeting) => (
-                <div key={meeting.id} className="border rounded-lg p-4">
-                  <div className="flex justify-between items-start mb-2">
-                    <div>
-                      <h4 className="font-medium flex items-center space-x-2">
+                <div key={meeting.id} className="bg-gray-900/30 border border-gray-700/50 rounded-lg p-3 sm:p-4">
+                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2 sm:gap-3 mb-3">
+                    <div className="flex-1">
+                      <h4 className="font-medium flex items-center gap-2 text-sm sm:text-base">
                         {getMeetingTypeIcon(meeting.meeting_type)}
-                        <span>Meeting with {meeting.user_profiles.first_name} {meeting.user_profiles.last_name}</span>
+                        <span className="break-words">Meeting with {meeting.user_profiles.first_name} {meeting.user_profiles.last_name}</span>
                       </h4>
-                      <p className="text-sm text-gray-600">
+                      <p className="text-xs sm:text-sm text-gray-400 mt-1">
                         Student: {meeting.student.first_name} {meeting.student.last_name}
                       </p>
-                      <p className="text-sm text-gray-600">
+                      <p className="text-xs sm:text-sm text-gray-400">
                         Date: {new Date(meeting.meeting_date).toLocaleString()}
                       </p>
                     </div>
-                    <Badge className={getMeetingStatusColor(meeting.status)}>
+                    <Badge className={`${getMeetingStatusColor(meeting.status)} w-fit`}>
                       {meeting.status.charAt(0).toUpperCase() + meeting.status.slice(1)}
                     </Badge>
                   </div>
                   {meeting.agenda && (
-                    <div className="mb-2">
-                      <strong>Agenda:</strong>
-                      <p className="text-sm text-gray-700">{meeting.agenda}</p>
+                    <div className="mb-3 p-2 sm:p-3 bg-gray-800/50 border border-gray-700/30 rounded">
+                      <strong className="text-xs sm:text-sm">Agenda:</strong>
+                      <p className="text-xs sm:text-sm text-gray-300 mt-1">{meeting.agenda}</p>
                     </div>
                   )}
                   {meeting.notes && (
-                    <div>
-                      <strong>Notes:</strong>
-                      <p className="text-sm text-gray-700">{meeting.notes}</p>
+                    <div className="p-2 sm:p-3 bg-gray-800/50 border border-gray-700/30 rounded">
+                      <strong className="text-xs sm:text-sm">Notes:</strong>
+                      <p className="text-xs sm:text-sm text-gray-300 mt-1">{meeting.notes}</p>
                     </div>
                   )}
                 </div>
               ))}
               {meetings.length === 0 && (
-                <p className="text-center text-gray-500 py-8">No meeting history</p>
+                <p className="text-center text-gray-500 py-8 text-sm">No meeting history</p>
               )}
             </div>
           </CardContent>

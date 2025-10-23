@@ -144,7 +144,7 @@ const StudentDashboard = ({ studentData, onNavigate }: StudentDashboardProps) =>
   };
 
   return (
-    <div className="space-y-6 animate-fade-in-up px-3 sm:px-4 md:px-6 overflow-x-hidden w-full">
+    <div className="space-y-6 py-8 animate-fade-in-up px-3 sm:px-4 md:px-6 overflow-x-hidden w-full">
       {/* Welcome Section */}
       <div className="bg-card border border-white/10 rounded-lg p-4 sm:p-5 md:p-6">
         <div className="flex items-center justify-between">
@@ -153,13 +153,13 @@ const StudentDashboard = ({ studentData, onNavigate }: StudentDashboardProps) =>
               Welcome back,
               {studentData.first_name}
             </h1>
-            <Badge className="bg-green-600/30 text-green-100 border border-green-300/40 font-bold px-4 py-1.5 self-start md:self-auto hover:bg-green-600/40 hover:border-green-300/60 hover:cursor-pointer hover:shadow-[0_0_20px_rgba(34,197,94,0.4)] transition-all duration-300 ml-16">
+            <p >Student ID: {studentData.user_code}</p>
+            <Badge className="bg-green-600/30 text-green-100 border border-green-300/40 font-bold px-4 py-1.5 self-start md:self-auto hover:bg-green-600/40 hover:border-green-300/60 hover:cursor-pointer hover:shadow-[0_0_20px_rgba(34,197,94,0.4)] transition-all duration-300 mt-4">
               STUDENT
             </Badge>
-            <p >Student ID: {studentData.user_code}</p>
           </div>
           <div className="text-right">
-            <p className="text-sm ">Current CGPA</p>
+            <p className="text-md">Current CGPA</p>
             <p className="text-2xl font-bold text-role-student">8.5</p>
           </div>
         </div>

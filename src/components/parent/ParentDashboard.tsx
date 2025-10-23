@@ -153,11 +153,11 @@ const ParentDashboard = ({ user, onNavigate }: ParentDashboardProps) => {
               <h1 className="text-xl sm:text-2xl font-bold">
                 Welcome, {user.first_name} {user.last_name}!
               </h1>
-              <Badge className="bg-gray-600/30 text-gray-100 border border-gray-300/40 font-bold px-4 py-1.5 w-fit hover:bg-gray-600/40 hover:border-gray-300/60 hover:cursor-pointer hover:shadow-[0_0_20px_rgba(107,114,128,0.4)] transition-all duration-300">
-                PARENT
-              </Badge>
             </div>
             <p className="text-sm sm:text-base">Parent Portal | Monitor your child's academic progress</p>
+            <Badge className="bg-gray-600/30 text-gray-100 border border-gray-300/40 font-bold px-4 py-1.5 w-fit hover:bg-gray-600/40 hover:border-gray-300/60 hover:cursor-pointer hover:shadow-[0_0_20px_rgba(107,114,128,0.4)] transition-all duration-300">
+                PARENT
+            </Badge>
           </div>
         </div>
       </div>

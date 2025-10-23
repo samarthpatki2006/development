@@ -156,14 +156,14 @@ const AlumniDashboard = ({ user, onNavigate }: AlumniDashboardProps) => {
               <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold">
                 Welcome back, {user.first_name}
               </h1>
-              <Badge className="bg-yellow-600/30 text-yellow-100 border border-yellow-300/40 font-bold px-4 py-1.5 w-fit hover:bg-yellow-600/40 hover:border-yellow-300/60 hover:cursor-pointer hover:shadow-[0_0_20px_rgba(250,204,21,0.4)] transition-all duration-300">
-                alumni
-              </Badge>
             </div>
             {/* Info text */}
             <p className="text-sm sm:text-base text-gray-300/80">
               Alumni ID: {user.user_code} | Class of 2019 | Computer Science
             </p>
+            <Badge className="bg-yellow-600/30 text-yellow-100 border border-yellow-300/40 font-bold px-4 py-1.5 w-fit hover:bg-yellow-600/40 hover:border-yellow-300/60 hover:cursor-pointer hover:shadow-[0_0_20px_rgba(250,204,21,0.4)] transition-all duration-300">
+                ALUMNI
+              </Badge>
           </div>
         </div>
 

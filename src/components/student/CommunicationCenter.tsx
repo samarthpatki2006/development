@@ -29,7 +29,8 @@ import {
   BellOff,
   Download,
   Edit2,
-  Trash2
+  Trash2,
+  ArrowLeft
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -395,7 +396,7 @@ const CommunicationHub = ({ studentData, initialChannelId }) => {
     return (
       <div className="h-screen flex items-center justify-center bg-background">
         <div className="text-center">
-          <div className="w-16 h-16 border-4 border-white/20 border-t-white rounded-full animate-spin mx-auto mb-4"></div>
+          <div className="w-6 h-6 sm:w-10 sm:h-10 md:w-16 md:h-16 border-4 border-white/20 border-t-white rounded-full animate-spin mx-auto mb-4"></div>
           <p className="text-foreground/70">Loading messages...</p>
         </div>
       </div>
@@ -404,19 +405,22 @@ const CommunicationHub = ({ studentData, initialChannelId }) => {
 
   return (
     <div className="h-screen flex flex-col bg-background">
-      {/* Header */}
-      <div className="bg-sidebar-background border-b border-border px-6 py-4">
+      {/* Header - Hide on mobile when chat is selected */}
+      <div className={`bg-sidebar-background border-b border-border px-4 sm:px-6 py-3 sm:py-4 ${
+        selectedChannel ? 'hidden lg:block' : 'block'
+      }`}>
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-foreground">Messages</h1>
-            <p className="text-sm text-muted-foreground">Stay connected with your campus community</p>
+            <h1 className="text-xl sm:text-2xl font-bold text-foreground">Messages</h1>
+            <p className="text-xs sm:text-sm text-muted-foreground hidden sm:block">Stay connected with your campus community</p>
           </div>
           <div className="flex items-center space-x-2">
             <Dialog open={showNewChatDialog} onOpenChange={setShowNewChatDialog}>
               <DialogTrigger asChild>
-                <Button size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90">
-                  <MessageSquare className="h-4 w-4 mr-2" />
-                  New Chat
+                <Button size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90 text-xs sm:text-sm">
+                  <MessageSquare className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                  <span className="hidden sm:inline">New Chat</span>
+                  <span className="sm:hidden">New</span>
                 </Button>
               </DialogTrigger>
               <DialogContent className="max-w-md bg-popover border-border">
@@ -466,17 +470,19 @@ const CommunicationHub = ({ studentData, initialChannelId }) => {
       </div>
 
       <div className="flex-1 flex overflow-hidden">
-        {/* Sidebar */}
-        <div className="w-80 bg-sidebar-background border-r border-sidebar-border flex flex-col">
+        {/* Sidebar - Show only when no chat selected on mobile/tablet */}
+        <div className={`w-full lg:w-80 bg-sidebar-background border-r border-sidebar-border flex flex-col ${
+          selectedChannel ? 'hidden lg:flex' : 'flex'
+        }`}>
           {/* Search */}
-          <div className="p-4 border-b border-sidebar-border">
+          <div className="p-3 sm:p-4 border-b border-sidebar-border">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Search messages..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 bg-input border-border text-foreground"
+                className="pl-10 bg-input border-border text-foreground text-sm"
               />
             </div>
           </div>
@@ -484,8 +490,8 @@ const CommunicationHub = ({ studentData, initialChannelId }) => {
           {/* Tabs */}
           <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
             <TabsList className="grid w-full grid-cols-2 mx-3 mt-2 bg-muted">
-              <TabsTrigger value="chats" className="data-[state=active]:bg-accent">Chats</TabsTrigger>
-              <TabsTrigger value="contacts" className="data-[state=active]:bg-accent">Contacts</TabsTrigger>
+              <TabsTrigger value="chats" className="data-[state=active]:bg-accent text-xs sm:text-sm">Chats</TabsTrigger>
+              <TabsTrigger value="contacts" className="data-[state=active]:bg-accent text-xs sm:text-sm">Contacts</TabsTrigger>
             </TabsList>
 
             <TabsContent value="chats" className="flex-1 overflow-y-auto mt-2 m-0">
@@ -519,7 +525,7 @@ const CommunicationHub = ({ studentData, initialChannelId }) => {
                       >
                         <div className="flex items-start space-x-3">
                           <div className="relative flex-shrink-0">
-                            <div className={`w-12 h-12 rounded-sm flex items-center justify-center text-foreground font-semibold border border-border ${
+                            <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-sm flex items-center justify-center text-foreground font-semibold border border-border ${
                               isGroup 
                                 ? 'bg-primary/10' 
                                 : 'bg-primary/5'
@@ -527,29 +533,29 @@ const CommunicationHub = ({ studentData, initialChannelId }) => {
                               {channel.channel_name.substring(0, 2).toUpperCase()}
                             </div>
                             {isGroup && (
-                              <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-sidebar-background border-2 border-sidebar-border rounded-sm flex items-center justify-center">
-                                <Users className="h-3 w-3 text-muted-foreground" />
+                              <div className="absolute -bottom-1 -right-1 w-4 h-4 sm:w-5 sm:h-5 bg-sidebar-background border-2 border-sidebar-border rounded-sm flex items-center justify-center">
+                                <Users className="h-2 w-2 sm:h-3 sm:w-3 text-muted-foreground" />
                               </div>
                             )}
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center justify-between mb-1">
-                              <p className="font-semibold text-foreground truncate">{channel.channel_name}</p>
+                              <p className="font-semibold text-sm sm:text-base text-foreground truncate">{channel.channel_name}</p>
                               {channel.lastMessageTime && (
-                                <span className="text-xs text-muted-foreground">
+                                <span className="text-xs text-muted-foreground flex-shrink-0 ml-2">
                                   {formatTimestamp(channel.lastMessageTime)}
                                 </span>
                               )}
                             </div>
                             <div className="flex items-center justify-between">
-                              <p className="text-sm text-muted-foreground truncate">
+                              <p className="text-xs sm:text-sm text-muted-foreground truncate">
                                 {channel.lastMessageSender && isGroup
                                   ? `${channel.lastMessageSender.first_name}: ${channel.lastMessage}`
                                   : channel.lastMessage
                                 }
                               </p>
                               {channel.unreadCount > 0 && (
-                                <Badge className="ml-2 bg-primary text-primary-foreground">{channel.unreadCount}</Badge>
+                                <Badge className="ml-2 bg-primary text-primary-foreground text-xs flex-shrink-0">{channel.unreadCount}</Badge>
                               )}
                             </div>
                             {isGroup && (
@@ -579,8 +585,8 @@ const CommunicationHub = ({ studentData, initialChannelId }) => {
                         <div className="w-10 h-10 bg-primary/10 border border-border rounded-sm flex items-center justify-center text-foreground font-semibold">
                           {getInitials(contact.first_name, contact.last_name)}
                         </div>
-                        <div className="flex-1">
-                          <p className="font-medium text-foreground">
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-sm sm:text-base text-foreground truncate">
                             {contact.first_name} {contact.last_name}
                           </p>
                           <p className="text-xs text-muted-foreground capitalize">{contact.user_type}</p>
@@ -597,15 +603,27 @@ const CommunicationHub = ({ studentData, initialChannelId }) => {
           </Tabs>
         </div>
 
-        {/* Chat Area */}
+        {/* Chat Area - Show only when chat selected on mobile/tablet */}
         {selectedChannel ? (
-          <div className="flex-1 flex flex-col bg-background overflow-hidden">
-            {/* Chat Header */}
-            <div className="bg-sidebar-background border-b border-border px-6 py-4 flex-shrink-0">
+          <div className={`w-full lg:flex-1 flex flex-col bg-background fixed lg:relative top-16 lg:top-0 inset-x-0 bottom-0 lg:inset-auto z-50 lg:z-10 ${
+            selectedChannel ? 'flex' : 'hidden lg:flex'
+          }`}>
+            {/* Chat Header - Fixed */}
+            <div className="bg-sidebar-background border-b border-border px-3 sm:px-6 py-3 sm:py-4 flex-shrink-0 relative z-10">
               <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-4">
-                  <div className="relative">
-                    <div className={`w-12 h-12 rounded-sm flex items-center justify-center text-foreground font-semibold border border-border ${
+                <div className="flex items-center space-x-2 sm:space-x-4 flex-1 min-w-0">
+                  {/* Back button - mobile/tablet only */}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleChannelSelect(null)}
+                    className="lg:hidden flex-shrink-0 p-2"
+                  >
+                    <ArrowLeft className="h-5 w-5" />
+                  </Button>
+                  
+                  <div className="relative flex-shrink-0">
+                    <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-sm flex items-center justify-center text-foreground font-semibold border border-border ${
                       selectedChannel.channel_type === 'group' || selectedChannel.channel_type === 'course'
                         ? 'bg-primary/10' 
                         : 'bg-primary/5'
@@ -613,9 +631,9 @@ const CommunicationHub = ({ studentData, initialChannelId }) => {
                       {selectedChannel.channel_name.substring(0, 2).toUpperCase()}
                     </div>
                   </div>
-                  <div>
-                    <h2 className="font-semibold text-foreground">{selectedChannel.channel_name}</h2>
-                    <p className="text-sm text-muted-foreground capitalize">
+                  <div className="flex-1 min-w-0">
+                    <h2 className="font-semibold text-sm sm:text-base text-foreground truncate">{selectedChannel.channel_name}</h2>
+                    <p className="text-xs sm:text-sm text-muted-foreground capitalize truncate">
                       {selectedChannel.channel_type === 'group' || selectedChannel.channel_type === 'course'
                         ? `${selectedChannel.memberCount} members`
                         : selectedChannel.channel_type.replace('_', ' ')
@@ -623,18 +641,18 @@ const CommunicationHub = ({ studentData, initialChannelId }) => {
                     </p>
                   </div>
                 </div>
-                <div className="flex items-center space-x-2">
-                  <Button variant="ghost" size="sm">
-                    <Phone className="h-5 w-5" />
+                <div className="flex items-center space-x-1 sm:space-x-2 flex-shrink-0">
+                  <Button variant="ghost" size="sm" className="hidden sm:flex">
+                    <Phone className="h-4 w-4 sm:h-5 sm:w-5" />
+                  </Button>
+                  <Button variant="ghost" size="sm" className="hidden sm:flex">
+                    <Video className="h-4 w-4 sm:h-5 sm:w-5" />
+                  </Button>
+                  <Button variant="ghost" size="sm" className="hidden sm:flex">
+                    <Search className="h-4 w-4 sm:h-5 sm:w-5" />
                   </Button>
                   <Button variant="ghost" size="sm">
-                    <Video className="h-5 w-5" />
-                  </Button>
-                  <Button variant="ghost" size="sm">
-                    <Search className="h-5 w-5" />
-                  </Button>
-                  <Button variant="ghost" size="sm">
-                    <MoreVertical className="h-5 w-5" />
+                    <MoreVertical className="h-4 w-4 sm:h-5 sm:w-5" />
                   </Button>
                 </div>
               </div>
@@ -643,14 +661,14 @@ const CommunicationHub = ({ studentData, initialChannelId }) => {
             {/* Messages */}
             <div 
               ref={messagesContainerRef}
-              className="flex-1 overflow-y-auto p-6 space-y-4"
+              className="flex-1 overflow-y-auto p-3 sm:p-6 space-y-3 sm:space-y-4"
             >
               {messages.length === 0 ? (
                 <div className="flex items-center justify-center h-full">
                   <div className="text-center">
-                    <MessageSquare className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-                    <p className="text-foreground/70">No messages yet</p>
-                    <p className="text-sm text-muted-foreground">Start the conversation!</p>
+                    <MessageSquare className="h-12 w-12 sm:h-16 sm:w-16 text-muted-foreground mx-auto mb-4" />
+                    <p className="text-sm sm:text-base text-foreground/70">No messages yet</p>
+                    <p className="text-xs sm:text-sm text-muted-foreground">Start the conversation!</p>
                   </div>
                 </div>
               ) : (
@@ -664,29 +682,29 @@ const CommunicationHub = ({ studentData, initialChannelId }) => {
                         key={message.id}
                         className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}
                       >
-                        <div className={`flex items-end space-x-2 max-w-md ${isMe ? 'flex-row-reverse space-x-reverse' : ''}`}>
+                        <div className={`flex ${isMe ? 'flex-row-reverse' : 'flex-row'} items-end gap-1 sm:gap-2 max-w-[85%] sm:max-w-md`}>
                           {!isMe && (
-                            <div className="w-8 h-8 bg-primary/10 border border-border rounded-sm flex items-center justify-center text-foreground text-xs font-semibold flex-shrink-0">
+                            <div className="w-6 h-6 sm:w-8 sm:h-8 bg-primary/10 border border-border rounded-sm flex items-center justify-center text-foreground text-[10px] sm:text-xs font-semibold flex-shrink-0 mb-1">
                               {getInitials(message.sender.first_name, message.sender.last_name)}
                             </div>
                           )}
-                          <div>
+                          <div className="flex-1 min-w-0">
                             {isGroup && !isMe && (
-                              <p className="text-xs text-muted-foreground mb-1 ml-2">
+                              <p className="text-xs text-muted-foreground mb-1 px-1">
                                 {message.sender.first_name} {message.sender.last_name}
                               </p>
                             )}
                             <div
-                              className={`px-4 py-2 ${
+                              className={`px-3 py-2 sm:px-4 sm:py-2 ${
                                 isMe
-                                  ? 'bg-primary text-primary-foreground rounded-sm rounded-br-none'
-                                  : 'bg-card border border-border text-foreground rounded-sm rounded-bl-none'
+                                  ? 'bg-primary text-primary-foreground rounded-lg rounded-br-none'
+                                  : 'bg-card border border-border text-foreground rounded-lg rounded-bl-none'
                               }`}
                             >
-                              <p className="text-sm break-words">{message.message_text}</p>
+                              <p className="text-xs sm:text-sm break-words whitespace-pre-wrap">{message.message_text}</p>
                             </div>
-                            <div className={`flex items-center space-x-1 mt-1 ${isMe ? 'justify-end' : 'justify-start'}`}>
-                              <span className="text-xs text-muted-foreground">
+                            <div className={`flex items-center space-x-1 mt-1 px-1 ${isMe ? 'justify-end' : 'justify-start'}`}>
+                              <span className="text-[10px] sm:text-xs text-muted-foreground">
                                 {formatMessageTime(message.created_at)}
                               </span>
                               {isMe && !message.is_edited && (
@@ -703,14 +721,14 @@ const CommunicationHub = ({ studentData, initialChannelId }) => {
               )}
             </div>
 
-            {/* Message Input */}
-            <div className="bg-sidebar-background border-t border-border px-6 py-4 flex-shrink-0">
-              <div className="flex items-end space-x-2">
-                <Button variant="ghost" size="sm" className="flex-shrink-0">
-                  <Paperclip className="h-5 w-5" />
+            {/* Message Input - Fixed at bottom */}
+            <div className="bg-sidebar-background border-t border-border px-3 sm:px-6 py-3 sm:py-4 flex-shrink-0 relative z-10">
+              <div className="flex items-end space-x-1 sm:space-x-2">
+                <Button variant="ghost" size="sm" className="flex-shrink-0 hidden sm:flex">
+                  <Paperclip className="h-4 w-4 sm:h-5 sm:w-5" />
                 </Button>
-                <Button variant="ghost" size="sm" className="flex-shrink-0">
-                  <Image className="h-5 w-5" />
+                <Button variant="ghost" size="sm" className="flex-shrink-0 hidden sm:flex">
+                  <Image className="h-4 w-4 sm:h-5 sm:w-5" />
                 </Button>
                 <div className="flex-1 relative">
                   <Textarea
@@ -724,35 +742,35 @@ const CommunicationHub = ({ studentData, initialChannelId }) => {
                         handleSendMessage();
                       }
                     }}
-                    className="resize-none pr-10 bg-input border-border text-foreground min-h-[40px] max-h-[120px]"
+                    className="resize-none pr-10 bg-input border-border text-foreground min-h-[40px] max-h-[120px] text-sm"
                     rows={1}
                   />
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="absolute right-2 top-1/2 transform -translate-y-1/2"
+                    className="absolute right-2 top-1/2 transform -translate-y-1/2 hidden sm:flex"
                   >
-                    <Smile className="h-5 w-5" />
+                    <Smile className="h-4 w-4 sm:h-5 sm:w-5" />
                   </Button>
                 </div>
                 <Button
                   onClick={handleSendMessage}
                   disabled={!newMessage.trim()}
-                  className="flex-shrink-0 bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+                  className="flex-shrink-0 bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 h-9 w-9 sm:h-10 sm:w-10 p-0"
                 >
-                  <Send className="h-5 w-5" />
+                  <Send className="h-4 w-4 sm:h-5 sm:w-5" />
                 </Button>
               </div>
             </div>
           </div>
         ) : (
-          <div className="flex-1 flex items-center justify-center bg-background">
+          <div className="flex-1 items-center justify-center bg-background hidden lg:flex">
             <div className="text-center">
-              <div className="w-24 h-24 bg-primary/10 border border-border rounded-sm flex items-center justify-center mx-auto mb-4">
-                <MessageSquare className="h-12 w-12 text-foreground" />
+              <div className="w-20 h-20 sm:w-24 sm:h-24 bg-primary/10 border border-border rounded-sm flex items-center justify-center mx-auto mb-4">
+                <MessageSquare className="h-10 w-10 sm:h-12 sm:w-12 text-foreground" />
               </div>
-              <h3 className="text-xl font-semibold text-foreground mb-2">Select a conversation</h3>
-              <p className="text-muted-foreground mb-6">Choose from your existing chats or start a new one</p>
+              <h3 className="text-lg sm:text-xl font-semibold text-foreground mb-2">Select a conversation</h3>
+              <p className="text-sm text-muted-foreground mb-6">Choose from your existing chats or start a new one</p>
               <Button onClick={() => setShowNewChatDialog(true)} className="bg-primary text-primary-foreground hover:bg-primary/90">
                 <MessageSquare className="h-4 w-4 mr-2" />
                 Start New Chat

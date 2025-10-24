@@ -470,15 +470,24 @@ const AttendanceOverview: React.FC<AttendanceOverviewProps> = ({ studentData }) 
       </div>
 
       <Tabs defaultValue="mark" className="w-full space-y-3 sm:space-y-4">
-        <div className="w-full overflow-x-auto -mx-3 px-3 sm:mx-0 sm:px-0 pb-1">
-          <TabsList className="inline-flex w-full sm:w-auto min-w-full sm:min-w-0 h-auto">
-            <TabsTrigger value="mark" className="flex-1 text-[10px] xs:text-xs sm:text-sm px-1.5 xs:px-2 sm:px-3 py-2 whitespace-nowrap">
+        <div className="flex w-full h-auto">
+          <TabsList className="flex w-full h-auto">
+            <TabsTrigger
+              value="mark"
+              className="flex-1 text-[10px] xs:text-xs sm:text-sm px-1.5 xs:px-2 sm:px-3 py-2 whitespace-nowrap"
+            >
               Mark Attendance
             </TabsTrigger>
-            <TabsTrigger value="summary" className="flex-1 text-[10px] xs:text-xs sm:text-sm px-1.5 xs:px-2 sm:px-3 py-2 whitespace-nowrap">
+            <TabsTrigger
+              value="summary"
+              className="flex-1 text-[10px] xs:text-xs sm:text-sm px-1.5 xs:px-2 sm:px-3 py-2 whitespace-nowrap"
+            >
               Course Summary
             </TabsTrigger>
-            <TabsTrigger value="history" className="flex-1 text-[10px] xs:text-xs sm:text-sm px-1.5 xs:px-2 sm:px-3 py-2 whitespace-nowrap">
+            <TabsTrigger
+              value="history"
+              className="flex-1 text-[10px] xs:text-xs sm:text-sm px-1.5 xs:px-2 sm:px-3 py-2 whitespace-nowrap"
+            >
               History
             </TabsTrigger>
           </TabsList>
@@ -617,7 +626,7 @@ const AttendanceOverview: React.FC<AttendanceOverviewProps> = ({ studentData }) 
           </Card>
         </TabsContent>
 
-        <TabsContent value="history"  className="w-full space-y-3 sm:space-y-4">
+        <TabsContent value="history" className="w-full space-y-3 sm:space-y-4">
           <Card className="w-full">
             <CardHeader className="p-4 sm:p-6">
               <CardTitle className="text-base sm:text-lg md:text-xl">Recent Attendance</CardTitle>

@@ -30,9 +30,9 @@ const QuizResults = () => {
     try {
       setLoading(true);
       setError(null);
-      
+
       const { data: user, error: userError } = await supabase.auth.getUser();
-      
+
       if (userError) {
         console.error("Error getting user:", userError);
         setError("Failed to authenticate user");
@@ -121,7 +121,7 @@ const QuizResults = () => {
   const enrichSubmissionsData = async (submissions) => {
     try {
       const enrichedSubmissions = [];
-      
+
       for (const submission of submissions) {
         // Fetch quiz info
         const { data: quizData, error: quizError } = await supabase
@@ -163,7 +163,7 @@ const QuizResults = () => {
           });
         }
       }
-      
+
       return enrichedSubmissions;
     } catch (error) {
       console.error("Error enriching submissions:", error);
@@ -177,7 +177,7 @@ const QuizResults = () => {
     try {
       setDetailLoading(true);
       setError(null);
-      
+
       const { data: questions, error } = await supabase
         .from("quiz_questions")
         .select("*")
@@ -224,7 +224,7 @@ const QuizResults = () => {
 
   if (selectedResult && detailedResult && !detailLoading) {
     const { submission, questions, answers } = detailedResult;
-    
+
     return (
       <Card className="w-full max-w-4xl mx-auto">
         <CardHeader>
@@ -269,9 +269,8 @@ const QuizResults = () => {
                   </p>
                 </div>
                 <div className="text-right">
-                  <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                    getScoreBadge(submission.score, submission.total_possible).color
-                  }`}>
+                  <span className={`px-3 py-1 rounded-full text-sm font-medium ${getScoreBadge(submission.score, submission.total_possible).color
+                    }`}>
                     {getScoreBadge(submission.score, submission.total_possible).label}
                   </span>
                 </div>
@@ -282,11 +281,10 @@ const QuizResults = () => {
           {questions.map((question, index) => {
             const studentAnswer = answers[question.id];
             const isCorrect = studentAnswer === question.correct_answer;
-            
+
             return (
-              <Card key={question.id} className={`p-4 border-l-4 ${
-                isCorrect ? "border-l-green-500" : "border-l-red-500"
-              }`}>
+              <Card key={question.id} className={`p-4 border-l-4 ${isCorrect ? "border-l-green-500" : "border-l-red-500"
+                }`}>
                 <div className="space-y-3">
                   <div className="flex justify-between items-start">
                     <div className="flex-1">
@@ -298,9 +296,8 @@ const QuizResults = () => {
                         {question.marks} point{question.marks !== 1 ? 's' : ''}
                       </p>
                       {submission.score !== null && (
-                        <span className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium ${
-                          isCorrect ? "" : ""
-                        }`}>
+                        <span className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium ${isCorrect ? "" : ""
+                          }`}>
                           {isCorrect ? <CheckCircle className="w-3 h-3" /> : <AlertCircle className="w-3 h-3" />}
                           {isCorrect ? "Correct" : "Incorrect"}
                         </span>
@@ -316,7 +313,7 @@ const QuizResults = () => {
                           let bgColor = "";
                           let textColor = "text-foreground";
                           let icon = "";
-                          
+
                           if (option === question.correct_answer) {
                             bgColor = "border-green-300";
                             textColor = "";
@@ -330,8 +327,8 @@ const QuizResults = () => {
                           }
 
                           return (
-                            <div 
-                              key={optIndex} 
+                            <div
+                              key={optIndex}
                               className={`p-3 rounded border ${bgColor} ${textColor}`}
                             >
                               <strong>{String.fromCharCode(65 + optIndex)}.</strong> {option}{icon}
@@ -345,24 +342,22 @@ const QuizResults = () => {
                   {question.question_type === "true_false" && (
                     <div className="space-y-2">
                       <div className="grid grid-cols-2 gap-4">
-                        <div className={`p-3 rounded border ${
-                          question.correct_answer === "true" 
-                            ? "bg-green-100 border-green-300 text-green-800" 
-                            : studentAnswer === "true" 
+                        <div className={`p-3 rounded border ${question.correct_answer === "true"
+                            ? "bg-green-100 border-green-300 text-green-800"
+                            : studentAnswer === "true"
                               ? "bg-red-100 border-red-300 text-red-800"
                               : "bg-gray-50"
-                        }`}>
+                          }`}>
                           <strong>True</strong>
                           {question.correct_answer === "true" && " ✓ Correct"}
                           {studentAnswer === "true" && question.correct_answer !== "true" && " ✗ Your Answer"}
                         </div>
-                        <div className={`p-3 rounded border ${
-                          question.correct_answer === "false" 
-                            ? "bg-green-100 border-green-300 text-green-800" 
-                            : studentAnswer === "false" 
+                        <div className={`p-3 rounded border ${question.correct_answer === "false"
+                            ? "bg-green-100 border-green-300 text-green-800"
+                            : studentAnswer === "false"
                               ? "bg-red-100 border-red-300 text-red-800"
                               : "bg-gray-50"
-                        }`}>
+                          }`}>
                           <strong>False</strong>
                           {question.correct_answer === "false" && " ✓ Correct"}
                           {studentAnswer === "false" && question.correct_answer !== "false" && " ✗ Your Answer"}
@@ -407,7 +402,6 @@ const QuizResults = () => {
               <CheckCircle className="w-5 h-5 text-primary" />
             </div>
             Quiz Results
-            <Trophy className="w-4 h-4 text-accent ml-auto" />
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -425,27 +419,27 @@ const QuizResults = () => {
   return (
     <Card className="card-minimal">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-primary">
+        <CardTitle className="flex items-center gap-2 text-primary text-lg sm:text-xl flex-wrap">
           <div className="w-8 h-8 bg-gradient-to-br from-primary/20 to-accent/20 rounded-lg flex items-center justify-center">
             <CheckCircle className="w-5 h-5 text-primary" />
           </div>
-          Quiz Results
-          <Trophy className="w-4 h-4 text-accent ml-auto" />
+          <span>Quiz Results</span>
         </CardTitle>
       </CardHeader>
+
       <CardContent>
         {error && (
           <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
-            <div className="flex items-center gap-2 text-red-800">
+            <div className="flex items-center gap-2 text-red-800 flex-wrap">
               <AlertCircle className="w-4 h-4" />
               <span className="font-medium">Error</span>
             </div>
-            <p className="text-red-700 text-sm mt-1">{error}</p>
-            <Button 
-              variant="outline" 
-              size="sm" 
+            <p className="text-red-700 text-sm mt-1 break-words">{error}</p>
+            <Button
+              variant="outline"
+              size="sm"
               onClick={fetchSubmissions}
-              className="mt-2"
+              className="mt-2 w-full sm:w-auto"
             >
               Try Again
             </Button>
@@ -459,64 +453,80 @@ const QuizResults = () => {
                 <CheckCircle className="w-8 h-8 text-muted-foreground" />
               </div>
               <p className="text-muted-foreground">No quiz submissions yet.</p>
-              <p className="text-sm text-muted-foreground mt-2">Complete your first quiz to see results here.</p>
+              <p className="text-sm text-muted-foreground mt-2">
+                Complete your first quiz to see results here.
+              </p>
             </div>
           ) : (
             submissions.map((submission) => (
-              <div key={submission.id} className="p-4 glass-effect rounded-xl border border-primary/20 hover:border-primary/40 transition-all hover:shadow-md">
-                <div className="flex justify-between items-start">
+              <div
+                key={submission.id}
+                className="p-4 glass-effect rounded-xl border border-primary/20 hover:border-primary/40 transition-all hover:shadow-md"
+              >
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
+                  {/* Left Section */}
                   <div className="flex-1">
-                    <h4 className="font-semibold text-foreground mb-1">
+                    <h4 className="font-semibold text-foreground mb-1 text-base sm:text-lg">
                       {submission.quizzes?.quiz_name || "Unknown Quiz"}
                     </h4>
-                    <p className="text-sm text-muted-foreground mb-2">
+                    <p className="text-sm text-muted-foreground mb-2 break-words">
                       📚 {submission.quizzes?.courses?.course_name || "Unknown Course"}
                     </p>
-                    <p className="text-sm text-muted-foreground flex items-center gap-1">
+                    <p className="text-sm text-muted-foreground flex items-center gap-1 flex-wrap">
                       <Clock className="w-3 h-3" />
                       Submitted: {new Date(submission.submitted_at).toLocaleString()}
                     </p>
                     {submission.time_taken_minutes && (
-                      <p className="text-sm text-muted-foreground flex items-center gap-1">
+                      <p className="text-sm text-muted-foreground flex items-center gap-1 flex-wrap">
                         <Clock className="w-3 h-3" />
                         Time taken: {submission.time_taken_minutes} minutes
                       </p>
                     )}
                   </div>
-                  <div className="flex items-center gap-3">
+
+                  {/* Right Section */}
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:gap-3 w-full sm:w-auto">
                     {submission.score !== null && submission.total_possible ? (
-                      <div className="text-right">
+                      <div className="text-center sm:text-right flex-1 sm:flex-none">
                         <div className="bg-gradient-to-br from-primary/20 to-accent/20 rounded-lg p-3">
-                          <p className={`text-lg font-bold ${getScoreColor(submission.score, submission.total_possible)}`}>
+                          <p
+                            className={`text-lg font-bold ${getScoreColor(
+                              submission.score,
+                              submission.total_possible
+                            )}`}
+                          >
                             {submission.score}/{submission.total_possible}
                           </p>
                           <p className="text-xs text-muted-foreground">
-                            {Math.round((submission.score / submission.total_possible) * 100)}%
+                            {Math.round(
+                              (submission.score / submission.total_possible) * 100
+                            )}
+                            %
                           </p>
                         </div>
-                        <span className={`inline-block mt-2 px-2 py-1 rounded-full text-xs font-medium ${
-                          getScoreBadge(submission.score, submission.total_possible).color
-                        }`}>
+                        <span
+                          className={`inline-block mt-2 px-2 py-1 rounded-full text-xs font-medium ${getScoreBadge(submission.score, submission.total_possible).color
+                            }`}
+                        >
                           {getScoreBadge(submission.score, submission.total_possible).label}
                         </span>
                       </div>
                     ) : (
-                      <div className="text-center">
+                      <div className="text-center flex-1 sm:flex-none">
                         <div className="bg-gradient-to-br from-primary/20 to-accent/20 rounded-lg p-3">
                           <p className="text-lg font-bold text-muted-foreground">
                             Pending
                           </p>
-                          <p className="text-xs text-muted-foreground">
-                            Grading
-                          </p>
+                          <p className="text-xs text-muted-foreground">Grading</p>
                         </div>
                       </div>
                     )}
-                    <Button 
-                      variant="outline" 
+
+                    <Button
+                      variant="outline"
                       size="sm"
                       onClick={() => setSelectedResult(submission)}
-                      className="flex items-center gap-1"
+                      className="flex items-center justify-center gap-1 mt-3 sm:mt-0 w-full sm:w-auto"
                       disabled={detailLoading}
                     >
                       <Eye className="w-3 h-3" />

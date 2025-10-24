@@ -502,11 +502,11 @@ const TeacherCourses = ({ teacherData }: TeacherCoursesProps) => {
             key={course.id}
             variant={selectedCourse?.id === course.id ? "default" : "outline"}
             onClick={() => setSelectedCourse(course)}
-            className="flex items-center gap-2"
+            className="flex items-center gap-2 text-xs sm:text-sm"
           >
-            <BookOpen className="h-4 w-4" />
-            {course.course_name}
-            <Badge variant="secondary">{course.enrollments?.[0]?.count || 0}</Badge>
+            <BookOpen className="h-3 w-3 sm:h-4 sm:w-4" />
+            <span className="truncate max-w-[100px] sm:max-w-none">{course.course_name}</span>
+            <Badge variant="secondary" className="text-xs">{course.enrollments?.[0]?.count || 0}</Badge>
           </Button>
         ))}
       </div>
@@ -514,53 +514,57 @@ const TeacherCourses = ({ teacherData }: TeacherCoursesProps) => {
       {selectedCourse && (
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center justify-between">
+            <CardTitle className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
               <div className="flex items-center gap-2">
-                <BookOpen className="h-5 w-5" />
-                {selectedCourse.course_name} ({selectedCourse.course_code})
+                <BookOpen className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
+                <span className="text-sm sm:text-base">{selectedCourse.course_name} ({selectedCourse.course_code})</span>
               </div>
-              <Badge variant="outline">{selectedCourse.credits} Credits</Badge>
+              <Badge variant="outline" className="text-xs">{selectedCourse.credits} Credits</Badge>
             </CardTitle>
           </CardHeader>
           <CardContent>
             <Tabs defaultValue="materials" className="w-full">
-              <TabsList className="grid w-full grid-cols-6">
-                <TabsTrigger value="materials">Materials</TabsTrigger>
-                <TabsTrigger value="quizzes">Quiz List</TabsTrigger>
-                <TabsTrigger value="quiz-creator">Create Quiz</TabsTrigger>
-                <TabsTrigger value="quiz-grader">Grade Quizzes</TabsTrigger>
-                <TabsTrigger value="students">Students</TabsTrigger>
-                <TabsTrigger value="progress">Progress</TabsTrigger>
-              </TabsList>
+              <div className="w-full overflow-x-auto overflow-y-visible -mx-2 px-2 md:mx-0 md:px-0">
+                <TabsList className="inline-flex md:grid w-max md:w-full md:grid-cols-6 h-auto flex-nowrap md:flex-wrap gap-1 p-1">
+                  <TabsTrigger value="materials" className="text-xs sm:text-sm whitespace-nowrap flex-shrink-0">Materials</TabsTrigger>
+                  <TabsTrigger value="quizzes" className="text-xs sm:text-sm whitespace-nowrap flex-shrink-0">Quiz List</TabsTrigger>
+                  <TabsTrigger value="quiz-creator" className="text-xs sm:text-sm whitespace-nowrap flex-shrink-0">Create Quiz</TabsTrigger>
+                  <TabsTrigger value="quiz-grader" className="text-xs sm:text-sm whitespace-nowrap flex-shrink-0">Grade Quizzes</TabsTrigger>
+                  <TabsTrigger value="students" className="text-xs sm:text-sm whitespace-nowrap flex-shrink-0">Students</TabsTrigger>
+                  <TabsTrigger value="progress" className="text-xs sm:text-sm whitespace-nowrap flex-shrink-0">Progress</TabsTrigger>
+                </TabsList>
+              </div>
 
               {/* Materials Tab */}
-              <TabsContent value="materials" className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <h3 className="text-lg font-semibold">Lecture Materials</h3>
+              <TabsContent value="materials" className="space-y-4 mt-4">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                  <h3 className="text-base sm:text-lg font-semibold">Lecture Materials</h3>
                   <Dialog>
                     <DialogTrigger asChild>
-                      <Button className="flex items-center gap-2">
-                        <Plus className="h-4 w-4" />
+                      <Button className="flex items-center gap-2 w-full sm:w-auto text-xs sm:text-sm">
+                        <Plus className="h-3 w-3 sm:h-4 sm:w-4" />
                         Upload Material
                       </Button>
                     </DialogTrigger>
-                    <DialogContent>
+                    <DialogContent className="w-[95vw] sm:w-full max-w-lg">
                       <DialogHeader>
-                        <DialogTitle>Upload Lecture Material</DialogTitle>
+                        <DialogTitle className="text-base sm:text-lg">Upload Lecture Material</DialogTitle>
                       </DialogHeader>
                       <div className="space-y-4">
                         <Input
                           placeholder="Material title"
                           value={newMaterial.title}
                           onChange={(e) => setNewMaterial({...newMaterial, title: e.target.value})}
+                          className="text-sm"
                         />
                         <Textarea
                           placeholder="Description"
                           value={newMaterial.description}
                           onChange={(e) => setNewMaterial({...newMaterial, description: e.target.value})}
+                          className="text-sm"
                         />
                         <select
-                          className="w-full p-2 border rounded bg-black"
+                          className="w-full p-2 border rounded bg-black text-sm"
                           value={newMaterial.material_type}
                           onChange={(e) => setNewMaterial({...newMaterial, material_type: e.target.value})}
                         >
@@ -575,6 +579,7 @@ const TeacherCourses = ({ teacherData }: TeacherCoursesProps) => {
                             const file = e.target.files?.[0];
                             if (file) handleUploadMaterial(file);
                           }}
+                          className="text-sm"
                         />
                       </div>
                     </DialogContent>
@@ -584,23 +589,25 @@ const TeacherCourses = ({ teacherData }: TeacherCoursesProps) => {
                 <div className="grid gap-4">
                   {materials.map((material) => (
                     <Card key={material.id}>
-                      <CardContent className="p-4">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                            <FileText className="h-5 w-5 " />
-                            <div>
-                              <p className="font-medium">{material.title}</p>
-                              <p className="text-sm ">{material.description}</p>
-                              <p className="text-xs ">
-                                Uploaded {new Date(material.uploaded_at).toLocaleDateString()}
-                              </p>
+                      <CardContent className="p-3 sm:p-4">
+                        <div className="space-y-3">
+                          <div className="flex items-start gap-3">
+                            <FileText className="h-5 w-5 flex-shrink-0 mt-0.5" />
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium text-sm sm:text-base">{material.title}</p>
+                              <p className="text-xs sm:text-sm mt-1">{material.description}</p>
                             </div>
                           </div>
-                          <div className="flex items-center gap-2">
-                            <Badge variant="outline">{material.material_type}</Badge>
-                            <Button size="sm" variant="outline">
-                              <Download className="h-4 w-4" />
-                            </Button>
+                          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 pt-2 border-t">
+                            <p className="text-xs text-muted-foreground">
+                              Uploaded {new Date(material.uploaded_at).toLocaleDateString()}
+                            </p>
+                            <div className="flex items-center gap-2 w-full sm:w-auto">
+                              <Badge variant="outline" className="text-xs flex-1 sm:flex-initial justify-center">{material.material_type}</Badge>
+                              <Button size="sm" variant="outline" className="flex-shrink-0">
+                                <Download className="h-4 w-4" />
+                              </Button>
+                            </div>
                           </div>
                         </div>
                       </CardContent>
@@ -610,41 +617,59 @@ const TeacherCourses = ({ teacherData }: TeacherCoursesProps) => {
               </TabsContent>
 
               {/* Quiz List Tab */}
-              <TabsContent value="quizzes" className="space-y-4">
-                <h3 className="text-lg font-semibold">Course Quizzes</h3>
+              <TabsContent value="quizzes" className="space-y-4 mt-4">
+                <h3 className="text-base sm:text-lg font-semibold">Course Quizzes</h3>
                 <div className="grid gap-4">
                   {quizzes.map((quiz) => (
                     <Card key={quiz.id}>
-                      <CardContent className="p-4">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                            <FileText className="h-5 w-5 " />
-                            <div>
-                              <p className="font-medium">{quiz.quiz_name}</p>
-                              <p className="text-sm ">{quiz.description}</p>
-                              <p className="text-xs ">
-                                {quiz.time_limit_minutes && `${quiz.time_limit_minutes} minutes • `}
-                                {quiz.attempts_allowed} attempt(s) • Pass: {quiz.pass_percentage}%
-                              </p>
-                              <p className="text-xs ">
-                                Created: {new Date(quiz.created_at).toLocaleDateString()}
-                              </p>
+                      <CardContent className="p-3 sm:p-4">
+                        <div className="space-y-3">
+                          <div className="flex items-start gap-3">
+                            <FileText className="h-5 w-5 flex-shrink-0 mt-0.5" />
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium text-sm sm:text-base">{quiz.quiz_name}</p>
+                              <p className="text-xs sm:text-sm mt-1 line-clamp-2">{quiz.description}</p>
                             </div>
                           </div>
-                          <div className="flex items-center gap-2">
-                            <Badge variant="outline">
-                              {quiz.quiz_questions?.[0]?.count || 0} questions
-                            </Badge>
-                            <Badge variant="outline">
-                              {quiz.quiz_attempts?.[0]?.count || 0} attempts
-                            </Badge>
-                            <Switch
-                              checked={quiz.is_active}
-                              onCheckedChange={(checked) => toggleQuizStatus(quiz.id, checked)}
-                            />
-                            <Button size="sm" variant="outline">
-                              <Eye className="h-4 w-4" />
-                            </Button>
+                          
+                          <div className="space-y-2">
+                            <div className="flex flex-wrap gap-2 text-xs">
+                              {quiz.time_limit_minutes && (
+                                <span className="px-2 py-1 bg-muted rounded">
+                                  {quiz.time_limit_minutes} min
+                                </span>
+                              )}
+                              <span className="px-2 py-1 bg-muted rounded">
+                                {quiz.attempts_allowed} attempt(s)
+                              </span>
+                              <span className="px-2 py-1 bg-muted rounded">
+                                Pass: {quiz.pass_percentage}%
+                              </span>
+                            </div>
+                            
+                            <p className="text-xs text-muted-foreground">
+                              Created: {new Date(quiz.created_at).toLocaleDateString()}
+                            </p>
+                          </div>
+                          
+                          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 pt-2 border-t">
+                            <div className="flex flex-wrap gap-2 flex-1">
+                              <Badge variant="outline" className="text-xs">
+                                {quiz.quiz_questions?.[0]?.count || 0} questions
+                              </Badge>
+                              <Badge variant="outline" className="text-xs">
+                                {quiz.quiz_attempts?.[0]?.count || 0} attempts
+                              </Badge>
+                            </div>
+                            <div className="flex items-center gap-2 justify-end">
+                              <Switch
+                                checked={quiz.is_active}
+                                onCheckedChange={(checked) => toggleQuizStatus(quiz.id, checked)}
+                              />
+                              <Button size="sm" variant="outline">
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                            </div>
                           </div>
                         </div>
                       </CardContent>
@@ -654,38 +679,40 @@ const TeacherCourses = ({ teacherData }: TeacherCoursesProps) => {
               </TabsContent>
 
               {/* Quiz Creator Tab */}
-              <TabsContent value="quiz-creator" className="space-y-4">
+              <TabsContent value="quiz-creator" className="space-y-4 mt-4">
                 <Card>
                   <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <BookOpen className="w-5 h-5" />
-                      Create Quiz for {selectedCourse.course_name}
+                    <CardTitle className="flex flex-col sm:flex-row items-start sm:items-center gap-2 text-base sm:text-lg">
+                      <BookOpen className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
+                      <span className="truncate">Create Quiz for {selectedCourse.course_name}</span>
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div>
-                      <Label htmlFor="quizName">Quiz Name</Label>
+                      <Label htmlFor="quizName" className="text-xs sm:text-sm">Quiz Name</Label>
                       <Input
                         id="quizName"
                         value={quizName}
                         onChange={(e) => setQuizName(e.target.value)}
                         placeholder="e.g., Chapter 5 Assessment"
+                        className="text-sm"
                       />
                     </div>
 
                     <div>
-                      <Label htmlFor="description">Description</Label>
+                      <Label htmlFor="description" className="text-xs sm:text-sm">Description</Label>
                       <Textarea
                         id="description"
                         value={quizDescription}
                         onChange={(e) => setQuizDescription(e.target.value)}
                         placeholder="Quiz description (optional)"
+                        className="text-sm"
                       />
                     </div>
 
-                    <div className="grid grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                       <div>
-                        <Label htmlFor="timeLimitMinutes">Time Limit (minutes)</Label>
+                        <Label htmlFor="timeLimitMinutes" className="text-xs sm:text-sm">Time Limit (minutes)</Label>
                         <Input
                           id="timeLimitMinutes"
                           type="number"
@@ -693,20 +720,22 @@ const TeacherCourses = ({ teacherData }: TeacherCoursesProps) => {
                           onChange={(e) => setTimeLimitMinutes(e.target.value)}
                           placeholder="No limit"
                           min="1"
+                          className="text-sm"
                         />
                       </div>
                       <div>
-                        <Label htmlFor="attemptsAllowed">Attempts Allowed</Label>
+                        <Label htmlFor="attemptsAllowed" className="text-xs sm:text-sm">Attempts Allowed</Label>
                         <Input
                           id="attemptsAllowed"
                           type="number"
                           value={attemptsAllowed}
                           onChange={(e) => setAttemptsAllowed(e.target.value)}
                           min="1"
+                          className="text-sm"
                         />
                       </div>
                       <div>
-                        <Label htmlFor="passPercentage">Pass Percentage (%)</Label>
+                        <Label htmlFor="passPercentage" className="text-xs sm:text-sm">Pass Percentage (%)</Label>
                         <Input
                           id="passPercentage"
                           type="number"
@@ -715,30 +744,31 @@ const TeacherCourses = ({ teacherData }: TeacherCoursesProps) => {
                           min="0"
                           max="100"
                           step="0.1"
+                          className="text-sm"
                         />
                       </div>
                     </div>
 
                     <div className="space-y-4">
-                      <div className="flex justify-between items-center">
-                        <Label>Questions</Label>
-                        <div className="text-sm ">
+                      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                        <Label className="text-xs sm:text-sm">Questions</Label>
+                        <div className="text-xs sm:text-sm">
                           Total Marks: {getTotalMarks()}
                         </div>
                       </div>
 
                       {questions.map((question, index) => (
-                        <Card key={question.id} className="p-4">
+                        <Card key={question.id} className="p-3 sm:p-4">
                           <div className="space-y-3">
-                            <div className="flex justify-between items-center">
-                              <Label>Question {index + 1}</Label>
+                            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                              <Label className="text-xs sm:text-sm">Question {index + 1}</Label>
                               <Button
                                 type="button"
                                 variant="outline"
                                 size="sm"
                                 onClick={() => removeQuestion(question.id)}
                               >
-                                <Minus className="w-4 h-4" />
+                                <Minus className="w-3 h-3 sm:w-4 sm:h-4" />
                               </Button>
                             </div>
 
@@ -747,16 +777,17 @@ const TeacherCourses = ({ teacherData }: TeacherCoursesProps) => {
                               onChange={(e) => updateQuestion(question.id, { question_text: e.target.value })}
                               placeholder="Enter your question"
                               rows={3}
+                              className="text-sm"
                             />
 
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                               <div>
-                                <Label>Question Type</Label>
+                                <Label className="text-xs sm:text-sm">Question Type</Label>
                                 <Select
                                   value={question.question_type}
                                   onValueChange={(value: any) => updateQuestion(question.id, { question_type: value })}
                                 >
-                                  <SelectTrigger>
+                                  <SelectTrigger className="text-sm">
                                     <SelectValue />
                                   </SelectTrigger>
                                   <SelectContent>
@@ -769,25 +800,27 @@ const TeacherCourses = ({ teacherData }: TeacherCoursesProps) => {
                                 </Select>
                               </div>
                               <div>
-                                <Label>Marks</Label>
+                                <Label className="text-xs sm:text-sm">Marks</Label>
                                 <Input
                                   type="number"
                                   value={question.marks}
                                   onChange={(e) => updateQuestion(question.id, { marks: parseInt(e.target.value) || 1 })}
                                   min="1"
+                                  className="text-sm"
                                 />
                               </div>
                             </div>
 
                             {question.question_type === "multiple_choice" && (
                               <div className="space-y-2">
-                                <div className="flex justify-between items-center">
-                                  <Label>Options</Label>
+                                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                                  <Label className="text-xs sm:text-sm">Options</Label>
                                   <Button 
                                     type="button" 
                                     onClick={() => addOption(question.id)}
                                     size="sm"
                                     variant="outline"
+                                    className="w-full sm:w-auto text-xs sm:text-sm"
                                   >
                                     <Plus className="w-3 h-3 mr-1" />
                                     Add Option
@@ -799,6 +832,7 @@ const TeacherCourses = ({ teacherData }: TeacherCoursesProps) => {
                                       value={option}
                                       onChange={(e) => updateQuestionOption(question.id, optionIndex, e.target.value)}
                                       placeholder={`Option ${String.fromCharCode(65 + optionIndex)}`}
+                                      className="text-sm"
                                     />
                                     {question.options && question.options.length > 2 && (
                                       <Button
@@ -817,13 +851,13 @@ const TeacherCourses = ({ teacherData }: TeacherCoursesProps) => {
 
                             {question.question_type !== "essay" && (
                               <div>
-                                <Label>Correct Answer</Label>
+                                <Label className="text-xs sm:text-sm">Correct Answer</Label>
                                 {question.question_type === "multiple_choice" ? (
                                   <Select
                                     value={question.correct_answer}
                                     onValueChange={(value) => updateQuestion(question.id, { correct_answer: value })}
                                   >
-                                    <SelectTrigger>
+                                    <SelectTrigger className="text-sm">
                                       <SelectValue placeholder="Select correct option" />
                                     </SelectTrigger>
                                     <SelectContent>
@@ -839,7 +873,7 @@ const TeacherCourses = ({ teacherData }: TeacherCoursesProps) => {
                                     value={question.correct_answer}
                                     onValueChange={(value) => updateQuestion(question.id, { correct_answer: value })}
                                   >
-                                    <SelectTrigger>
+                                    <SelectTrigger className="text-sm">
                                       <SelectValue placeholder="Select correct answer" />
                                     </SelectTrigger>
                                     <SelectContent>
@@ -852,6 +886,7 @@ const TeacherCourses = ({ teacherData }: TeacherCoursesProps) => {
                                     value={question.correct_answer}
                                     onChange={(e) => updateQuestion(question.id, { correct_answer: e.target.value })}
                                     placeholder="Enter correct answer"
+                                    className="text-sm"
                                   />
                                 )}
                               </div>
@@ -865,15 +900,15 @@ const TeacherCourses = ({ teacherData }: TeacherCoursesProps) => {
                           type="button" 
                           onClick={addQuestion} 
                           variant="outline"
-                          className="px-3 py-1 text-sm"
+                          className="px-3 py-1 text-xs sm:text-sm"
                         >
-                          <Plus className="w-4 h-4 mr-2" />
+                          <Plus className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                           Add Question
                         </Button>
                       </div>
                     </div>
 
-                    <Button onClick={createQuiz} disabled={isCreatingQuiz} className="w-full">
+                    <Button onClick={createQuiz} disabled={isCreatingQuiz} className="w-full text-sm">
                       {isCreatingQuiz ? "Creating..." : "Create Quiz"}
                     </Button>
                   </CardContent>
@@ -881,14 +916,14 @@ const TeacherCourses = ({ teacherData }: TeacherCoursesProps) => {
               </TabsContent>
 
               {/* Quiz Grader Tab */}
-              <TabsContent value="quiz-grader" className="space-y-4">
+              <TabsContent value="quiz-grader" className="space-y-4 mt-4">
                 {selectedSubmission ? (
                   <Card className="w-full">
                     <CardHeader>
-                      <div className="flex justify-between items-center">
-                        <CardTitle className="flex items-center gap-2">
-                          <GraduationCap className="w-5 h-5" />
-                          Grading: {selectedSubmission.quizzes?.quiz_name}
+                      <div className="flex flex-col sm:flex-row justify-between items-start gap-3">
+                        <CardTitle className="flex flex-col sm:flex-row items-start sm:items-center gap-2 text-base sm:text-lg">
+                          <GraduationCap className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
+                          <span className="truncate">Grading: {selectedSubmission.quizzes?.quiz_name}</span>
                         </CardTitle>
                         <Button 
                           variant="outline" 
@@ -897,33 +932,36 @@ const TeacherCourses = ({ teacherData }: TeacherCoursesProps) => {
                             setScores({});
                             setSubmissionDetails(null);
                           }}
+                          size="sm"
+                          className="w-full sm:w-auto text-xs sm:text-sm"
                         >
-                          <ArrowLeft className="w-4 h-4 mr-2" />
-                          Back to Submissions
+                          <ArrowLeft className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
+                          <span className="hidden sm:inline">Back to Submissions</span>
+                          <span className="sm:hidden">Back</span>
                         </Button>
                       </div>
                       <div className="space-y-1">
-                        <p className="text-sm text-muted-foreground">
+                        <p className="text-xs sm:text-sm text-muted-foreground">
                           Student: {selectedSubmission.user_profiles?.first_name} {selectedSubmission.user_profiles?.last_name}
                         </p>
-                        <p className="text-sm text-muted-foreground">
+                        <p className="text-xs sm:text-sm text-muted-foreground truncate">
                           Email: {selectedSubmission.user_profiles?.email}
                         </p>
-                        <p className="text-sm text-muted-foreground">
+                        <p className="text-xs sm:text-sm text-muted-foreground">
                           Submitted: {new Date(selectedSubmission.submitted_at).toLocaleString()}
                         </p>
                       </div>
                     </CardHeader>
                     <CardContent className="space-y-6">
-                      <div className="flex justify-between items-center p-4 bg-muted rounded-lg">
+                      <div className="flex justify-between items-center p-3 sm:p-4 bg-muted rounded-lg">
                         <Button 
                           onClick={submitGrades} 
                           disabled={isGrading || !submissionDetails}
-                          className="min-w-[140px]"
+                          className="min-w-[120px] sm:min-w-[140px] text-xs sm:text-sm"
                         >
                           {isGrading ? (
                             <div className="flex items-center gap-2">
-                              <RefreshCw className="w-4 h-4 animate-spin" />
+                              <RefreshCw className="w-3 h-3 sm:w-4 sm:h-4 animate-spin" />
                               Submitting...
                             </div>
                           ) : (
@@ -938,14 +976,14 @@ const TeacherCourses = ({ teacherData }: TeacherCoursesProps) => {
                         const currentScore = scores[question.id] || 0;
 
                         return (
-                          <Card key={question.id} className="p-4 border-l-4 border-l-primary bg-black/50">
+                          <Card key={question.id} className="p-3 sm:p-4 border-l-4 border-l-primary bg-black/50">
                             <div className="space-y-4">
-                              <div className="flex justify-between items-start">
-                                <div className="flex-1">
-                                  <p className="font-medium text-lg">Question {index + 1}</p>
-                                  <p className="mt-1">{question.question_text}</p>
+                              <div className="flex flex-col sm:flex-row justify-between items-start gap-2">
+                                <div className="flex-1 min-w-0">
+                                  <p className="font-medium text-sm sm:text-base lg:text-lg">Question {index + 1}</p>
+                                  <p className="mt-1 text-xs sm:text-sm">{question.question_text}</p>
                                 </div>
-                                <div className="text-right text-sm text-muted-foreground">
+                                <div className="text-left sm:text-right text-xs sm:text-sm text-muted-foreground">
                                   <p>Worth {question.marks || 1} point{(question.marks || 1) !== 1 ? 's' : ''}</p>
                                   <p className="capitalize">{question.question_type.replace('_', ' ')}</p>
                                 </div>
@@ -953,7 +991,7 @@ const TeacherCourses = ({ teacherData }: TeacherCoursesProps) => {
 
                               {question.question_type === "multiple_choice" && (
                                 <div className="space-y-2">
-                                  <p className="text-sm font-medium">Answer Choices:</p>
+                                  <p className="text-xs sm:text-sm font-medium">Answer Choices:</p>
                                   <div className="grid gap-2">
                                     {question.options?.map((option, optIndex) => {
                                       let bgColor = " border-gray-300";
@@ -973,7 +1011,7 @@ const TeacherCourses = ({ teacherData }: TeacherCoursesProps) => {
                                       return (
                                         <div 
                                           key={optIndex} 
-                                          className={`p-3 rounded border ${bgColor} ${textColor}`}
+                                          className={`p-2 sm:p-3 rounded border text-xs sm:text-sm ${bgColor} ${textColor}`}
                                         >
                                           <strong>{String.fromCharCode(65 + optIndex)}.</strong> {option}{icon}
                                         </div>
@@ -985,8 +1023,8 @@ const TeacherCourses = ({ teacherData }: TeacherCoursesProps) => {
 
                               {question.question_type === "true_false" && (
                                 <div className="space-y-2">
-                                  <div className="grid grid-cols-2 gap-4">
-                                    <div className={`p-3 rounded border ${
+                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <div className={`p-2 sm:p-3 rounded border text-xs sm:text-sm ${
                                       question.correct_answer === "true" 
                                         ? "bg-green-700 border-green-300 " 
                                         : studentAnswer === "true"
@@ -997,7 +1035,7 @@ const TeacherCourses = ({ teacherData }: TeacherCoursesProps) => {
                                       {question.correct_answer === "true" && " ✓ Correct"}
                                       {studentAnswer === "true" && question.correct_answer !== "true" && " ✗ Selected"}
                                     </div>
-                                    <div className={`p-3 rounded border ${
+                                    <div className={`p-2 sm:p-3 rounded border text-xs sm:text-sm ${
                                       question.correct_answer === "false" 
                                         ? "bg-green-700 border-green-300 " 
                                         : studentAnswer === "true"
@@ -1009,7 +1047,7 @@ const TeacherCourses = ({ teacherData }: TeacherCoursesProps) => {
                                       {studentAnswer === "false" && question.correct_answer !== "false" && " ✗ Selected"}
                                     </div>
                                   </div>
-                                  <p className={`text-sm font-medium ${
+                                  <p className={`text-xs sm:text-sm font-medium ${
                                     isCorrect ? "text-green-600" : "text-red-600"
                                   }`}>
                                     Student answered: <strong>{studentAnswer || "No answer"}</strong>
@@ -1021,39 +1059,41 @@ const TeacherCourses = ({ teacherData }: TeacherCoursesProps) => {
                               {question.question_type === "short_answer" && (
                                 <div className="space-y-3">
                                   <div>
-                                    <p className="text-sm font-medium mb-1">Expected Answer:</p>
-                                    <div className="p-3 bg-blue-50 border border-blue-200 rounded">
+                                    <p className="text-xs sm:text-sm font-medium mb-1">Expected Answer:</p>
+                                    <div className="p-2 sm:p-3 bg-blue-50 border border-blue-200 rounded text-xs sm:text-sm">
                                       {question.correct_answer}
                                     </div>
                                   </div>
                                   <div>
-                                    <p className="text-sm font-medium mb-1">Student's Answer:</p>
-                                    <div className="p-3 bg-gray-50 border rounded min-h-[60px]">
+                                    <p className="text-xs sm:text-sm font-medium mb-1">Student's Answer:</p>
+                                    <div className="p-2 sm:p-3 bg-gray-50 border rounded min-h-[60px] text-xs sm:text-sm">
                                       {studentAnswer || <em className="text-muted-foreground">No answer provided</em>}
                                     </div>
                                   </div>
                                 </div>
                               )}
 
-                              <div className="flex items-center justify-between p-3 bg-muted rounded">
-                                <div className="flex items-center gap-3">
-                                  <Label htmlFor={`score-${question.id}`} className="font-medium">
+                              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-2 sm:p-3 bg-muted rounded">
+                                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3 flex-1">
+                                  <Label htmlFor={`score-${question.id}`} className="font-medium text-xs sm:text-sm">
                                     Assign Score:
                                   </Label>
-                                  <Input
-                                    id={`score-${question.id}`}
-                                    type="number"
-                                    min="0"
-                                    max={question.marks || 1}
-                                    step="1"
-                                    value={currentScore}
-                                    onChange={(e) => updateQuestionScore(question.id, e.target.value, question.marks || 1)}
-                                    className="w-20"
-                                    placeholder="0"
-                                  />
-                                  <span className="text-sm text-muted-foreground">/ {question.marks || 1}</span>
+                                  <div className="flex items-center gap-2 w-full sm:w-auto">
+                                    <Input
+                                      id={`score-${question.id}`}
+                                      type="number"
+                                      min="0"
+                                      max={question.marks || 1}
+                                      step="1"
+                                      value={currentScore}
+                                      onChange={(e) => updateQuestionScore(question.id, e.target.value, question.marks || 1)}
+                                      className="w-20 text-sm"
+                                      placeholder="0"
+                                    />
+                                    <span className="text-xs sm:text-sm text-muted-foreground">/ {question.marks || 1}</span>
+                                  </div>
                                 </div>
-                                <div className="text-sm">
+                                <div className="text-xs sm:text-sm">
                                   {question.question_type !== "short_answer" && (
                                     <span className={`px-2 py-1 rounded text-xs font-medium ${
                                       isCorrect ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
@@ -1072,13 +1112,13 @@ const TeacherCourses = ({ teacherData }: TeacherCoursesProps) => {
                 ) : (
                   <Card>
                     <CardHeader>
-                      <div className="flex justify-between items-center">
+                      <div className="flex flex-col sm:flex-row justify-between items-start gap-3">
                         <div>
-                          <CardTitle className="flex items-center gap-2">
-                            <GraduationCap className="w-5 h-5" />
+                          <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                            <GraduationCap className="w-4 h-4 sm:w-5 sm:h-5" />
                             Quiz Submissions to Grade
                           </CardTitle>
-                          <p className="text-sm text-muted-foreground">
+                          <p className="text-xs sm:text-sm text-muted-foreground">
                             Review and grade student quiz submissions for {selectedCourse.course_name}
                           </p>
                         </div>
@@ -1086,8 +1126,9 @@ const TeacherCourses = ({ teacherData }: TeacherCoursesProps) => {
                           onClick={() => fetchSubmissions()} 
                           variant="outline" 
                           size="sm"
+                          className="w-full sm:w-auto text-xs sm:text-sm"
                         >
-                          <RefreshCw className="w-4 h-4 mr-2" />
+                          <RefreshCw className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                           Refresh
                         </Button>
                       </div>
@@ -1096,57 +1137,58 @@ const TeacherCourses = ({ teacherData }: TeacherCoursesProps) => {
                       <div className="space-y-4">
                         {!submissions || submissions.length === 0 ? (
                           <div className="text-center py-8">
-                            <GraduationCap className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                            <p className="text-muted-foreground mb-2">No submissions to grade yet.</p>
-                            <p className="text-sm text-muted-foreground">
+                            <GraduationCap className="w-10 h-10 sm:w-12 sm:h-12 text-muted-foreground mx-auto mb-4" />
+                            <p className="text-muted-foreground mb-2 text-sm sm:text-base">No submissions to grade yet.</p>
+                            <p className="text-xs sm:text-sm text-muted-foreground">
                               Quiz submissions will appear here once students start taking your quizzes.
                             </p>
                           </div>
                         ) : (
                           <>
                             <div className="mb-4 p-3 bg-green-50 rounded-lg border border-green-200">
-                              <p className="text-sm text-green-800">
+                              <p className="text-xs sm:text-sm text-green-800">
                                 Found {submissions.length} submission{submissions.length !== 1 ? 's' : ''} to review
                               </p>
                             </div>
                             {submissions.map((submission) => {
                               const graded = submission.score !== null && submission.score !== undefined;
                               return (
-                                <div key={submission.id} className="p-4 border rounded-lg hover:bg-muted/50 transition-colors">
-                                  <div className="flex justify-between items-start">
-                                    <div className="flex-1">
-                                      <h4 className="font-semibold text-lg">{submission.quizzes?.quiz_name}</h4>
-                                      <div className="grid grid-cols-2 gap-x-6 mt-2 text-sm text-muted-foreground">
-                                        <p><strong>Student:</strong> {submission.user_profiles?.first_name} {submission.user_profiles?.last_name}</p>
-                                        <p><strong>Email:</strong> {submission.user_profiles?.email}</p>
+                                <div key={submission.id} className="p-3 sm:p-4 border rounded-lg hover:bg-muted/50 transition-colors">
+                                  <div className="flex flex-col lg:flex-row justify-between items-start gap-3">
+                                    <div className="flex-1 w-full min-w-0">
+                                      <h4 className="font-semibold text-sm sm:text-base lg:text-lg truncate">{submission.quizzes?.quiz_name}</h4>
+                                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 sm:gap-x-6 gap-y-1 mt-2 text-xs sm:text-sm text-muted-foreground">
+                                        <p className="truncate"><strong>Student:</strong> {submission.user_profiles?.first_name} {submission.user_profiles?.last_name}</p>
+                                        <p className="truncate"><strong>Email:</strong> {submission.user_profiles?.email}</p>
                                         <p><strong>Submitted:</strong> {new Date(submission.submitted_at).toLocaleString()}</p>
                                         <p><strong>Current Score:</strong> {graded ? submission.score : 'Not graded'}</p>
                                       </div>
                                     </div>
-                                    <div className="flex items-center gap-3">
+                                    <div className="flex flex-row sm:flex-col lg:flex-row items-center gap-3 w-full lg:w-auto">
                                       {graded ? (
-                                        <div className="text-right">
+                                        <div className="text-left sm:text-right flex-1 sm:flex-initial">
                                           <div className="flex items-center gap-2 text-green-600 mb-1">
-                                            <CheckCircle className="w-4 h-4" />
-                                            <span className="text-sm font-medium">Graded</span>
+                                            <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4" />
+                                            <span className="text-xs sm:text-sm font-medium">Graded</span>
                                           </div>
-                                          <p className="text-lg font-bold">
+                                          <p className="text-base sm:text-lg font-bold">
                                             {submission.score}
                                           </p>
                                         </div>
                                       ) : (
-                                        <div className="text-right">
+                                        <div className="text-left sm:text-right flex-1 sm:flex-initial">
                                           <div className="flex items-center gap-2 text-orange-600 mb-1">
-                                            <Clock className="w-4 h-4" />
-                                            <span className="text-sm font-medium">Pending</span>
+                                            <Clock className="w-3 h-3 sm:w-4 sm:h-4" />
+                                            <span className="text-xs sm:text-sm font-medium">Pending</span>
                                           </div>
-                                          <p className="text-sm text-muted-foreground">Not graded</p>
+                                          <p className="text-xs sm:text-sm text-muted-foreground">Not graded</p>
                                         </div>
                                       )}
                                       <Button 
                                         onClick={() => selectSubmission(submission)}
                                         size="sm"
                                         variant={graded ? "outline" : "default"}
+                                        className="w-full sm:w-auto text-xs sm:text-sm"
                                       >
                                         {graded ? "Review/Regrade" : "Grade"}
                                       </Button>
@@ -1164,33 +1206,35 @@ const TeacherCourses = ({ teacherData }: TeacherCoursesProps) => {
               </TabsContent>
 
               {/* Students Tab */}
-              <TabsContent value="students" className="space-y-4">
-                <h3 className="text-lg font-semibold">Enrolled Students ({students.length})</h3>
+              <TabsContent value="students" className="space-y-4 mt-4">
+                <h3 className="text-base sm:text-lg font-semibold">Enrolled Students ({students.length})</h3>
                 
                 <div className="grid gap-4">
                   {students.map((enrollment) => (
                     <Card key={enrollment.id}>
-                      <CardContent className="p-4">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                            <Users className="h-5 w-5 text-blue-500" />
-                            <div>
-                              <p className="font-medium">
+                      <CardContent className="p-3 sm:p-4">
+                        <div className="space-y-3">
+                          <div className="flex items-start gap-3">
+                            <Users className="h-5 w-5 text-blue-500 flex-shrink-0 mt-0.5" />
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium text-sm sm:text-base">
                                 {enrollment.user_profiles?.first_name} {enrollment.user_profiles?.last_name}
                               </p>
-                              <p className="text-sm text-gray-600">{enrollment.user_profiles?.email}</p>
-                              <p className="text-xs text-gray-500">
-                                Enrolled: {new Date(enrollment.enrollment_date).toLocaleDateString()}
-                              </p>
+                              <p className="text-xs sm:text-sm text-gray-600 truncate">{enrollment.user_profiles?.email}</p>
                             </div>
                           </div>
-                          <div className="flex items-center gap-2">
-                            <Badge variant={enrollment.status === 'enrolled' ? 'default' : 'secondary'}>
-                              {enrollment.status}
-                            </Badge>
-                            {enrollment.grade && (
-                              <Badge variant="outline">{enrollment.grade}</Badge>
-                            )}
+                          <div className="flex items-center justify-between pt-2 border-t">
+                            <p className="text-xs text-gray-500">
+                              Enrolled: {new Date(enrollment.enrollment_date).toLocaleDateString()}
+                            </p>
+                            <div className="flex items-center gap-2">
+                              <Badge variant={enrollment.status === 'enrolled' ? 'default' : 'secondary'} className="text-xs">
+                                {enrollment.status}
+                              </Badge>
+                              {enrollment.grade && (
+                                <Badge variant="outline" className="text-xs">{enrollment.grade}</Badge>
+                              )}
+                            </div>
                           </div>
                         </div>
                       </CardContent>
@@ -1200,31 +1244,31 @@ const TeacherCourses = ({ teacherData }: TeacherCoursesProps) => {
               </TabsContent>
 
               {/* Progress Tab */}
-              <TabsContent value="progress" className="space-y-4">
-                <h3 className="text-lg font-semibold">Course Progress Overview</h3>
+              <TabsContent value="progress" className="space-y-4 mt-4">
+                <h3 className="text-base sm:text-lg font-semibold">Course Progress Overview</h3>
                 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                   <Card>
-                    <CardContent className="p-4 text-center">
-                      <Award className="h-8 w-8 text-yellow-500 mx-auto mb-2" />
-                      <p className="text-2xl font-bold">{materials.length}</p>
-                      <p className="text-sm text-gray-600">Materials Uploaded</p>
+                    <CardContent className="p-3 sm:p-4 text-center">
+                      <Award className="h-6 w-6 sm:h-8 sm:w-8 text-yellow-500 mx-auto mb-2" />
+                      <p className="text-xl sm:text-2xl font-bold">{materials.length}</p>
+                      <p className="text-xs sm:text-sm text-gray-600">Materials Uploaded</p>
                     </CardContent>
                   </Card>
                   
                   <Card>
-                    <CardContent className="p-4 text-center">
-                      <FileText className="h-8 w-8 text-green-500 mx-auto mb-2" />
-                      <p className="text-2xl font-bold">{quizzes.length}</p>
-                      <p className="text-sm text-gray-600">Quizzes Created</p>
+                    <CardContent className="p-3 sm:p-4 text-center">
+                      <FileText className="h-6 w-6 sm:h-8 sm:w-8 text-green-500 mx-auto mb-2" />
+                      <p className="text-xl sm:text-2xl font-bold">{quizzes.length}</p>
+                      <p className="text-xs sm:text-sm text-gray-600">Quizzes Created</p>
                     </CardContent>
                   </Card>
                   
                   <Card>
-                    <CardContent className="p-4 text-center">
-                      <Users className="h-8 w-8 text-blue-500 mx-auto mb-2" />
-                      <p className="text-2xl font-bold">{students.length}</p>
-                      <p className="text-sm text-gray-600">Enrolled Students</p>
+                    <CardContent className="p-3 sm:p-4 text-center">
+                      <Users className="h-6 w-6 sm:h-8 sm:w-8 text-blue-500 mx-auto mb-2" />
+                      <p className="text-xl sm:text-2xl font-bold">{students.length}</p>
+                      <p className="text-xs sm:text-sm text-gray-600">Enrolled Students</p>
                     </CardContent>
                   </Card>
                 </div>

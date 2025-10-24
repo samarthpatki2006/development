@@ -12,7 +12,7 @@ interface AttendanceStatsProps {
 
 const AttendanceStats: React.FC<AttendanceStatsProps> = ({ students, className = "" }) => {
   const [isUpdating, setIsUpdating] = React.useState(false);
-  
+
   const {
     totalStudents,
     presentCount,
@@ -34,7 +34,7 @@ const AttendanceStats: React.FC<AttendanceStatsProps> = ({ students, className =
       overallPercentage,
       averageCumulativeAttendance
     });
-    
+
     // Show visual update indicator
     setIsUpdating(true);
     const timer = setTimeout(() => setIsUpdating(false), 1000);
@@ -46,19 +46,19 @@ const AttendanceStats: React.FC<AttendanceStatsProps> = ({ students, className =
   }
 
   return (
-    <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 ${className} ${isUpdating ? 'animate-pulse' : ''}`}>
+    <div className={`grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 ${className} ${isUpdating ? 'animate-pulse' : ''}`}>
       {/* Total Students */}
       <Card className={isUpdating ? 'ring-2 ring-blue-500/20' : ''}>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">
+          <CardTitle className="text-xs sm:text-sm font-medium">
             Total Students
-            {isUpdating && <span className="ml-2 text-xs text-blue-600">●</span>}
+            {isUpdating && <span className="ml-1 sm:ml-2 text-xs text-blue-600">●</span>}
           </CardTitle>
-          <Users className="h-4 w-4 text-muted-foreground" />
+          <Users className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground flex-shrink-0" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">{totalStudents}</div>
-          <p className="text-xs text-muted-foreground">
+          <div className="text-xl sm:text-2xl font-bold">{totalStudents}</div>
+          <p className="text-[10px] sm:text-xs text-muted-foreground">
             Enrolled in class
           </p>
         </CardContent>
@@ -67,15 +67,15 @@ const AttendanceStats: React.FC<AttendanceStatsProps> = ({ students, className =
       {/* Present Today */}
       <Card className={isUpdating ? 'ring-2 ring-green-500/20' : ''}>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">
+          <CardTitle className="text-xs sm:text-sm font-medium">
             Present Today
-            {isUpdating && <span className="ml-2 text-xs text-green-600">●</span>}
+            {isUpdating && <span className="ml-1 sm:ml-2 text-xs text-green-600">●</span>}
           </CardTitle>
-          <UserCheck className="h-4 w-4 text-green-600" />
+          <UserCheck className="h-3 w-3 sm:h-4 sm:w-4 text-green-600 flex-shrink-0" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold text-green-600">{presentCount}</div>
-          <p className="text-xs text-muted-foreground">
+          <div className="text-xl sm:text-2xl font-bold text-green-600">{presentCount}</div>
+          <p className="text-[10px] sm:text-xs text-muted-foreground truncate">
             {pendingCount > 0 ? `${pendingCount} pending` : 'All marked'}
           </p>
         </CardContent>
@@ -84,12 +84,12 @@ const AttendanceStats: React.FC<AttendanceStatsProps> = ({ students, className =
       {/* Absent Today */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Absent Today</CardTitle>
-          <UserX className="h-4 w-4 text-red-600" />
+          <CardTitle className="text-xs sm:text-sm font-medium">Absent Today</CardTitle>
+          <UserX className="h-3 w-3 sm:h-4 sm:w-4 text-red-600 flex-shrink-0" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold text-red-600">{absentCount}</div>
-          <p className="text-xs text-muted-foreground">
+          <div className="text-xl sm:text-2xl font-bold text-red-600">{absentCount}</div>
+          <p className="text-[10px] sm:text-xs text-muted-foreground">
             {Math.round((absentCount / totalStudents) * 100)}% of class
           </p>
         </CardContent>
@@ -98,76 +98,76 @@ const AttendanceStats: React.FC<AttendanceStatsProps> = ({ students, className =
       {/* Today's Attendance Rate */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Today's Rate</CardTitle>
-          <TrendingUp className="h-4 w-4 text-muted-foreground" />
+          <CardTitle className="text-xs sm:text-sm font-medium">Today's Rate</CardTitle>
+          <TrendingUp className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground flex-shrink-0" />
         </CardHeader>
         <CardContent>
-          <div className={`text-2xl font-bold ${getAttendanceStatusColor(overallPercentage)}`}>
+          <div className={`text-xl sm:text-2xl font-bold ${getAttendanceStatusColor(overallPercentage)}`}>
             {overallPercentage}%
           </div>
           <div className="mt-2">
-            <Progress 
-              value={overallPercentage} 
-              className="h-2"
+            <Progress
+              value={overallPercentage}
+              className="h-1.5 sm:h-2"
             />
           </div>
         </CardContent>
       </Card>
 
       {/* Average Cumulative Attendance - Full width card */}
-      <Card className="md:col-span-2 lg:col-span-4">
+      <Card className="col-span-2 md:col-span-2 lg:col-span-4">
         <CardHeader>
-          <CardTitle className="text-sm font-medium flex items-center space-x-2">
-            <TrendingUp className="h-4 w-4" />
+          <CardTitle className="text-sm sm:text-base font-medium flex items-center space-x-2">
+            <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
             <span>Class Performance Overview</span>
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 sm:gap-4">
             <div className="text-center">
-              <div className={`text-3xl font-bold ${getAttendanceStatusColor(averageCumulativeAttendance)}`}>
+              <div className={`text-2xl sm:text-3xl font-bold ${getAttendanceStatusColor(averageCumulativeAttendance)}`}>
                 {averageCumulativeAttendance}%
               </div>
-              <p className="text-sm text-muted-foreground mt-1">
+              <p className="text-xs sm:text-sm text-muted-foreground mt-1">
                 Average Cumulative Attendance
               </p>
-              <Progress 
-                value={averageCumulativeAttendance} 
-                className="h-2 mt-2"
+              <Progress
+                value={averageCumulativeAttendance}
+                className="h-1.5 sm:h-2 mt-2"
               />
             </div>
-            
+
             <div className="text-center">
-              <div className="text-3xl font-bold text-foreground">
+              <div className="text-2xl sm:text-3xl font-bold text-foreground">
                 {presentCount}/{totalStudents}
               </div>
-              <p className="text-sm text-muted-foreground mt-1">
+              <p className="text-xs sm:text-sm text-muted-foreground mt-1">
                 Present Today
               </p>
-              <div className="flex justify-center space-x-2 mt-2">
+              <div className="flex flex-wrap justify-center gap-4 mt-2">
                 <div className="flex items-center space-x-1">
-                  <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                  <span className="text-xs">Present</span>
+                  <div className="w-2 h-2 sm:w-3 sm:h-3 bg-green-500 rounded-full flex-shrink-0"></div>
+                  <span className="text-[10px] sm:text-xs">Present</span>
                 </div>
                 <div className="flex items-center space-x-1">
-                  <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-                  <span className="text-xs">Absent</span>
+                  <div className="w-2 h-2 sm:w-3 sm:h-3 bg-red-500 rounded-full flex-shrink-0"></div>
+                  <span className="text-[10px] sm:text-xs">Absent</span>
                 </div>
                 <div className="flex items-center space-x-1">
-                  <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
-                  <span className="text-xs">Pending</span>
+                  <div className="w-2 h-2 sm:w-3 sm:h-3 bg-yellow-500 rounded-full flex-shrink-0"></div>
+                  <span className="text-[10px] sm:text-xs">Pending</span>
                 </div>
               </div>
             </div>
 
             <div className="text-center">
-              <div className="text-3xl font-bold text-foreground">
+              <div className="text-2xl sm:text-3xl font-bold text-foreground">
                 {studentsWithGoodAttendance}
               </div>
-              <p className="text-sm text-muted-foreground mt-1">
+              <p className="text-xs sm:text-sm  mt-1 inline">
                 Students with 80%+ Attendance
               </p>
-              <p className="text-xs text-muted-foreground mt-1">
+              <p className="text-xs sm:text-sm mt-1 font-bold">
                 {totalStudents > 0 ? Math.round((studentsWithGoodAttendance / totalStudents) * 100) : 0}% of class
               </p>
             </div>

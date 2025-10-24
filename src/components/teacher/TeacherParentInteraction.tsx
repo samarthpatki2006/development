@@ -252,36 +252,36 @@ const TeacherParentInteraction = ({ teacherData }: TeacherParentInteractionProps
     <div className="space-y-6">
       <Tabs defaultValue="meetings" className="w-full">
         <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="meetings">Parent Meetings</TabsTrigger>
-          <TabsTrigger value="reports">Progress Reports</TabsTrigger>
+          <TabsTrigger value="meetings" className="text-xs sm:text-sm">Parent Meetings</TabsTrigger>
+          <TabsTrigger value="reports" className="text-xs sm:text-sm">Progress Reports</TabsTrigger>
         </TabsList>
 
         {/* Meetings Tab */}
-        <TabsContent value="meetings" className="space-y-4">
+        <TabsContent value="meetings" className="space-y-4 mt-4">
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center justify-between">
+              <CardTitle className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                 <div className="flex items-center gap-2">
-                  <Calendar className="h-5 w-5" />
-                  Parent Meetings
+                  <Calendar className="h-4 w-4 sm:h-5 sm:w-5" />
+                  <span className="text-base sm:text-lg">Parent Meetings</span>
                 </div>
                 <Dialog>
                   <DialogTrigger asChild>
-                    <Button className="flex items-center gap-2">
-                      <Plus className="h-4 w-4" />
+                    <Button className="flex items-center gap-2 w-full sm:w-auto text-xs sm:text-sm">
+                      <Plus className="h-3 w-3 sm:h-4 sm:w-4" />
                       Schedule Meeting
                     </Button>
                   </DialogTrigger>
-                  <DialogContent>
+                  <DialogContent className="w-[95vw] sm:w-full max-w-lg max-h-[90vh] overflow-y-auto">
                     <DialogHeader>
-                      <DialogTitle>Schedule Parent Meeting</DialogTitle>
+                      <DialogTitle className="text-base sm:text-lg">Schedule Parent Meeting</DialogTitle>
                     </DialogHeader>
                     <div className="space-y-4">
                       <Select
                         value={newMeeting.student_id}
                         onValueChange={(value) => setNewMeeting({...newMeeting, student_id: value})}
                       >
-                        <SelectTrigger>
+                        <SelectTrigger className="text-sm">
                           <SelectValue placeholder="Select student" />
                         </SelectTrigger>
                         <SelectContent>
@@ -297,13 +297,14 @@ const TeacherParentInteraction = ({ teacherData }: TeacherParentInteractionProps
                         type="datetime-local"
                         value={newMeeting.meeting_date}
                         onChange={(e) => setNewMeeting({...newMeeting, meeting_date: e.target.value})}
+                        className="text-sm"
                       />
 
                       <Select
                         value={newMeeting.meeting_type}
                         onValueChange={(value) => setNewMeeting({...newMeeting, meeting_type: value})}
                       >
-                        <SelectTrigger>
+                        <SelectTrigger className="text-sm">
                           <SelectValue placeholder="Meeting type" />
                         </SelectTrigger>
                         <SelectContent>
@@ -317,9 +318,10 @@ const TeacherParentInteraction = ({ teacherData }: TeacherParentInteractionProps
                         placeholder="Meeting agenda"
                         value={newMeeting.agenda}
                         onChange={(e) => setNewMeeting({...newMeeting, agenda: e.target.value})}
+                        className="text-sm"
                       />
 
-                      <Button onClick={scheduleMeeting} className="w-full">
+                      <Button onClick={scheduleMeeting} className="w-full text-sm">
                         Schedule Meeting
                       </Button>
                     </div>
@@ -329,36 +331,36 @@ const TeacherParentInteraction = ({ teacherData }: TeacherParentInteractionProps
             </CardHeader>
             <CardContent>
               {meetings.length === 0 ? (
-                <p className=" text-center py-4">No meetings scheduled</p>
+                <p className="text-center py-4 text-sm">No meetings scheduled</p>
               ) : (
                 <div className="space-y-3">
                   {meetings.map((meeting) => (
                     <Card key={meeting.id}>
-                      <CardContent className="p-4">
-                        <div className="flex items-start justify-between">
+                      <CardContent className="p-3 sm:p-4">
+                        <div className="space-y-3">
                           <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-2">
-                              <p className="font-medium">
+                            <div className="flex flex-wrap items-center gap-2 mb-2">
+                              <p className="font-medium text-sm sm:text-base">
                                 {meeting.user_profiles?.first_name} {meeting.user_profiles?.last_name}
                               </p>
-                              <Badge variant={meeting.status === 'scheduled' ? 'default' : 'secondary'}>
+                              <Badge variant={meeting.status === 'scheduled' ? 'default' : 'secondary'} className="text-xs">
                                 {meeting.status}
                               </Badge>
-                              <Badge variant="outline">
-                                {meeting.meeting_type === 'in_person' && <Users className="h-3 w-3 mr-1" />}
-                                {meeting.meeting_type === 'video_call' && <Video className="h-3 w-3 mr-1" />}
-                                {meeting.meeting_type === 'phone_call' && <Phone className="h-3 w-3 mr-1" />}
-                                {meeting.meeting_type.replace('_', ' ')}
+                              <Badge variant="outline" className="text-xs flex items-center gap-1">
+                                {meeting.meeting_type === 'in_person' && <Users className="h-3 w-3" />}
+                                {meeting.meeting_type === 'video_call' && <Video className="h-3 w-3" />}
+                                {meeting.meeting_type === 'phone_call' && <Phone className="h-3 w-3" />}
+                                <span>{meeting.meeting_type.replace('_', ' ')}</span>
                               </Badge>
                             </div>
-                            <p className="text-sm ">{meeting.agenda}</p>
-                            <p className="text-xs  mt-1">
+                            <p className="text-xs sm:text-sm">{meeting.agenda}</p>
+                            <p className="text-xs mt-1">
                               {new Date(meeting.meeting_date).toLocaleDateString()} at {new Date(meeting.meeting_date).toLocaleTimeString()}
                             </p>
                             {meeting.notes && (
-                              <p className="text-sm  mt-2 p-2 rounded">
-                                Notes: {meeting.notes}
-                              </p>
+                              <div className="text-xs sm:text-sm mt-2 p-2 bg-muted rounded">
+                                <span className="font-medium">Notes:</span> {meeting.notes}
+                              </div>
                             )}
                           </div>
                         </div>
@@ -372,31 +374,31 @@ const TeacherParentInteraction = ({ teacherData }: TeacherParentInteractionProps
         </TabsContent>
 
         {/* Progress Reports Tab */}
-        <TabsContent value="reports" className="space-y-4">
+        <TabsContent value="reports" className="space-y-4 mt-4">
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center justify-between">
+              <CardTitle className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                 <div className="flex items-center gap-2">
-                  <FileText className="h-5 w-5" />
-                  Progress Reports
+                  <FileText className="h-4 w-4 sm:h-5 sm:w-5" />
+                  <span className="text-base sm:text-lg">Progress Reports</span>
                 </div>
                 <Dialog>
                   <DialogTrigger asChild>
-                    <Button className="flex items-center gap-2">
-                      <Plus className="h-4 w-4" />
+                    <Button className="flex items-center gap-2 w-full sm:w-auto text-xs sm:text-sm">
+                      <Plus className="h-3 w-3 sm:h-4 sm:w-4" />
                       Create Report
                     </Button>
                   </DialogTrigger>
-                  <DialogContent className="max-w-2xl">
+                  <DialogContent className="w-[95vw] sm:w-full max-w-2xl max-h-[90vh] overflow-y-auto">
                     <DialogHeader>
-                      <DialogTitle>Create Progress Report</DialogTitle>
+                      <DialogTitle className="text-base sm:text-lg">Create Progress Report</DialogTitle>
                     </DialogHeader>
-                    <div className="space-y-4 max-h-96 overflow-y-auto">
+                    <div className="space-y-4 max-h-96 overflow-y-auto px-1">
                       <Select
                         value={newReport.student_id}
                         onValueChange={(value) => setNewReport({...newReport, student_id: value})}
                       >
-                        <SelectTrigger>
+                        <SelectTrigger className="text-sm">
                           <SelectValue placeholder="Select student" />
                         </SelectTrigger>
                         <SelectContent>
@@ -412,6 +414,7 @@ const TeacherParentInteraction = ({ teacherData }: TeacherParentInteractionProps
                         placeholder="Report period (e.g., Q1 2024)"
                         value={newReport.report_period}
                         onChange={(e) => setNewReport({...newReport, report_period: e.target.value})}
+                        className="text-sm"
                       />
 
                       <Input
@@ -419,36 +422,41 @@ const TeacherParentInteraction = ({ teacherData }: TeacherParentInteractionProps
                         placeholder="Attendance percentage"
                         value={newReport.attendance_percentage}
                         onChange={(e) => setNewReport({...newReport, attendance_percentage: parseFloat(e.target.value) || 0})}
+                        className="text-sm"
                       />
 
                       <Textarea
                         placeholder="Behavioral notes"
                         value={newReport.behavioral_notes}
                         onChange={(e) => setNewReport({...newReport, behavioral_notes: e.target.value})}
+                        className="text-sm"
                       />
 
                       <Textarea
                         placeholder="Strengths"
                         value={newReport.strengths}
                         onChange={(e) => setNewReport({...newReport, strengths: e.target.value})}
+                        className="text-sm"
                       />
 
                       <Textarea
                         placeholder="Areas for improvement"
                         value={newReport.areas_for_improvement}
                         onChange={(e) => setNewReport({...newReport, areas_for_improvement: e.target.value})}
+                        className="text-sm"
                       />
 
-                      <label className="flex items-center gap-2">
+                      <label className="flex items-center gap-2 text-sm cursor-pointer">
                         <input
                           type="checkbox"
                           checked={newReport.shared_with_parents}
                           onChange={(e) => setNewReport({...newReport, shared_with_parents: e.target.checked})}
+                          className="cursor-pointer"
                         />
                         Share with parents immediately
                       </label>
 
-                      <Button onClick={createProgressReport} className="w-full">
+                      <Button onClick={createProgressReport} className="w-full text-sm">
                         Create Report
                       </Button>
                     </div>
@@ -458,44 +466,44 @@ const TeacherParentInteraction = ({ teacherData }: TeacherParentInteractionProps
             </CardHeader>
             <CardContent>
               {progressReports.length === 0 ? (
-                <p className=" text-center py-4">No progress reports created</p>
+                <p className="text-center py-4 text-sm">No progress reports created</p>
               ) : (
                 <div className="space-y-3">
                   {progressReports.map((report) => (
                     <Card key={report.id}>
-                      <CardContent className="p-4">
-                        <div className="flex items-start justify-between">
+                      <CardContent className="p-3 sm:p-4">
+                        <div className="space-y-3">
                           <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-2">
-                              <p className="font-medium">
+                            <div className="flex flex-wrap items-center gap-2 mb-2">
+                              <p className="font-medium text-sm sm:text-base">
                                 {report.user_profiles?.first_name} {report.user_profiles?.last_name}
                               </p>
-                              <Badge variant="outline">{report.courses?.course_name}</Badge>
-                              <Badge variant="secondary">{report.report_period}</Badge>
+                              <Badge variant="outline" className="text-xs">{report.courses?.course_name}</Badge>
+                              <Badge variant="secondary" className="text-xs">{report.report_period}</Badge>
                               {report.shared_with_parents && (
-                                <Badge variant="default">Shared</Badge>
+                                <Badge variant="default" className="text-xs">Shared</Badge>
                               )}
                             </div>
                             
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 text-xs sm:text-sm">
                               <div>
-                                <p className="font-medium ">Attendance</p>
+                                <p className="font-medium">Attendance</p>
                                 <p>{report.attendance_percentage}%</p>
                               </div>
                               <div>
-                                <p className="font-medium ">Strengths</p>
-                                <p>{report.strengths || 'Not specified'}</p>
+                                <p className="font-medium">Strengths</p>
+                                <p className="line-clamp-2">{report.strengths || 'Not specified'}</p>
                               </div>
                               <div>
-                                <p className="font-medium ">Areas for Improvement</p>
-                                <p>{report.areas_for_improvement || 'Not specified'}</p>
+                                <p className="font-medium">Areas for Improvement</p>
+                                <p className="line-clamp-2">{report.areas_for_improvement || 'Not specified'}</p>
                               </div>
                             </div>
 
                             {report.behavioral_notes && (
                               <div className="mt-3 p-2 border rounded">
-                                <p className="text-sm font-medium ">Behavioral Notes:</p>
-                                <p className="text-sm">{report.behavioral_notes}</p>
+                                <p className="text-xs sm:text-sm font-medium">Behavioral Notes:</p>
+                                <p className="text-xs sm:text-sm mt-1">{report.behavioral_notes}</p>
                               </div>
                             )}
 
@@ -505,14 +513,17 @@ const TeacherParentInteraction = ({ teacherData }: TeacherParentInteractionProps
                           </div>
                           
                           {!report.shared_with_parents && (
-                            <Button 
-                              size="sm" 
-                              variant="outline"
-                              onClick={() => shareReportWithParents(report.id)}
-                            >
-                              <Share className="h-3 w-3 mr-1" />
-                              Share
-                            </Button>
+                            <div className="flex justify-end pt-2 border-t">
+                              <Button 
+                                size="sm" 
+                                variant="outline"
+                                onClick={() => shareReportWithParents(report.id)}
+                                className="text-xs sm:text-sm"
+                              >
+                                <Share className="h-3 w-3 mr-1" />
+                                Share
+                              </Button>
+                            </div>
                           )}
                         </div>
                       </CardContent>

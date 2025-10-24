@@ -257,36 +257,36 @@ const TeacherPerformance = ({ teacherData }: TeacherPerformanceProps) => {
     <PermissionWrapper permission="view_grades">
       <div className="space-y-6">
         {/* Class Overview */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
           <Card>
             <CardContent className="p-4 text-center">
-              <Users className="h-8 w-8 mx-auto mb-2" />
-              <p className="text-2xl font-bold">{classAnalytics.totalStudents || 0}</p>
-              <p className="text-sm text-muted-foreground">Total Students</p>
+              <Users className="h-6 w-6 sm:h-8 sm:w-8 mx-auto mb-2 text-blue-500" />
+              <p className="text-xl sm:text-2xl font-bold">{classAnalytics.totalStudents || 0}</p>
+              <p className="text-xs sm:text-sm text-muted-foreground">Total Students</p>
             </CardContent>
           </Card>
           
           <Card>
             <CardContent className="p-4 text-center">
-              <BarChart3 className="h-8 w-8 mx-auto mb-2" />
-              <p className="text-2xl font-bold">{classAnalytics.averageGrade || 0}%</p>
-              <p className="text-sm text-muted-foreground">Class Average</p>
+              <BarChart3 className="h-6 w-6 sm:h-8 sm:w-8 mx-auto mb-2 text-green-500" />
+              <p className="text-xl sm:text-2xl font-bold">{classAnalytics.averageGrade || 0}%</p>
+              <p className="text-xs sm:text-sm text-muted-foreground">Class Average</p>
             </CardContent>
           </Card>
           
           <Card>
             <CardContent className="p-4 text-center">
-              <Award className="h-8 w-8 mx-auto mb-2" />
-              <p className="text-2xl font-bold">{classAnalytics.highPerformers || 0}</p>
-              <p className="text-sm text-muted-foreground">High Performers</p>
+              <Award className="h-6 w-6 sm:h-8 sm:w-8 mx-auto mb-2 text-yellow-500" />
+              <p className="text-xl sm:text-2xl font-bold">{classAnalytics.highPerformers || 0}</p>
+              <p className="text-xs sm:text-sm text-muted-foreground">High Performers</p>
             </CardContent>
           </Card>
           
           <Card>
             <CardContent className="p-4 text-center">
-              <AlertTriangle className="h-8 w-8 mx-auto mb-2" />
-              <p className="text-2xl font-bold">{classAnalytics.atRiskCount || 0}</p>
-              <p className="text-sm text-muted-foreground">At-Risk Students</p>
+              <AlertTriangle className="h-6 w-6 sm:h-8 sm:w-8 mx-auto mb-2 text-red-500" />
+              <p className="text-xl sm:text-2xl font-bold">{classAnalytics.atRiskCount || 0}</p>
+              <p className="text-xs sm:text-sm text-muted-foreground">At-Risk Students</p>
             </CardContent>
           </Card>
         </div>
@@ -295,7 +295,7 @@ const TeacherPerformance = ({ teacherData }: TeacherPerformanceProps) => {
         {atRiskStudents.length > 0 && (
           <Alert>
             <AlertTriangle className="h-4 w-4" />
-            <AlertDescription>
+            <AlertDescription className="text-sm">
               <strong>{atRiskStudents.length} students</strong> need attention. Consider intervention strategies.
             </AlertDescription>
           </Alert>
@@ -304,80 +304,80 @@ const TeacherPerformance = ({ teacherData }: TeacherPerformanceProps) => {
         {/* Student Performance Overview */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <BarChart3 className="h-5 w-5" />
+            <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+              <BarChart3 className="h-4 w-4 sm:h-5 sm:w-5" />
               Student Performance Overview
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
+            <div className="space-y-4 max-h-[600px] sm:max-h-[1000px] overflow-auto">
               {performanceData.map((student) => {
                 const perf = student.performance;
                 const isAtRisk = perf?.averageGrade < 60 || perf?.attendanceRate < 70;
                 
                 return (
-                  <Card key={student.student_id} className={`p-4 ${isAtRisk ? 'border-red-200' : ''}`}>
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-3">
-                          <h3 className="font-semibold">
+                  <Card key={student.student_id} className={`p-3 sm:p-4 ${isAtRisk ? 'border-red-200' : ''}`}>
+                    <div className="flex flex-col lg:flex-row items-start justify-between gap-4">
+                      <div className="flex-1 w-full min-w-0">
+                        <div className="flex flex-wrap items-center gap-2 mb-3">
+                          <h3 className="font-semibold text-sm sm:text-base truncate">
                             {student.user_profiles?.first_name} {student.user_profiles?.last_name}
                           </h3>
-                          <Badge variant="outline">{student.courses?.course_name}</Badge>
+                          <Badge variant="outline" className="text-xs truncate">{student.courses?.course_name}</Badge>
                           {isAtRisk && (
-                            <Badge variant="destructive">
+                            <Badge variant="destructive" className="text-xs flex-shrink-0">
                               <AlertTriangle className="h-3 w-3 mr-1" />
                               At Risk
                             </Badge>
                           )}
                           {perf?.recentTrend === 'improving' && (
-                            <Badge variant="default">
+                            <Badge variant="default" className="text-xs flex-shrink-0">
                               <TrendingUp className="h-3 w-3 mr-1" />
                               Improving
                             </Badge>
                           )}
                           {perf?.recentTrend === 'declining' && (
-                            <Badge variant="destructive">
+                            <Badge variant="destructive" className="text-xs flex-shrink-0">
                               <TrendingDown className="h-3 w-3 mr-1" />
                               Declining
                             </Badge>
                           )}
                         </div>
                         
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                           <div>
-                            <p className="text-sm font-medium text-muted-foreground">Average Grade</p>
+                            <p className="text-xs sm:text-sm font-medium text-muted-foreground">Average Grade</p>
                             <div className="flex items-center gap-2">
                               <Progress value={perf?.averageGrade || 0} className="flex-1" />
-                              <span className="text-sm font-semibold">{perf?.averageGrade || 0}%</span>
+                              <span className="text-xs sm:text-sm font-semibold">{perf?.averageGrade || 0}%</span>
                             </div>
                           </div>
                           
                           <div>
-                            <p className="text-sm font-medium text-muted-foreground">Attendance</p>
+                            <p className="text-xs sm:text-sm font-medium text-muted-foreground">Attendance</p>
                             <div className="flex items-center gap-2">
                               <Progress value={perf?.attendanceRate || 0} className="flex-1" />
-                              <span className="text-sm font-semibold">{perf?.attendanceRate || 0}%</span>
+                              <span className="text-xs sm:text-sm font-semibold">{perf?.attendanceRate || 0}%</span>
                             </div>
                           </div>
                           
                           <div>
-                            <p className="text-sm font-medium text-muted-foreground">Participation</p>
+                            <p className="text-xs sm:text-sm font-medium text-muted-foreground">Participation</p>
                             <div className="flex items-center gap-2">
                               <Progress value={perf?.participationScore || 0} className="flex-1" />
-                              <span className="text-sm font-semibold">{perf?.participationScore || 0}%</span>
+                              <span className="text-xs sm:text-sm font-semibold">{perf?.participationScore || 0}%</span>
                             </div>
                           </div>
                         </div>
 
                         {isAtRisk && (
                           <div className="mt-3 p-3 rounded-lg">
-                            <p className="text-sm font-medium mb-2">Intervention Suggestions:</p>
-                            <ul className="text-sm space-y-1">
+                            <p className="text-xs sm:text-sm font-medium mb-2">Intervention Suggestions:</p>
+                            <ul className="text-xs sm:text-sm space-y-1">
                               {getInterventionSuggestions(student).map((suggestion, index) => (
-                                <li key={index} className="flex items-center gap-2">
-                                  <Target className="h-3 w-3" />
-                                  {suggestion}
+                                <li key={index} className="flex items-start gap-2">
+                                  <Target className="h-3 w-3 flex-shrink-0 mt-0.5" />
+                                  <span className="flex-1">{suggestion}</span>
                                 </li>
                               ))}
                             </ul>
@@ -385,14 +385,16 @@ const TeacherPerformance = ({ teacherData }: TeacherPerformanceProps) => {
                         )}
                       </div>
                       
-                      <div className="flex gap-2">
+                      <div className="flex flex-col sm:flex-row lg:flex-col gap-2 w-full lg:w-auto">
                         <Button 
                           size="sm" 
                           variant="outline"
                           onClick={() => shareProgressWithParents(student.student_id)}
+                          className="w-full lg:w-auto text-xs sm:text-sm"
                         >
-                          <Share className="h-4 w-4 mr-1" />
-                          Share with Parents
+                          <Share className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+                          <span className="hidden sm:inline">Share with Parents</span>
+                          <span className="sm:hidden">Share</span>
                         </Button>
                         
                         {isAtRisk && (
@@ -402,21 +404,23 @@ const TeacherPerformance = ({ teacherData }: TeacherPerformanceProps) => {
                                 size="sm" 
                                 variant="default"
                                 onClick={() => setSelectedStudent(student)}
+                                className="w-full lg:w-auto text-xs sm:text-sm"
                               >
-                                <FileText className="h-4 w-4 mr-1" />
-                                Create Plan
+                                <FileText className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+                                <span className="hidden sm:inline">Create Plan</span>
+                                <span className="sm:hidden">Plan</span>
                               </Button>
                             </DialogTrigger>
-                            <DialogContent>
+                            <DialogContent className="w-[95vw] sm:w-full max-w-lg max-h-[90vh] overflow-y-auto">
                               <DialogHeader>
-                                <DialogTitle>
+                                <DialogTitle className="text-base sm:text-lg pr-6">
                                   Create Intervention Plan for {student.user_profiles?.first_name} {student.user_profiles?.last_name}
                                 </DialogTitle>
                               </DialogHeader>
                               <div className="space-y-4">
                                 <div className="p-3 bg-muted rounded-lg">
-                                  <p className="text-sm font-medium mb-2">Current Performance:</p>
-                                  <div className="space-y-1 text-sm">
+                                  <p className="text-xs sm:text-sm font-medium mb-2">Current Performance:</p>
+                                  <div className="space-y-1 text-xs sm:text-sm">
                                     <p>Grade: {perf?.averageGrade}%</p>
                                     <p>Attendance: {perf?.attendanceRate}%</p>
                                     <p>Participation: {perf?.participationScore}%</p>
@@ -428,6 +432,7 @@ const TeacherPerformance = ({ teacherData }: TeacherPerformanceProps) => {
                                   value={interventionNote}
                                   onChange={(e) => setInterventionNote(e.target.value)}
                                   rows={6}
+                                  className="text-sm"
                                 />
                                 
                                 <Button onClick={createInterventionPlan} className="w-full">

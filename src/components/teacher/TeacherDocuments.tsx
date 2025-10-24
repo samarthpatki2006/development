@@ -5,10 +5,10 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { 
-  FileText, 
-  Upload, 
-  Download, 
+import {
+  FileText,
+  Upload,
+  Download,
   Eye,
   Plus,
   Search,
@@ -233,7 +233,7 @@ const TeacherDocuments = ({ teacherData }: TeacherDocumentsProps) => {
 
       // Check if storage bucket exists and is accessible
       const { data: buckets, error: bucketsError } = await supabase.storage.listBuckets();
-      
+
       if (bucketsError) {
         console.error('Error listing buckets:', bucketsError);
         throw new Error('Storage service unavailable');
@@ -310,7 +310,7 @@ const TeacherDocuments = ({ teacherData }: TeacherDocumentsProps) => {
       }
 
       let fileUrl = null;
-      
+
       try {
         // Upload file to Supabase Storage
         fileUrl = await uploadFileToSupabase(newSubmission.file);
@@ -379,9 +379,9 @@ const TeacherDocuments = ({ teacherData }: TeacherDocumentsProps) => {
 
     } catch (error) {
       console.error('Error submitting document:', error);
-      
+
       let errorMessage = 'Failed to submit document. Please try again.';
-      
+
       if (error instanceof Error) {
         errorMessage = error.message;
       }
@@ -409,7 +409,7 @@ const TeacherDocuments = ({ teacherData }: TeacherDocumentsProps) => {
 
   const filterDocuments = (documents: any[]) => {
     if (!searchTerm) return documents;
-    return documents.filter(doc => 
+    return documents.filter(doc =>
       doc.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       doc.category?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       doc.course?.toLowerCase().includes(searchTerm.toLowerCase())
@@ -435,43 +435,44 @@ const TeacherDocuments = ({ teacherData }: TeacherDocumentsProps) => {
 
   return (
     <PermissionWrapper permission="upload_materials">
-      <div className="space-y-6">
+      <div className="space-y-4 sm:space-y-6">
         {/* Search and Upload */}
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center justify-between">
+          <CardHeader className="p-4 sm:p-6">
+            <CardTitle className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
               <div className="flex items-center gap-2">
-                <Archive className="h-5 w-5" />
-                Document Management
+                <Archive className="h-4 w-4 sm:h-5 sm:w-5" />
+                <span className="text-base sm:text-lg">Document Management</span>
               </div>
               <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                 <DialogTrigger asChild>
-                  <Button>
-                    <Plus className="h-4 w-4 mr-2" />
+                  <Button className="w-full sm:w-auto text-xs sm:text-sm h-9 sm:h-10">
+                    <Plus className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-2" />
                     Submit Document
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
+                <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-md max-h-[85vh] sm:max-h-[80vh] overflow-y-auto mx-4">
                   <DialogHeader>
-                    <DialogTitle>Submit New Document</DialogTitle>
+                    <DialogTitle className="text-base sm:text-lg">Submit New Document</DialogTitle>
                   </DialogHeader>
-                  <div className="space-y-4">
+                  <div className="space-y-3 sm:space-y-4">
                     <div>
-                      <label className="block text-sm font-medium mb-1">Document Title *</label>
+                      <label className="block text-xs sm:text-sm font-medium mb-1">Document Title *</label>
                       <Input
                         placeholder="Enter document title"
                         value={newSubmission.title}
-                        onChange={(e) => setNewSubmission({...newSubmission, title: e.target.value})}
+                        onChange={(e) => setNewSubmission({ ...newSubmission, title: e.target.value })}
                         maxLength={100}
+                        className="h-9 sm:h-10 text-xs sm:text-sm"
                       />
                     </div>
-                    
+
                     <div>
-                      <label className="block text-sm font-medium mb-1">Content Type *</label>
+                      <label className="block text-xs sm:text-sm font-medium mb-1">Content Type *</label>
                       <select
-                        className="w-full p-2 border rounded focus:outline-none bg-black focus:ring-2"
+                        className="w-full p-2 border rounded focus:outline-none bg-black focus:ring-2 h-9 sm:h-10 text-xs sm:text-sm transition-all"
                         value={newSubmission.content_type}
-                        onChange={(e) => setNewSubmission({...newSubmission, content_type: e.target.value})}
+                        onChange={(e) => setNewSubmission({ ...newSubmission, content_type: e.target.value })}
                       >
                         <option value="exam_paper">Exam Paper</option>
                         <option value="question_bank">Question Bank</option>
@@ -483,23 +484,24 @@ const TeacherDocuments = ({ teacherData }: TeacherDocumentsProps) => {
                         <option value="audio">Audio</option>
                       </select>
                     </div>
-                    
+
                     <div>
-                      <label className="block text-sm font-medium mb-1">Category</label>
+                      <label className="block text-xs sm:text-sm font-medium mb-1">Category</label>
                       <Input
                         placeholder="e.g., Course name, Subject"
                         value={newSubmission.category}
-                        onChange={(e) => setNewSubmission({...newSubmission, category: e.target.value})}
+                        onChange={(e) => setNewSubmission({ ...newSubmission, category: e.target.value })}
                         maxLength={50}
+                        className="h-9 sm:h-10 text-xs sm:text-sm"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium mb-1">Access Level *</label>
+                      <label className="block text-xs sm:text-sm font-medium mb-1">Access Level *</label>
                       <select
-                        className="w-full p-2 border rounded focus:outline-none focus:ring-2 bg-black"
+                        className="w-full p-2 border rounded focus:outline-none focus:ring-2 bg-black h-9 sm:h-10 text-xs sm:text-sm transition-all"
                         value={newSubmission.access_level}
-                        onChange={(e) => setNewSubmission({...newSubmission, access_level: e.target.value})}
+                        onChange={(e) => setNewSubmission({ ...newSubmission, access_level: e.target.value })}
                       >
                         <option value="public">Public</option>
                         <option value="department">Department Only</option>
@@ -508,33 +510,33 @@ const TeacherDocuments = ({ teacherData }: TeacherDocumentsProps) => {
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium mb-1">Description</label>
+                      <label className="block text-xs sm:text-sm font-medium mb-1">Description</label>
                       <textarea
-                        className="w-full p-2 border rounded min-h-[80px] focus:outline-none focus:ring-2 bg-black"
+                        className="w-full p-2 border rounded min-h-[80px] focus:outline-none focus:ring-2 bg-black text-xs sm:text-sm transition-all"
                         placeholder="Brief description of the document (optional)"
                         value={newSubmission.description}
-                        onChange={(e) => setNewSubmission({...newSubmission, description: e.target.value})}
+                        onChange={(e) => setNewSubmission({ ...newSubmission, description: e.target.value })}
                         maxLength={500}
                       />
                     </div>
-                    
+
                     <div>
-                      <label className="block text-sm font-medium mb-1">File *</label>
+                      <label className="block text-xs sm:text-sm font-medium mb-1">File *</label>
                       <Input
                         type="file"
                         accept=".pdf,.doc,.docx,.ppt,.pptx,.mp4,.mp3,.txt"
                         onChange={handleFileChange}
-                        className="cursor-pointer"
+                        className="cursor-pointer h-9 sm:h-10 text-xs sm:text-sm"
                       />
-                      <div className="flex items-center gap-1 mt-2 text-xs text-muted-foreground">
-                        <AlertCircle className="h-3 w-3" />
+                      <div className="flex items-start gap-1 mt-2 text-[10px] sm:text-xs text-muted-foreground">
+                        <AlertCircle className="h-3 w-3 flex-shrink-0 mt-0.5" />
                         <span>Max file size: 10MB. Supported: PDF, DOC, PPT, MP4, MP3, TXT</span>
                       </div>
                     </div>
-                    
-                    <Button 
-                      onClick={submitDocument} 
-                      className="w-full"
+
+                    <Button
+                      onClick={submitDocument}
+                      className="w-full h-9 sm:h-10 text-xs sm:text-sm transition-all"
                       disabled={submitting || !newSubmission.file || !newSubmission.title.trim()}
                     >
                       {submitting ? 'Submitting...' : 'Submit Document'}
@@ -544,50 +546,62 @@ const TeacherDocuments = ({ teacherData }: TeacherDocumentsProps) => {
               </Dialog>
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-4 sm:p-6">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-3.5 w-3.5 sm:h-4 sm:w-4" />
               <Input
                 placeholder="Search documents..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
+                className="pl-9 sm:pl-10 h-9 sm:h-10 text-xs sm:text-sm"
               />
             </div>
           </CardContent>
         </Card>
 
         <Tabs defaultValue="exam-papers" className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="exam-papers">Exam Papers</TabsTrigger>
-            <TabsTrigger value="question-banks">Question Banks</TabsTrigger>
-            <TabsTrigger value="policies">Policy Documents</TabsTrigger>
-            <TabsTrigger value="my-submissions">My Submissions</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 h-auto gap-1 sm:gap-0">
+            <TabsTrigger value="exam-papers" className="text-xs sm:text-sm py-2 sm:py-2.5">
+              <span className="hidden sm:inline">Exam Papers</span>
+              <span className="sm:hidden">Exams</span>
+            </TabsTrigger>
+            <TabsTrigger value="question-banks" className="text-xs sm:text-sm py-2 sm:py-2.5">
+              <span className="hidden sm:inline">Question Banks</span>
+              <span className="sm:hidden">Questions</span>
+            </TabsTrigger>
+            <TabsTrigger value="policies" className="text-xs sm:text-sm py-2 sm:py-2.5">
+              <span className="hidden sm:inline">Policy Documents</span>
+              <span className="sm:hidden">Policies</span>
+            </TabsTrigger>
+            <TabsTrigger value="my-submissions" className="text-xs sm:text-sm py-2 sm:py-2.5">
+              <span className="hidden sm:inline">My Submissions</span>
+              <span className="sm:hidden">My Docs</span>
+            </TabsTrigger>
           </TabsList>
 
           {/* Exam Papers */}
-          <TabsContent value="exam-papers" className="space-y-4">
+          <TabsContent value="exam-papers" className="space-y-3 sm:space-y-4">
             <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <FileText className="h-5 w-5" />
+              <CardHeader className="p-4 sm:p-6">
+                <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                  <FileText className="h-4 w-4 sm:h-5 sm:w-5" />
                   Exam Papers Repository
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
+              <CardContent className="p-4 sm:p-6 pt-0">
+                <div className="space-y-3 sm:space-y-4">
                   {filterDocuments(examPapers).map((paper) => (
-                    <Card key={paper.id} className="p-4">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-2">
-                            <h3 className="font-semibold">{paper.title}</h3>
-                            <Badge variant={paper.status === 'approved' ? 'default' : 'secondary'}>
+                    <Card key={paper.id} className="p-3 sm:p-4 transition-all hover:bg-white/5">
+                      <div className="flex flex-col sm:flex-row items-start justify-between gap-3 sm:gap-4">
+                        <div className="flex-1 w-full">
+                          <div className="flex flex-wrap items-center gap-2 mb-2">
+                            <h3 className="font-semibold text-sm sm:text-base">{paper.title}</h3>
+                            <Badge variant={paper.status === 'approved' ? 'default' : 'secondary'} className="text-[10px] sm:text-xs">
                               {paper.status}
                             </Badge>
-                            <Badge variant="outline">v{paper.version}</Badge>
+                            <Badge variant="outline" className="text-[10px] sm:text-xs">v{paper.version}</Badge>
                           </div>
-                          <div className="space-y-1 text-sm text-muted-foreground">
+                          <div className="space-y-1 text-xs sm:text-sm text-muted-foreground">
                             <p><span className="font-medium">Course:</span> {paper.course}</p>
                             <p><span className="font-medium">Semester:</span> {paper.semester}</p>
                             <p><span className="font-medium">Type:</span> {paper.type}</p>
@@ -595,16 +609,13 @@ const TeacherDocuments = ({ teacherData }: TeacherDocumentsProps) => {
                             <p><span className="font-medium">Date:</span> {new Date(paper.submitted_at).toLocaleDateString()}</p>
                           </div>
                         </div>
-                        <div className="flex gap-2">
-                          <Button size="sm" variant="outline">
-                            <Eye className="h-4 w-4 mr-1" />
+                        <div className="flex gap-2 w-full sm:w-auto">
+                          <Button size="sm" variant="outline" className="flex-1 sm:flex-none text-xs h-8 sm:h-9 transition-all">
+                            <Eye className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
                             View
                           </Button>
-                          <Button 
-                            size="sm" 
-                            onClick={() => downloadDocument('#', paper.title)}
-                          >
-                            <Download className="h-4 w-4 mr-1" />
+                          <Button size="sm" className="flex-1 sm:flex-none text-xs h-8 sm:h-9 transition-all">
+                            <Download className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
                             Download
                           </Button>
                         </div>
@@ -617,41 +628,41 @@ const TeacherDocuments = ({ teacherData }: TeacherDocumentsProps) => {
           </TabsContent>
 
           {/* Question Banks */}
-          <TabsContent value="question-banks" className="space-y-4">
+          <TabsContent value="question-banks" className="space-y-3 sm:space-y-4">
             <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <BookOpen className="h-5 w-5" />
+              <CardHeader className="p-4 sm:p-6">
+                <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                  <BookOpen className="h-4 w-4 sm:h-5 sm:w-5" />
                   Question Banks
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
+              <CardContent className="p-4 sm:p-6 pt-0">
+                <div className="space-y-3 sm:space-y-4">
                   {filterDocuments(questionBanks).map((bank) => (
-                    <Card key={bank.id} className="p-4">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-2">
-                            <h3 className="font-semibold">{bank.title}</h3>
-                            <Badge variant="outline">{bank.questions_count} questions</Badge>
-                            <Badge variant={bank.access_level === 'private' ? 'secondary' : 'default'}>
+                    <Card key={bank.id} className="p-3 sm:p-4 transition-all hover:bg-white/5">
+                      <div className="flex flex-col sm:flex-row items-start justify-between gap-3 sm:gap-4">
+                        <div className="flex-1 w-full">
+                          <div className="flex flex-wrap items-center gap-2 mb-2">
+                            <h3 className="font-semibold text-sm sm:text-base">{bank.title}</h3>
+                            <Badge variant="outline" className="text-[10px] sm:text-xs">{bank.questions_count} questions</Badge>
+                            <Badge variant={bank.access_level === 'private' ? 'secondary' : 'default'} className="text-[10px] sm:text-xs">
                               {bank.access_level}
                             </Badge>
                           </div>
-                          <div className="space-y-1 text-sm text-muted-foreground">
+                          <div className="space-y-1 text-xs sm:text-sm text-muted-foreground">
                             <p><span className="font-medium">Course:</span> {bank.course}</p>
                             <p><span className="font-medium">Category:</span> {bank.category}</p>
                             <p><span className="font-medium">Created by:</span> {bank.created_by}</p>
                             <p><span className="font-medium">Last updated:</span> {new Date(bank.last_updated).toLocaleDateString()}</p>
                           </div>
                         </div>
-                        <div className="flex gap-2">
-                          <Button size="sm" variant="outline">
-                            <Eye className="h-4 w-4 mr-1" />
+                        <div className="flex gap-2 w-full sm:w-auto">
+                          <Button size="sm" variant="outline" className="flex-1 sm:flex-none text-xs h-8 sm:h-9 transition-all">
+                            <Eye className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
                             Browse
                           </Button>
-                          <Button size="sm">
-                            <Download className="h-4 w-4 mr-1" />
+                          <Button size="sm" className="flex-1 sm:flex-none text-xs h-8 sm:h-9 transition-all">
+                            <Download className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
                             Export
                           </Button>
                         </div>
@@ -664,37 +675,37 @@ const TeacherDocuments = ({ teacherData }: TeacherDocumentsProps) => {
           </TabsContent>
 
           {/* Policy Documents */}
-          <TabsContent value="policies" className="space-y-4">
+          <TabsContent value="policies" className="space-y-3 sm:space-y-4">
             <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Shield className="h-5 w-5" />
+              <CardHeader className="p-4 sm:p-6">
+                <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                  <Shield className="h-4 w-4 sm:h-5 sm:w-5" />
                   Policy Documents
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
+              <CardContent className="p-4 sm:p-6 pt-0">
+                <div className="space-y-3 sm:space-y-4">
                   {filterDocuments(policyDocuments).map((policy) => (
-                    <Card key={policy.id} className="p-4">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-2">
-                            <h3 className="font-semibold">{policy.title}</h3>
-                            <Badge variant="outline">v{policy.version}</Badge>
-                            <Badge variant="secondary">{policy.category}</Badge>
+                    <Card key={policy.id} className="p-3 sm:p-4 transition-all hover:bg-white/5">
+                      <div className="flex flex-col sm:flex-row items-start justify-between gap-3 sm:gap-4">
+                        <div className="flex-1 w-full">
+                          <div className="flex flex-wrap items-center gap-2 mb-2">
+                            <h3 className="font-semibold text-sm sm:text-base">{policy.title}</h3>
+                            <Badge variant="outline" className="text-[10px] sm:text-xs">v{policy.version}</Badge>
+                            <Badge variant="secondary" className="text-[10px] sm:text-xs">{policy.category}</Badge>
                           </div>
-                          <div className="space-y-1 text-sm text-muted-foreground">
+                          <div className="space-y-1 text-xs sm:text-sm text-muted-foreground">
                             <p><span className="font-medium">Effective Date:</span> {new Date(policy.effective_date).toLocaleDateString()}</p>
                             <p><span className="font-medium">Access Level:</span> {policy.access_level}</p>
                           </div>
                         </div>
-                        <div className="flex gap-2">
-                          <Button size="sm" variant="outline">
-                            <Eye className="h-4 w-4 mr-1" />
+                        <div className="flex gap-2 w-full sm:w-auto">
+                          <Button size="sm" variant="outline" className="flex-1 sm:flex-none text-xs h-8 sm:h-9 transition-all">
+                            <Eye className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
                             View
                           </Button>
-                          <Button size="sm">
-                            <Download className="h-4 w-4 mr-1" />
+                          <Button size="sm" className="flex-1 sm:flex-none text-xs h-8 sm:h-9 transition-all">
+                            <Download className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
                             Download
                           </Button>
                         </div>
@@ -707,62 +718,63 @@ const TeacherDocuments = ({ teacherData }: TeacherDocumentsProps) => {
           </TabsContent>
 
           {/* My Submissions */}
-          <TabsContent value="my-submissions" className="space-y-4">
+          <TabsContent value="my-submissions" className="space-y-3 sm:space-y-4">
             <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Upload className="h-5 w-5" />
+              <CardHeader className="p-4 sm:p-6">
+                <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                  <Upload className="h-4 w-4 sm:h-5 sm:w-5" />
                   My Document Submissions
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
+              <CardContent className="p-4 sm:p-6 pt-0">
+                <div className="space-y-3 sm:space-y-4">
                   {mySubmissions.length === 0 ? (
-                    <div className="text-center py-8 text-muted-foreground">
-                      <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                      <p>No documents submitted yet.</p>
-                      <p>Click "Submit Document" to add your first document.</p>
+                    <div className="text-center py-8 sm:py-12 text-muted-foreground">
+                      <FileText className="h-10 w-10 sm:h-12 sm:w-12 mx-auto mb-3 sm:mb-4 opacity-50" />
+                      <p className="text-xs sm:text-sm mb-1">No documents submitted yet.</p>
+                      <p className="text-xs sm:text-sm">Click "Submit Document" to add your first document.</p>
                     </div>
                   ) : (
                     mySubmissions.map((submission) => (
-                      <Card key={submission.id} className="p-4">
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-2">
-                              <h3 className="font-semibold">{submission.title}</h3>
-                              <Badge variant="default">
-                                <Check className="h-3 w-3 mr-1" />
+                      <Card key={submission.id} className="p-3 sm:p-4 transition-all hover:bg-white/5">
+                        <div className="flex flex-col sm:flex-row items-start justify-between gap-3 sm:gap-4">
+                          <div className="flex-1 w-full">
+                            <div className="flex flex-wrap items-center gap-2 mb-2">
+                              <h3 className="font-semibold text-sm sm:text-base">{submission.title}</h3>
+                              <Badge variant="default" className="text-[10px] sm:text-xs">
+                                <Check className="h-2.5 w-2.5 sm:h-3 sm:w-3 mr-1" />
                                 Submitted
                               </Badge>
-                              <Badge variant="outline">{submission.content_type}</Badge>
+                              <Badge variant="outline" className="text-[10px] sm:text-xs">{submission.content_type}</Badge>
                               <Badge variant={
-                                submission.access_level === 'public' ? 'default' : 
-                                submission.access_level === 'department' ? 'secondary' : 
-                                'destructive'
-                              }>
+                                submission.access_level === 'public' ? 'default' :
+                                  submission.access_level === 'department' ? 'secondary' :
+                                    'destructive'
+                              } className="text-[10px] sm:text-xs">
                                 {submission.access_level}
                               </Badge>
                             </div>
-                            <div className="space-y-1 text-sm text-muted-foreground">
+                            <div className="space-y-1 text-xs sm:text-sm text-muted-foreground">
                               {submission.category && (
                                 <p><span className="font-medium">Category:</span> {submission.category}</p>
                               )}
                               {submission.description && (
-                                <p><span className="font-medium">Description:</span> {submission.description}</p>
+                                <p className="line-clamp-2"><span className="font-medium">Description:</span> {submission.description}</p>
                               )}
                               <p><span className="font-medium">Submitted:</span> {new Date(submission.created_at).toLocaleDateString()}</p>
                             </div>
                           </div>
-                          <div className="flex gap-2">
-                            <Button size="sm" variant="outline">
-                              <Eye className="h-4 w-4 mr-1" />
+                          <div className="flex gap-2 w-full sm:w-auto">
+                            <Button size="sm" variant="outline" className="flex-1 sm:flex-none text-xs h-8 sm:h-9 transition-all">
+                              <Eye className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
                               View
                             </Button>
-                            <Button 
+                            <Button
                               size="sm"
                               onClick={() => downloadDocument(submission.content_url, submission.title)}
+                              className="flex-1 sm:flex-none text-xs h-8 sm:h-9 transition-all"
                             >
-                              <Download className="h-4 w-4 mr-1" />
+                              <Download className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
                               Download
                             </Button>
                           </div>

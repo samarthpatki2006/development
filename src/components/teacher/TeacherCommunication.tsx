@@ -241,32 +241,32 @@ const TeacherCommunication = ({ teacherData }: TeacherCommunicationProps) => {
     <div className="space-y-6">
       <Tabs defaultValue="messages" className="w-full">
         <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="messages">Messages</TabsTrigger>
-          <TabsTrigger value="announcements">Announcements</TabsTrigger>
-          <TabsTrigger value="compose">Compose</TabsTrigger>
+          <TabsTrigger value="messages" className="text-xs sm:text-sm">Messages</TabsTrigger>
+          <TabsTrigger value="announcements" className="text-xs sm:text-sm">Announcements</TabsTrigger>
+          <TabsTrigger value="compose" className="text-xs sm:text-sm">Compose</TabsTrigger>
         </TabsList>
 
         {/* Messages Tab */}
-        <TabsContent value="messages" className="space-y-4">
+        <TabsContent value="messages" className="space-y-4 mt-4">
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <MessageSquare className="h-5 w-5" />
+              <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                <MessageSquare className="h-4 w-4 sm:h-5 sm:w-5" />
                 Messages
               </CardTitle>
             </CardHeader>
             <CardContent>
               {messages.length === 0 ? (
-                <p className="text-gray-500 text-center py-4">No messages</p>
+                <p className="text-gray-500 text-center py-4 text-sm">No messages</p>
               ) : (
                 <div className="space-y-3">
                   {messages.map((message) => (
                     <Card key={message.id} className={`cursor-pointer transition-colors ${!message.is_read && message.recipient_id === teacherData.user_id ? 'bg-blue-50' : ''}`}>
-                      <CardContent className="p-4">
-                        <div className="flex items-start justify-between">
+                      <CardContent className="p-3 sm:p-4">
+                        <div className="space-y-3">
                           <div className="flex-1" onClick={() => markAsRead(message.id)}>
-                            <div className="flex items-center gap-2 mb-1">
-                              <p className="font-medium text-sm">
+                            <div className="flex flex-wrap items-center gap-2 mb-2">
+                              <p className="font-medium text-xs sm:text-sm">
                                 {message.sender_id === teacherData.user_id ? 'To: ' : 'From: '}
                                 {message.user_profiles?.first_name} {message.user_profiles?.last_name}
                               </p>
@@ -279,18 +279,18 @@ const TeacherCommunication = ({ teacherData }: TeacherCommunicationProps) => {
                                 </Badge>
                               )}
                             </div>
-                            <p className="font-medium">{message.subject}</p>
-                            <p className="text-sm text-gray-600 truncate">{message.content}</p>
+                            <p className="font-medium text-sm sm:text-base">{message.subject}</p>
+                            <p className="text-xs sm:text-sm text-gray-600 line-clamp-2">{message.content}</p>
                             <p className="text-xs text-gray-500 mt-1">
                               {new Date(message.sent_at).toLocaleDateString()} at {new Date(message.sent_at).toLocaleTimeString()}
                             </p>
                           </div>
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 pt-2 border-t justify-end">
                             {!message.is_read && message.recipient_id === teacherData.user_id && (
                               <Badge variant="destructive" className="text-xs">New</Badge>
                             )}
                             <Button size="sm" variant="outline">
-                              <Reply className="h-3 w-3" />
+                              <Reply className="h-3 w-3 sm:h-4 sm:w-4" />
                             </Button>
                           </div>
                         </div>
@@ -304,41 +304,43 @@ const TeacherCommunication = ({ teacherData }: TeacherCommunicationProps) => {
         </TabsContent>
 
         {/* Announcements Tab */}
-        <TabsContent value="announcements" className="space-y-4">
+        <TabsContent value="announcements" className="space-y-4 mt-4">
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center justify-between">
+              <CardTitle className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                 <div className="flex items-center gap-2">
-                  <Megaphone className="h-5 w-5" />
-                  My Announcements
+                  <Megaphone className="h-4 w-4 sm:h-5 sm:w-5" />
+                  <span className="text-base sm:text-lg">My Announcements</span>
                 </div>
                 <Dialog>
                   <DialogTrigger asChild>
-                    <Button className="flex items-center gap-2">
-                      <Plus className="h-4 w-4" />
+                    <Button className="flex items-center gap-2 w-full sm:w-auto text-xs sm:text-sm">
+                      <Plus className="h-3 w-3 sm:h-4 sm:w-4" />
                       New Announcement
                     </Button>
                   </DialogTrigger>
-                  <DialogContent>
+                  <DialogContent className="w-[95vw] sm:w-full max-w-lg max-h-[90vh] overflow-y-auto">
                     <DialogHeader>
-                      <DialogTitle>Create Announcement</DialogTitle>
+                      <DialogTitle className="text-base sm:text-lg">Create Announcement</DialogTitle>
                     </DialogHeader>
                     <div className="space-y-4">
                       <Input
                         placeholder="Announcement title"
                         value={newAnnouncement.title}
                         onChange={(e) => setNewAnnouncement({...newAnnouncement, title: e.target.value})}
+                        className="text-sm"
                       />
                       <Textarea
                         placeholder="Announcement content"
                         value={newAnnouncement.content}
                         onChange={(e) => setNewAnnouncement({...newAnnouncement, content: e.target.value})}
+                        className="text-sm"
                       />
                       <Select
                         value={newAnnouncement.announcement_type}
                         onValueChange={(value) => setNewAnnouncement({...newAnnouncement, announcement_type: value})}
                       >
-                        <SelectTrigger>
+                        <SelectTrigger className="text-sm">
                           <SelectValue placeholder="Announcement type" />
                         </SelectTrigger>
                         <SelectContent>
@@ -352,7 +354,7 @@ const TeacherCommunication = ({ teacherData }: TeacherCommunicationProps) => {
                         value={newAnnouncement.priority}
                         onValueChange={(value) => setNewAnnouncement({...newAnnouncement, priority: value})}
                       >
-                        <SelectTrigger>
+                        <SelectTrigger className="text-sm">
                           <SelectValue placeholder="Priority" />
                         </SelectTrigger>
                         <SelectContent>
@@ -362,7 +364,7 @@ const TeacherCommunication = ({ teacherData }: TeacherCommunicationProps) => {
                           <SelectItem value="urgent">Urgent</SelectItem>
                         </SelectContent>
                       </Select>
-                      <Button onClick={createAnnouncement} className="w-full">
+                      <Button onClick={createAnnouncement} className="w-full text-sm">
                         Create Announcement
                       </Button>
                     </div>
@@ -372,36 +374,38 @@ const TeacherCommunication = ({ teacherData }: TeacherCommunicationProps) => {
             </CardHeader>
             <CardContent>
               {announcements.length === 0 ? (
-                <p className="text-gray-500 text-center py-4">No announcements</p>
+                <p className="text-gray-500 text-center py-4 text-sm">No announcements</p>
               ) : (
                 <div className="space-y-3">
                   {announcements.map((announcement) => (
                     <Card key={announcement.id}>
-                      <CardContent className="p-4">
-                        <div className="flex items-start justify-between">
+                      <CardContent className="p-3 sm:p-4">
+                        <div className="space-y-3">
                           <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-2">
-                              <Badge variant={announcement.priority === 'urgent' ? 'destructive' : 'outline'}>
+                            <div className="flex flex-wrap items-center gap-2 mb-2">
+                              <Badge variant={announcement.priority === 'urgent' ? 'destructive' : 'outline'} className="text-xs">
                                 {announcement.priority}
                               </Badge>
-                              <Badge variant="secondary">
+                              <Badge variant="secondary" className="text-xs">
                                 {announcement.announcement_type}
                               </Badge>
                               {announcement.is_active ? (
-                                <Badge variant="default">Active</Badge>
+                                <Badge variant="default" className="text-xs">Active</Badge>
                               ) : (
-                                <Badge variant="outline">Inactive</Badge>
+                                <Badge variant="outline" className="text-xs">Inactive</Badge>
                               )}
                             </div>
-                            <h3 className="font-semibold">{announcement.title}</h3>
-                            <p className="text-sm text-gray-600 mt-1">{announcement.content}</p>
+                            <h3 className="font-semibold text-sm sm:text-base">{announcement.title}</h3>
+                            <p className="text-xs sm:text-sm text-gray-600 mt-1">{announcement.content}</p>
                             <p className="text-xs text-gray-500 mt-2">
                               Created: {new Date(announcement.created_at).toLocaleDateString()}
                             </p>
                           </div>
-                          <Button size="sm" variant="outline">
-                            <Eye className="h-3 w-3" />
-                          </Button>
+                          <div className="flex justify-end pt-2 border-t">
+                            <Button size="sm" variant="outline">
+                              <Eye className="h-3 w-3 sm:h-4 sm:w-4" />
+                            </Button>
+                          </div>
                         </div>
                       </CardContent>
                     </Card>
@@ -413,11 +417,11 @@ const TeacherCommunication = ({ teacherData }: TeacherCommunicationProps) => {
         </TabsContent>
 
         {/* Compose Tab */}
-        <TabsContent value="compose" className="space-y-4">
+        <TabsContent value="compose" className="space-y-4 mt-4">
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Send className="h-5 w-5" />
+              <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                <Send className="h-4 w-4 sm:h-5 sm:w-5" />
                 Compose Message
               </CardTitle>
             </CardHeader>
@@ -426,7 +430,7 @@ const TeacherCommunication = ({ teacherData }: TeacherCommunicationProps) => {
                 value={newMessage.recipient_id}
                 onValueChange={(value) => setNewMessage({...newMessage, recipient_id: value})}
               >
-                <SelectTrigger>
+                <SelectTrigger className="text-sm">
                   <SelectValue placeholder="Select recipient" />
                 </SelectTrigger>
                 <SelectContent>
@@ -442,7 +446,7 @@ const TeacherCommunication = ({ teacherData }: TeacherCommunicationProps) => {
                 value={newMessage.course_id}
                 onValueChange={(value) => setNewMessage({...newMessage, course_id: value})}
               >
-                <SelectTrigger>
+                <SelectTrigger className="text-sm">
                   <SelectValue placeholder="Select course (optional)" />
                 </SelectTrigger>
                 <SelectContent>
@@ -458,6 +462,7 @@ const TeacherCommunication = ({ teacherData }: TeacherCommunicationProps) => {
                 placeholder="Subject"
                 value={newMessage.subject}
                 onChange={(e) => setNewMessage({...newMessage, subject: e.target.value})}
+                className="text-sm"
               />
 
               <Textarea
@@ -465,10 +470,11 @@ const TeacherCommunication = ({ teacherData }: TeacherCommunicationProps) => {
                 rows={6}
                 value={newMessage.content}
                 onChange={(e) => setNewMessage({...newMessage, content: e.target.value})}
+                className="text-sm"
               />
 
-              <Button onClick={sendMessage} className="w-full">
-                <Send className="h-4 w-4 mr-2" />
+              <Button onClick={sendMessage} className="w-full text-sm">
+                <Send className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
                 Send Message
               </Button>
             </CardContent>

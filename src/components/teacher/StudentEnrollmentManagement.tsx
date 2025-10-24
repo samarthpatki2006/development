@@ -91,7 +91,7 @@ const StudentEnrollmentManagement = ({ teacherData }: { teacherData: UserProfile
     try {
       // First, let's get the current user from auth to ensure we have the right ID
       const { data: { user } } = await supabase.auth.getUser();
-      
+
       if (!user) {
         console.error('No authenticated user found');
         return;
@@ -201,7 +201,7 @@ const StudentEnrollmentManagement = ({ teacherData }: { teacherData: UserProfile
     try {
       // Get current authenticated user
       const { data: { user } } = await supabase.auth.getUser();
-      
+
       if (!user) {
         console.error('No authenticated user found for enrollments');
         return;
@@ -363,8 +363,8 @@ const StudentEnrollmentManagement = ({ teacherData }: { teacherData: UserProfile
         setSelectedStudent('');
 
         // Update course enrollment count
-        setCourses(courses.map(c => 
-          c.id === selectedCourse 
+        setCourses(courses.map(c =>
+          c.id === selectedCourse
             ? { ...c, enrollment_count: c.enrollment_count + 1 }
             : c
         ));
@@ -401,15 +401,15 @@ const StudentEnrollmentManagement = ({ teacherData }: { teacherData: UserProfile
           variant: "destructive",
         });
       } else {
-        setEnrollments(enrollments.map(e => 
-          e.id === enrollmentId 
+        setEnrollments(enrollments.map(e =>
+          e.id === enrollmentId
             ? { ...e, status: 'dropped' }
             : e
         ));
 
         // Update course enrollment count
-        setCourses(courses.map(c => 
-          c.id === courseId 
+        setCourses(courses.map(c =>
+          c.id === courseId
             ? { ...c, enrollment_count: Math.max(0, c.enrollment_count - 1) }
             : c
         ));
@@ -429,7 +429,7 @@ const StudentEnrollmentManagement = ({ teacherData }: { teacherData: UserProfile
     }
   };
 
-  const filteredCourses = courses.filter(course => 
+  const filteredCourses = courses.filter(course =>
     course.course_code.toLowerCase().includes(searchTerm.toLowerCase()) ||
     course.course_name.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -438,7 +438,7 @@ const StudentEnrollmentManagement = ({ teacherData }: { teacherData: UserProfile
     const student = enrollment.student;
     const course = enrollment.course;
     const searchLower = enrollmentSearchTerm.toLowerCase();
-    
+
     return (
       student?.first_name?.toLowerCase().includes(searchLower) ||
       student?.last_name?.toLowerCase().includes(searchLower) ||
@@ -475,7 +475,7 @@ const StudentEnrollmentManagement = ({ teacherData }: { teacherData: UserProfile
                 </span>
               </CardTitle>
               <CardDescription>
-                {teacherData.user_type === 'admin' 
+                {teacherData.user_type === 'admin'
                   ? 'View course capacity and enrollment status for all courses in your college.'
                   : 'View course capacity and enrollment status for courses you instruct.'
                 }
@@ -514,11 +514,10 @@ const StudentEnrollmentManagement = ({ teacherData }: { teacherData: UserProfile
                       </span>
                       <div className="flex items-center space-x-1">
                         <Users className="w-4 h-4 text-gray-400" />
-                        <span className={`${
-                          course.enrollment_count >= course.max_students 
-                            ? 'text-red-600 font-medium' 
-                            : 'text-gray-600'
-                        }`}>
+                        <span className={`${course.enrollment_count >= course.max_students
+                          ? 'text-red-600 font-medium'
+                          : 'text-gray-600'
+                          }`}>
                           {course.enrollment_count}/{course.max_students}
                         </span>
                       </div>
@@ -546,34 +545,39 @@ const StudentEnrollmentManagement = ({ teacherData }: { teacherData: UserProfile
       {/* Student Enrollment Management */}
       <Card>
         <CardHeader>
-          <div className="flex justify-between items-center">
-            <div>
-              <CardTitle className="flex items-center space-x-2">
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+            {/* Left Section */}
+            <div className="text-center sm:text-left">
+              <CardTitle className="flex items-center justify-center sm:justify-start space-x-2 text-base sm:text-lg">
                 <UserPlus className="w-5 h-5" />
                 <span>Student Enrollment Management</span>
               </CardTitle>
-              <CardDescription>
+              <CardDescription className="text-sm text-muted-foreground">
                 {teacherData.user_type === 'admin'
                   ? 'Enroll students in any course and manage all enrollments in your college.'
                   : 'Enroll students in your courses and manage existing enrollments.'
                 }
               </CardDescription>
             </div>
+
+            {/* Right Section (Dialog Trigger) */}
             {courses.length > 0 && (
               <Dialog open={isEnrollDialogOpen} onOpenChange={setIsEnrollDialogOpen}>
                 <DialogTrigger asChild>
-                  <Button>
+                  <Button className="w-full sm:w-auto">
                     <Plus className="w-4 h-4 mr-2" />
                     Enroll Student
                   </Button>
                 </DialogTrigger>
-                <DialogContent>
+
+                <DialogContent className="max-w-md w-[90vw]">
                   <DialogHeader>
                     <DialogTitle>Enroll Student in Course</DialogTitle>
                     <DialogDescription>
                       Select a student and one of your courses to create a new enrollment.
                     </DialogDescription>
                   </DialogHeader>
+
                   <div className="grid gap-4 py-4">
                     <div>
                       <Label htmlFor="course">Course *</Label>
@@ -584,15 +588,16 @@ const StudentEnrollmentManagement = ({ teacherData }: { teacherData: UserProfile
                         <SelectContent>
                           {courses
                             .filter(course => course.enrollment_count < course.max_students)
-                            .map((course) => (
-                            <SelectItem key={course.id} value={course.id}>
-                              {course.course_code} - {course.course_name} 
-                              ({course.enrollment_count}/{course.max_students})
-                            </SelectItem>
-                          ))}
+                            .map(course => (
+                              <SelectItem key={course.id} value={course.id}>
+                                {course.course_code} - {course.course_name}
+                                ({course.enrollment_count}/{course.max_students})
+                              </SelectItem>
+                            ))}
                         </SelectContent>
                       </Select>
                     </div>
+
                     <div>
                       <Label htmlFor="student">Student *</Label>
                       <Select value={selectedStudent} onValueChange={setSelectedStudent}>
@@ -600,7 +605,7 @@ const StudentEnrollmentManagement = ({ teacherData }: { teacherData: UserProfile
                           <SelectValue placeholder="Select a student" />
                         </SelectTrigger>
                         <SelectContent>
-                          {students.map((student) => (
+                          {students.map(student => (
                             <SelectItem key={student.id} value={student.id}>
                               {student.user_code} - {student.first_name} {student.last_name}
                             </SelectItem>
@@ -609,11 +614,17 @@ const StudentEnrollmentManagement = ({ teacherData }: { teacherData: UserProfile
                       </Select>
                     </div>
                   </div>
-                  <div className="flex justify-end space-x-2">
-                    <Button variant="outline" onClick={() => setIsEnrollDialogOpen(false)} disabled={isSubmitting}>
+
+                  <div className="flex flex-col sm:flex-row justify-end sm:space-x-2 gap-2">
+                    <Button
+                      variant="outline"
+                      onClick={() => setIsEnrollDialogOpen(false)}
+                      disabled={isSubmitting}
+                      className="w-full sm:w-auto"
+                    >
                       Cancel
                     </Button>
-                    <Button onClick={handleEnrollStudent} disabled={isSubmitting}>
+                    <Button onClick={handleEnrollStudent} disabled={isSubmitting} className="w-full sm:w-auto">
                       {isSubmitting ? 'Enrolling...' : 'Enroll Student'}
                     </Button>
                   </div>
@@ -621,6 +632,7 @@ const StudentEnrollmentManagement = ({ teacherData }: { teacherData: UserProfile
               </Dialog>
             )}
           </div>
+
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="relative">
@@ -629,12 +641,12 @@ const StudentEnrollmentManagement = ({ teacherData }: { teacherData: UserProfile
               placeholder="Search enrollments by student or course..."
               value={enrollmentSearchTerm}
               onChange={(e) => setEnrollmentSearchTerm(e.target.value)}
-              className="pl-10"
+              className="pl-10 truncate w-full"
             />
           </div>
 
           {filteredEnrollments.length > 0 ? (
-            <div className="rounded-md border overflow-x-auto">
+            <div className="rounded-md border max-h-[500px] overflow-auto ">
               <table className="w-full">
                 <thead>
                   <tr className="border-b ">
@@ -672,13 +684,13 @@ const StudentEnrollmentManagement = ({ teacherData }: { teacherData: UserProfile
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <Badge 
+                        <Badge
                           variant={
-                            enrollment.status === 'enrolled' 
-                              ? 'default' 
+                            enrollment.status === 'enrolled'
+                              ? 'default'
                               : enrollment.status === 'completed'
-                              ? 'secondary'
-                              : 'destructive'
+                                ? 'secondary'
+                                : 'destructive'
                           }
                         >
                           {enrollment.status}
@@ -714,8 +726,8 @@ const StudentEnrollmentManagement = ({ teacherData }: { teacherData: UserProfile
               <h3 className="text-lg font-medium mb-2">No Enrollments Found</h3>
               <p>No student enrollments found for your courses.</p>
               {courses.length > 0 && (
-                <Button 
-                  className="mt-4" 
+                <Button
+                  className="mt-4"
                   onClick={() => setIsEnrollDialogOpen(true)}
                 >
                   <Plus className="w-4 h-4 mr-2" />

@@ -537,8 +537,8 @@ const TeacherEvents = ({ teacherData }: TeacherEventsProps) => {
       <div className="space-y-6">
         <Tabs defaultValue="calendar" className="w-full">
           <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="calendar">Academic Calendar</TabsTrigger>
-            <TabsTrigger value="workshops">Training & Workshops</TabsTrigger>
+            <TabsTrigger value="calendar" className="text-xs sm:text-sm">Academic Calendar</TabsTrigger>
+            <TabsTrigger value="workshops" className="text-xs sm:text-sm">Training & Workshops</TabsTrigger>
           </TabsList>
 
           {/* Academic Calendar with Calendar Component */}
@@ -547,8 +547,8 @@ const TeacherEvents = ({ teacherData }: TeacherEventsProps) => {
               {/* Calendar */}
               <Card className="lg:col-span-1">
                 <CardHeader>
-                  <CardTitle className="flex items-center space-x-2">
-                    <CalendarIcon className="h-5 w-5" />
+                  <CardTitle className="flex items-center space-x-2 text-base sm:text-lg">
+                    <CalendarIcon className="h-4 w-4 sm:h-5 sm:w-5" />
                     <span>Calendar</span>
                   </CardTitle>
                 </CardHeader>
@@ -565,7 +565,7 @@ const TeacherEvents = ({ teacherData }: TeacherEventsProps) => {
               {/* Events for Selected Date */}
               <Card className="lg:col-span-2">
                 <CardHeader>
-                  <CardTitle>
+                  <CardTitle className="text-sm sm:text-base md:text-lg">
                     Events for {selectedDate.toLocaleDateString('en-US', { 
                       weekday: 'long', 
                       year: 'numeric', 
@@ -576,39 +576,39 @@ const TeacherEvents = ({ teacherData }: TeacherEventsProps) => {
                 </CardHeader>
                 <CardContent>
                   {selectedDateEvents.length === 0 ? (
-                    <p className="text-muted-foreground text-center py-8">No events scheduled for this day</p>
+                    <p className="text-muted-foreground text-center py-8 text-sm">No events scheduled for this day</p>
                   ) : (
                     <div className="space-y-4">
                       {selectedDateEvents.map((event) => (
-                        <div key={event.id} className="border rounded-lg p-4">
-                          <div className="flex items-start justify-between mb-3">
+                        <div key={event.id} className="border rounded-lg p-3 sm:p-4">
+                          <div className="flex flex-col gap-3 mb-3">
                             <div className="flex-1">
-                              <div className="flex items-center space-x-2 mb-2">
-                                <h4 className="font-semibold">{event.event_name}</h4>
-                                <Badge className={getEventTypeColor(event.event_type)}>
+                              <div className="flex flex-wrap items-center gap-2 mb-2">
+                                <h4 className="font-semibold text-sm sm:text-base">{event.event_name}</h4>
+                                <Badge className={`${getEventTypeColor(event.event_type)} text-xs`}>
                                   {event.event_type}
                                 </Badge>
                                 {event.is_registered && (
-                                  <Badge variant="outline" className="text-green-700">
+                                  <Badge variant="outline" className="text-green-700 text-xs flex-shrink-0">
                                     <Star className="w-3 h-3 mr-1" />
                                     Registered
                                   </Badge>
                                 )}
                               </div>
-                              <p className="text-sm text-gray-600 mb-2">{event.description}</p>
-                              <div className="flex items-center space-x-4 text-sm text-gray-500">
-                                <div className="flex items-center space-x-1">
-                                  <Clock className="w-4 h-4" />
-                                  <span>
+                              <p className="text-xs sm:text-sm text-gray-600 mb-2">{event.description}</p>
+                              <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-xs sm:text-sm text-gray-500">
+                                <div className="flex items-center gap-1">
+                                  <Clock className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
+                                  <span className="truncate">
                                     {formatEventDateTime(event.start_date)} - {formatEventDateTime(event.end_date)}
                                   </span>
                                 </div>
-                                <div className="flex items-center space-x-1">
-                                  <MapPin className="w-4 h-4" />
-                                  <span>{event.location}</span>
+                                <div className="flex items-center gap-1">
+                                  <MapPin className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
+                                  <span className="truncate">{event.location}</span>
                                 </div>
-                                <div className="flex items-center space-x-1">
-                                  <Users className="w-4 h-4" />
+                                <div className="flex items-center gap-1">
+                                  <Users className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
                                   <span>{event.participant_count}/{event.max_participants}</span>
                                 </div>
                               </div>
@@ -621,41 +621,42 @@ const TeacherEvents = ({ teacherData }: TeacherEventsProps) => {
                           </div>
 
                           {/* Event Registration Actions */}
-                          <div className="flex space-x-2 mt-3">
+                          <div className="flex flex-col sm:flex-row gap-2 mt-3">
                             {event.registration_required ? (
                               event.is_registered ? (
-                                <div className="flex space-x-2">
+                                <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
                                   <Button
                                     size="sm"
                                     variant="outline"
                                     onClick={() => unregisterFromEvent(event.id)}
+                                    className="w-full sm:w-auto text-xs sm:text-sm"
                                   >
                                     Unregister
                                   </Button>
-                                  <Badge variant="outline" className="bg-green-50 text-green-700 flex items-center">
+                                  <Badge variant="outline" className="bg-green-50 text-green-700 flex items-center justify-center text-xs">
                                     <CheckCircle className="w-3 h-3 mr-1" />
                                     You're registered
                                   </Badge>
                                 </div>
                               ) : (
-                                <div className="flex space-x-2 items-center">
+                                <div className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-center w-full sm:w-auto">
                                   <Button
                                     size="sm"
                                     onClick={() => registerForEvent(event.id)}
                                     disabled={event.participant_count >= event.max_participants}
-                                    className="bg-blue-600 hover:bg-blue-700"
+                                    className="bg-blue-600 hover:bg-blue-700 w-full sm:w-auto text-xs sm:text-sm"
                                   >
                                     {event.participant_count >= event.max_participants ? 'Event Full' : 'Register Now'}
                                   </Button>
                                   {event.participant_count >= event.max_participants && (
-                                    <Badge variant="destructive">Full</Badge>
+                                    <Badge variant="destructive" className="text-xs justify-center">Full</Badge>
                                   )}
                                 </div>
                               )
                             ) : (
-                              <div className="flex space-x-2 items-center">
-                                <Badge variant="secondary">No Registration Required</Badge>
-                                <Badge variant="outline" className="bg-blue-50 text-blue-700">
+                              <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                                <Badge variant="secondary" className="text-xs justify-center">No Registration Required</Badge>
+                                <Badge variant="outline" className="bg-blue-50 text-blue-700 text-xs justify-center">
                                   Open to All
                                 </Badge>
                               </div>
@@ -672,59 +673,61 @@ const TeacherEvents = ({ teacherData }: TeacherEventsProps) => {
             {/* All Upcoming Events List */}
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
+                <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
                   All Upcoming Academic Events
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 {events.length === 0 ? (
-                  <p className="text-muted-foreground text-center py-8">No upcoming events</p>
+                  <p className="text-muted-foreground text-center py-8 text-sm">No upcoming events</p>
                 ) : (
                   <div className="space-y-4">
                     {events.map((event) => (
-                      <Card key={event.id} className="p-4">
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-2">
-                              <h3 className="font-semibold">{event.event_name}</h3>
-                              <Badge className={getEventTypeColor(event.event_type)}>
+                      <Card key={event.id} className="p-3 sm:p-4">
+                        <div className="flex flex-col sm:flex-row items-start justify-between gap-3">
+                          <div className="flex-1 w-full min-w-0">
+                            <div className="flex flex-wrap items-center gap-2 mb-2">
+                              <h3 className="font-semibold text-sm sm:text-base truncate">{event.event_name}</h3>
+                              <Badge className={`${getEventTypeColor(event.event_type)} text-xs flex-shrink-0`}>
                                 {event.event_type}
                               </Badge>
                               {event.is_registered && (
-                                <Badge variant="outline" className="text-green-700">
+                                <Badge variant="outline" className="text-green-700 text-xs flex-shrink-0">
                                   <CheckCircle className="h-3 w-3 mr-1" />
                                   Registered
                                 </Badge>
                               )}
                             </div>
-                            <p className="text-sm text-muted-foreground mb-2">{event.description}</p>
-                            <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                            <p className="text-xs sm:text-sm text-muted-foreground mb-2 line-clamp-2">{event.description}</p>
+                            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-xs sm:text-sm text-muted-foreground">
                               <div className="flex items-center gap-1">
+                                <CalendarIcon className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
                                 {new Date(event.start_date).toLocaleDateString()}
                               </div>
                               <div className="flex items-center gap-1">
-                                <Clock className="h-4 w-4" />
-                                {formatEventDateTime(event.start_date)} - {formatEventDateTime(event.end_date)}
+                                <Clock className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
+                                <span className="truncate">{formatEventDateTime(event.start_date)} - {formatEventDateTime(event.end_date)}</span>
                               </div>
                               {event.location && (
                                 <div className="flex items-center gap-1">
-                                  <MapPin className="h-4 w-4" />
-                                  {event.location}
+                                  <MapPin className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
+                                  <span className="truncate">{event.location}</span>
                                 </div>
                               )}
                               <div className="flex items-center gap-1">
-                                <Users className="h-4 w-4" />
+                                <Users className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
                                 <span>{event.participant_count}/{event.max_participants}</span>
                               </div>
                             </div>
                           </div>
-                          <div className="flex space-x-2">
+                          <div className="flex gap-2 w-full sm:w-auto">
                             {event.registration_required ? (
                               event.is_registered ? (
                                 <Button
                                   size="sm"
                                   variant="outline"
                                   onClick={() => unregisterFromEvent(event.id)}
+                                  className="flex-1 sm:flex-initial text-xs sm:text-sm"
                                 >
                                   Unregister
                                 </Button>
@@ -733,12 +736,13 @@ const TeacherEvents = ({ teacherData }: TeacherEventsProps) => {
                                   size="sm" 
                                   onClick={() => registerForEvent(event.id)}
                                   disabled={event.participant_count >= event.max_participants}
+                                  className="flex-1 sm:flex-initial text-xs sm:text-sm"
                                 >
                                   {event.participant_count >= event.max_participants ? 'Full' : 'RSVP'}
                                 </Button>
                               )
                             ) : (
-                              <Badge variant="secondary">Open Event</Badge>
+                              <Badge variant="secondary" className="text-xs">Open Event</Badge>
                             )}
                           </div>
                         </div>
@@ -754,42 +758,43 @@ const TeacherEvents = ({ teacherData }: TeacherEventsProps) => {
           <TabsContent value="workshops" className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <GraduationCap className="h-5 w-5" />
+                <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                  <GraduationCap className="h-4 w-4 sm:h-5 sm:w-5" />
                   Professional Development Workshops
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
                   {workshops.map((workshop) => (
-                    <Card key={workshop.id} className="p-4">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-2">
-                            <h3 className="font-semibold">{workshop.title}</h3>
-                            <Badge variant="outline">{workshop.credits} Credits</Badge>
+                    <Card key={workshop.id} className="p-3 sm:p-4">
+                      <div className="flex flex-col sm:flex-row items-start justify-between gap-3">
+                        <div className="flex-1 w-full min-w-0">
+                          <div className="flex flex-wrap items-center gap-2 mb-2">
+                            <h3 className="font-semibold text-sm sm:text-base truncate">{workshop.title}</h3>
+                            <Badge variant="outline" className="text-xs flex-shrink-0">{workshop.credits} Credits</Badge>
                             {workshop.status === 'registered' && (
-                              <Badge variant="default">
+                              <Badge variant="default" className="text-xs flex-shrink-0">
                                 <CheckCircle className="h-3 w-3 mr-1" />
                                 Registered
                               </Badge>
                             )}
                           </div>
-                          <p className="text-sm text-muted-foreground mb-2">{workshop.description}</p>
-                          <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                          <p className="text-xs sm:text-sm text-muted-foreground mb-2 line-clamp-2">{workshop.description}</p>
+                          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-xs sm:text-sm text-muted-foreground">
                             <div className="flex items-center gap-1">
+                              <CalendarIcon className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
                               {new Date(workshop.date).toLocaleDateString()}
                             </div>
                             <div className="flex items-center gap-1">
-                              <Clock className="h-4 w-4" />
-                              {workshop.time}
+                              <Clock className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
+                              <span>{workshop.time}</span>
                             </div>
                             <div className="flex items-center gap-1">
-                              <MapPin className="h-4 w-4" />
-                              {workshop.location}
+                              <MapPin className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
+                              <span className="truncate">{workshop.location}</span>
                             </div>
                           </div>
-                          <p className="text-sm mt-2">
+                          <p className="text-xs sm:text-sm mt-2">
                             <span className="font-medium">Instructor:</span> {workshop.instructor}
                           </p>
                         </div>
@@ -798,6 +803,7 @@ const TeacherEvents = ({ teacherData }: TeacherEventsProps) => {
                           onClick={() => registerForWorkshop(workshop.id)}
                           disabled={workshop.status === 'registered'}
                           variant={workshop.status === 'registered' ? 'outline' : 'default'}
+                          className="w-full sm:w-auto text-xs sm:text-sm"
                         >
                           {workshop.status === 'registered' ? 'Registered' : 'Register'}
                         </Button>
@@ -812,34 +818,35 @@ const TeacherEvents = ({ teacherData }: TeacherEventsProps) => {
           <TabsContent value="my-events" className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Users className="h-5 w-5" />
+                <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                  <Users className="h-4 w-4 sm:h-5 sm:w-5" />
                   My Registered Events
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 {myEvents.length === 0 ? (
-                  <p className="text-muted-foreground text-center py-8">No registered events</p>
+                  <p className="text-muted-foreground text-center py-8 text-sm">No registered events</p>
                 ) : (
                   <div className="space-y-4">
                     {myEvents.map((registration) => (
-                      <Card key={registration.id} className="p-4">
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <h3 className="font-semibold">{registration.events?.event_name}</h3>
-                            <p className="text-sm text-muted-foreground mb-2">{registration.events?.description}</p>
-                            <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                      <Card key={registration.id} className="p-3 sm:p-4">
+                        <div className="flex flex-col items-start gap-3">
+                          <div className="flex-1 w-full min-w-0">
+                            <h3 className="font-semibold text-sm sm:text-base truncate">{registration.events?.event_name}</h3>
+                            <p className="text-xs sm:text-sm text-muted-foreground mb-2 line-clamp-2">{registration.events?.description}</p>
+                            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-xs sm:text-sm text-muted-foreground">
                               <div className="flex items-center gap-1">
+                                <CalendarIcon className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
                                 {new Date(registration.events?.start_date).toLocaleDateString()}
                               </div>
                               {registration.events?.location && (
                                 <div className="flex items-center gap-1">
-                                  <MapPin className="h-4 w-4" />
-                                  {registration.events.location}
+                                  <MapPin className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
+                                  <span className="truncate">{registration.events.location}</span>
                                 </div>
                               )}
                             </div>
-                            <Badge variant="default" className="mt-2">
+                            <Badge variant="default" className="mt-2 text-xs">
                               Registered on {new Date(registration.registration_date).toLocaleDateString()}
                             </Badge>
                           </div>

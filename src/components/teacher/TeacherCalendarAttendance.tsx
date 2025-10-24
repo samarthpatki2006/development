@@ -5,12 +5,12 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
-import { 
-  Calendar, 
-  Clock, 
-  Users, 
-  CheckCircle, 
-  XCircle, 
+import {
+  Calendar,
+  Clock,
+  Users,
+  CheckCircle,
+  XCircle,
   AlertCircle,
   FileText,
   Eye
@@ -148,9 +148,9 @@ const TeacherCalendarAttendance = ({ teacherData }: TeacherCalendarAttendancePro
   };
 
   const updateAttendanceStatus = (studentId: string, status: string) => {
-    setAttendanceData(prev => 
-      prev.map(record => 
-        record.student_id === studentId 
+    setAttendanceData(prev =>
+      prev.map(record =>
+        record.student_id === studentId
           ? { ...record, status }
           : record
       )
@@ -160,7 +160,7 @@ const TeacherCalendarAttendance = ({ teacherData }: TeacherCalendarAttendancePro
   const saveAttendance = async () => {
     try {
       const today = new Date().toISOString().split('T')[0];
-      
+
       for (const record of attendanceData) {
         const { error } = await supabase
           .from('attendance')
@@ -289,52 +289,52 @@ const TeacherCalendarAttendance = ({ teacherData }: TeacherCalendarAttendancePro
       {/* Absence Requests */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <AlertCircle className="h-5 w-5" />
+          <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+            <AlertCircle className="h-4 w-4 sm:h-5 sm:w-5" />
             Pending Absence Requests ({absenceRequests.length})
           </CardTitle>
         </CardHeader>
         <CardContent>
           {absenceRequests.length === 0 ? (
-            <p className="text-gray-500 text-center py-4">No pending absence requests</p>
+            <p className="text-gray-500 text-center py-4 text-sm">No pending absence requests</p>
           ) : (
             <div className="space-y-4">
               {absenceRequests.map((request) => (
                 <Card key={request.id}>
-                  <CardContent className="p-4">
-                    <div className="flex items-start justify-between">
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-2">
-                          <p className="font-medium">
+                  <CardContent className="p-3 sm:p-4">
+                    <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
+                      <div className="space-y-2 flex-1 w-full min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className="font-medium text-sm sm:text-base truncate">
                             {request.user_profiles?.first_name} {request.user_profiles?.last_name}
                           </p>
-                          <Badge variant="outline">{request.courses?.course_name}</Badge>
+                          <Badge variant="outline" className="text-xs truncate">{request.courses?.course_name}</Badge>
                         </div>
-                        <p className="text-sm text-gray-600">
+                        <p className="text-xs sm:text-sm text-gray-600">
                           Date: {new Date(request.absence_date).toLocaleDateString()}
                         </p>
-                        <p className="text-sm">{request.reason}</p>
+                        <p className="text-xs sm:text-sm">{request.reason}</p>
                         <p className="text-xs text-gray-500">
                           Submitted: {new Date(request.submitted_at).toLocaleDateString()}
                         </p>
                       </div>
-                      <div className="flex gap-2">
-                        <Button 
-                          size="sm" 
+                      <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                        <Button
+                          size="sm"
                           variant="outline"
-                          className="text-green-600"
+                          className="text-green-600 w-full sm:w-auto text-xs sm:text-sm"
                           onClick={() => handleAbsenceRequest(request.id, 'approved')}
                         >
-                          <CheckCircle className="h-4 w-4 mr-1" />
+                          <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
                           Approve
                         </Button>
-                        <Button 
-                          size="sm" 
+                        <Button
+                          size="sm"
                           variant="outline"
-                          className="text-red-600"
+                          className="text-red-600 w-full sm:w-auto text-xs sm:text-sm"
                           onClick={() => handleAbsenceRequest(request.id, 'rejected')}
                         >
-                          <XCircle className="h-4 w-4 mr-1" />
+                          <XCircle className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
                           Reject
                         </Button>
                       </div>

@@ -151,12 +151,14 @@ const TeacherDashboard = ({ teacherData, onNavigate }: TeacherDashboardProps) =>
 
   const renderActivity = (activity: typeof RECENT_ACTIVITIES[0], index: number) => (
     <PermissionWrapper key={index} permission={activity.permission}>
-      <div className="flex items-start space-x-3 py-2">
-        <div className="w-2 h-2  rounded-full mt-2" />
-        <div className="flex-1">
-          <p className="font-medium text-sm">{activity.title}</p>
-          <p className="text-sm ">{activity.description}</p>
-          <p className="text-xs  mt-1">{activity.time}</p>
+      <div className="flex flex-row items-start justify-start space-x-2 p-3 rounded-lg bg-white/5 border border-white/5 hover:bg-white/10 hover:border-white/10 transition-all duration-300 hover:shadow-md hover:shadow-blue-500/5 will-change-transform">
+        <div className="flex-shrink-0 mt-2 sm:mt-2.5">
+          <div className="w-2 h-2 bg-blue-400 rounded-full  animate-pulse shadow-lg shadow-blue-400/50"></div>
+        </div>
+        <div className="flex flex-col justify-center flex-1 min-w-0">
+          <p className="font-medium text-card-foreground text-sm sm:text-base truncate">{activity.title}</p>
+          <p className="text-xs sm:text-sm text-muted-foreground leading-snug line-clamp-2">{activity.description}</p>
+          <p className="text-[10px] sm:text-xs text-white/40 font-mono mt-1">{activity.time}</p>
         </div>
       </div>
     </PermissionWrapper>
@@ -166,19 +168,19 @@ const TeacherDashboard = ({ teacherData, onNavigate }: TeacherDashboardProps) =>
     const Icon = action.icon;
     return (
       <PermissionWrapper key={index} permission={action.permission}>
-        <Button
-          variant="ghost"
-          className="w-full h-auto p-4 flex items-center justify-start space-x-3 rounded-lg border transition-all duration-200"
+        <div
+          className="flex flex-row items-start justify-start space-x-4 p-4 rounded-lg bg-white/5 border border-white/5 hover:bg-white/10 hover:border-white/10 transition-all duration-300 hover:shadow-md hover:shadow-green-500/5 will-change-transform"
           onClick={() => handleQuickActionClick(action.navigateTo, action.title)}
         >
-          <div className="p-2 rounded-lg ">
-            <Icon className="h-4 w-4" />
+
+          <div className={`flex-shrink-0 p-2  ${action.color} transition-colors flex items-start self-start mt-1 mr-2`}>
+            <Icon className="h-4 w-4 sm:h-5 sm:w-5 " />
           </div>
-          <div className="flex-1 text-left">
-            <p className="font-medium text-sm">{action.title}</p>
-            <p className="text-xs opacity-80">{action.description}</p>
+          <div className="flex flex-col justify-center flex-1 min-w-0">
+            <p className="font-medium text-card-foreground text-sm sm:text-base truncate">{action.title}</p>
+            <p className="text-xs sm:text-sm text-muted-foreground leading-snug line-clamp-2">{action.description}</p>
           </div>
-        </Button>
+        </div>
       </PermissionWrapper>
     );
   };
@@ -192,8 +194,8 @@ const TeacherDashboard = ({ teacherData, onNavigate }: TeacherDashboardProps) =>
       <div className="text-right">
         <Badge variant="secondary">{classItem.students} students</Badge>
         <div className="mt-2">
-          <Button 
-            size="sm" 
+          <Button
+            size="sm"
             variant="outline"
             onClick={handleAttendanceClick}
             className=" transition-colors"
@@ -216,6 +218,9 @@ const TeacherDashboard = ({ teacherData, onNavigate }: TeacherDashboardProps) =>
           <CardDescription className="">
             Teacher ID: {teacherData.user_code} | Department: Computer Science
           </CardDescription>
+          <Badge className="bg-blue-600/30 text-blue-100 border border-blue-300/40 font-bold px-5 py-1.5 w-fit self-start md:self-auto rounded-full hover:bg-blue-600/40 hover:border-blue-300/60 hover:cursor-pointer hover:shadow-[0_0_20px_rgba(59,130,246,0.4)] transition-all duration-300 mt-4">
+            FACULTY
+          </Badge>
         </CardHeader>
       </Card>
 
@@ -226,23 +231,23 @@ const TeacherDashboard = ({ teacherData, onNavigate }: TeacherDashboardProps) =>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Recent Activities */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Recent Activities</CardTitle>
-            <CardDescription>Your latest teaching activities</CardDescription>
+        <Card className="h-[450px] sm:h-[510px] border-white/20 bg-gradient-to-br from-card/60 to-card/40 backdrop-blur-md shadow-2xl overflow-hidden group">
+          <CardHeader className="sticky top-0 z-10 bg-gradient-to-b from-card/95 to-card/80 backdrop-blur-sm border-b border-white/10 pb-4">
+            <CardTitle className="text-card-foreground text-lg sm:text-xl">Recent Activities</CardTitle>
+            <CardDescription className="text-sm">Your latest teaching activities</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-2">
+          <CardContent className="h-[calc(100%-100px)] overflow-y-auto overflow-x-hidden scrollbar-thin space-y-3 sm:space-y-4 p-4 sm:p-6 ">
             {RECENT_ACTIVITIES.map(renderActivity)}
           </CardContent>
         </Card>
 
         {/* Quick Actions */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Quick Actions</CardTitle>
-            <CardDescription>Commonly used features - click to navigate</CardDescription>
+        <Card className="h-[450px] sm:h-[510px] border-white/20 bg-gradient-to-br from-card/60 to-card/40 backdrop-blur-md shadow-2xl overflow-hidden group">
+          <CardHeader className="sticky top-0 z-10 bg-gradient-to-b from-card/95 to-card/80 backdrop-blur-sm border-b border-white/10 pb-4">
+            <CardTitle className="text-card-foreground text-lg sm:text-xl">Quick Actions</CardTitle>
+            <CardDescription className="text-sm">Commonly used features - click to navigate</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-3">
+          <CardContent className="h-[calc(100%-100px)] overflow-y-auto overflow-x-hidden scroll-smooth space-y-3 sm:space-y-4 p-4 sm:p-6">
             {QUICK_ACTIONS.map(renderQuickAction)}
           </CardContent>
         </Card>

@@ -372,18 +372,18 @@ const GradeManager = () => {
   }
 
   return (
-    <div className="space-y-6 p-6 min-h-screen">
+    <div className="space-y-6 p-3 sm:p-6 min-h-screen">
       <Card className="border-2 shadow-lg">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <GraduationCap className="w-5 h-5" />
+          <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+            <GraduationCap className="w-4 h-4 sm:w-5 sm:h-5" />
             Grade Management System
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-6 p-6">
+        <CardContent className="space-y-6 p-3 sm:p-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="course-select">Select Course</Label>
+              <Label htmlFor="course-select" className="text-sm">Select Course</Label>
               <Select value={selectedCourse} onValueChange={setSelectedCourse} disabled={loading}>
                 <SelectTrigger>
                   <SelectValue placeholder="Choose a course" />
@@ -399,7 +399,7 @@ const GradeManager = () => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="student-select">Select Student</Label>
+              <Label htmlFor="student-select" className="text-sm">Select Student</Label>
               <Select value={selectedStudent} onValueChange={setSelectedStudent} disabled={!selectedCourse || loading}>
                 <SelectTrigger>
                   <SelectValue placeholder="Choose a student" />
@@ -421,9 +421,9 @@ const GradeManager = () => {
               {assignmentData.assignments.length > 0 && (
                 <Card className="border shadow-sm">
                   <CardHeader>
-                    <CardTitle className="text-lg">Official Assignment Scores</CardTitle>
+                    <CardTitle className="text-base sm:text-lg">Official Assignment Scores</CardTitle>
                   </CardHeader>
-                  <CardContent className="p-4">
+                  <CardContent className="p-3 sm:p-4">
                     <div className="space-y-3">
                       {assignmentData.assignments.map((assignment) => {
                         const submission = assignmentData.submissions.find(s => s.assignment_id === assignment.id);
@@ -431,10 +431,10 @@ const GradeManager = () => {
                         const percentage = assignment.max_marks > 0 ? (score / assignment.max_marks) * 100 : 0;
                         
                         return (
-                          <div key={assignment.id} className="flex items-center justify-between p-3 rounded border">
-                            <div className="flex-1">
-                              <p className="font-medium">{assignment.title}</p>
-                              <p className="text-sm ">
+                          <div key={assignment.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 rounded border gap-2">
+                            <div className="flex-1 w-full min-w-0">
+                              <p className="font-medium text-sm sm:text-base truncate">{assignment.title}</p>
+                              <p className="text-xs sm:text-sm">
                                 Score: {score}/{assignment.max_marks} ({percentage.toFixed(1)}%)
                               </p>
                             </div>
@@ -449,79 +449,84 @@ const GradeManager = () => {
               {/* Custom Assessments Section */}
               <Card className="border shadow-sm">
                 <CardHeader>
-                  <CardTitle className="text-lg flex items-center justify-between">
-                    Manual Assessments ({customAssessments.length})
+                  <CardTitle className="text-base sm:text-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                    <span>Manual Assessments ({customAssessments.length})</span>
                     <Button 
                       onClick={addCustomAssessment} 
                       size="sm" 
-                      variant="outline" 
+                      variant="outline"
+                      className="w-full sm:w-auto"
                     >
                       <Plus className="w-4 h-4 mr-1" />
                       Add Assessment
                     </Button>
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="p-4">
+                <CardContent className="p-3 sm:p-4">
                   <div className="space-y-4">
                     {customAssessments.map((assessment) => (
-                      <div key={assessment.id} className="grid grid-cols-1 md:grid-cols-5 gap-3 p-4 rounded border ">
+                      <div key={assessment.id} className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3 p-3 sm:p-4 rounded border">
                         <div className="space-y-1">
-                          <Label className="text-sm">Assessment Name</Label>
+                          <Label className="text-xs sm:text-sm">Assessment Name</Label>
                           <Input
                             placeholder="e.g., Quiz 1, Project"
                             value={assessment.name}
                             onChange={(e) => updateCustomAssessment(assessment.id, 'name', e.target.value)}
+                            className="text-sm"
                           />
                         </div>
                         <div className="space-y-1">
-                          <Label className="text-sm">Score Obtained</Label>
+                          <Label className="text-xs sm:text-sm">Score Obtained</Label>
                           <Input
                             type="number"
                             placeholder="Score"
                             value={assessment.score}
                             onChange={(e) => updateCustomAssessment(assessment.id, 'score', e.target.value)}
                             min="0"
+                            className="text-sm"
                           />
                         </div>
                         <div className="space-y-1">
-                          <Label className="text-sm">Max Score</Label>
+                          <Label className="text-xs sm:text-sm">Max Score</Label>
                           <Input
                             type="number"
                             placeholder="Max"
                             value={assessment.maxScore}
                             onChange={(e) => updateCustomAssessment(assessment.id, 'maxScore', e.target.value)}
                             min="1"
+                            className="text-sm"
                           />
                         </div>
                         <div className="space-y-1">
-                          <Label className="text-sm">Date</Label>
+                          <Label className="text-xs sm:text-sm">Date</Label>
                           <Input
                             type="date"
                             value={assessment.date}
                             onChange={(e) => updateCustomAssessment(assessment.id, 'date', e.target.value)}
+                            className="text-sm"
                           />
                         </div>
-                        <div className="flex items-end">
+                        <div className="flex items-end sm:col-span-1 col-span-1">
                           <Button
                             onClick={() => removeCustomAssessment(assessment.id)}
                             variant="outline"
                             size="sm"
-                            className=" w-full"
+                            className="w-full"
                           >
                             <Trash2 className="w-4 h-4" />
                           </Button>
                         </div>
                         {assessment.maxScore > 0 && (
-                          <div className="md:col-span-5 text-sm ">
+                          <div className="sm:col-span-2 md:col-span-5 text-xs sm:text-sm">
                             Percentage: {((assessment.score / assessment.maxScore) * 100).toFixed(1)}%
                           </div>
                         )}
                       </div>
                     ))}
                     {customAssessments.length === 0 && (
-                      <div className="text-center py-8 ">
-                        <p>No manual assessments added yet.</p>
-                        <p className="text-sm">Click "Add Assessment" to include additional scores like quizzes, projects, or participation grades.</p>
+                      <div className="text-center py-8">
+                        <p className="text-sm sm:text-base">No manual assessments added yet.</p>
+                        <p className="text-xs sm:text-sm mt-1">Click "Add Assessment" to include additional scores like quizzes, projects, or participation grades.</p>
                       </div>
                     )}
                   </div>
@@ -530,60 +535,62 @@ const GradeManager = () => {
 
               {/* Grade Summary */}
               <Card className="border shadow-sm">
-                <CardHeader className="">
-                  <CardTitle className="text-lg  flex items-center gap-2">
-                    <Calculator className="w-5 h-5" />
+                <CardHeader>
+                  <CardTitle className="text-base sm:text-lg flex items-center gap-2">
+                    <Calculator className="w-4 h-4 sm:w-5 sm:h-5" />
                     Grade Summary
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4 p-4">
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <div className="text-center p-4 rounded border ">
-                      <p className="text-sm ">Total Assessments</p>
-                      <p className="text-2xl font-bold ">
+                <CardContent className="space-y-4 p-3 sm:p-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="text-center p-3 sm:p-4 rounded border">
+                      <p className="text-xs sm:text-sm">Total Assessments</p>
+                      <p className="text-xl sm:text-2xl font-bold">
                         {assignmentData.assignments.length + customAssessments.length}
                       </p>
                     </div>
-                    <div className="text-center p-4 rounded border  ">
-                      <p className="text-">Manual Assessments</p>
-                      <p className="text-2xl font-bold ">{customAssessments.length}</p>
+                    <div className="text-center p-3 sm:p-4 rounded border">
+                      <p className="text-xs sm:text-sm">Manual Assessments</p>
+                      <p className="text-xl sm:text-2xl font-bold">{customAssessments.length}</p>
                     </div>
-                    <div className="text-center p-4 rounded border  ">
-                      <p className="text-sm ">Calculated Score</p>
-                      <p className="text-2xl font-bold ">{calculateWeightedScore().toFixed(1)}%</p>
+                    <div className="text-center p-3 sm:p-4 rounded border">
+                      <p className="text-xs sm:text-sm">Calculated Score</p>
+                      <p className="text-xl sm:text-2xl font-bold">{calculateWeightedScore().toFixed(1)}%</p>
                     </div>
-                    <div className="text-center p-4 rounded border  ">
-                      <p className="text-sm">Auto Grade</p>
-                      <p className="text-2xl font-bold ">{getLetterGrade(calculateWeightedScore())}</p>
+                    <div className="text-center p-3 sm:p-4 rounded border">
+                      <p className="text-xs sm:text-sm">Auto Grade</p>
+                      <p className="text-xl sm:text-2xl font-bold">{getLetterGrade(calculateWeightedScore())}</p>
                     </div>
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="overall-grade">Final Grade Override</Label>
+                    <Label htmlFor="overall-grade" className="text-sm">Final Grade Override</Label>
                     <Input
                       id="overall-grade"
                       value={overallGrade}
                       onChange={(e) => setOverallGrade(e.target.value)}
                       placeholder={`Auto-calculated: ${getLetterGrade(calculateWeightedScore())}`}
-                      className="text-center font-bold"
+                      className="text-center font-bold text-sm sm:text-base"
                     />
-                    <p className="text-xs ">Leave empty to use auto-calculated grade</p>
+                    <p className="text-xs">Leave empty to use auto-calculated grade</p>
                   </div>
 
                   <Button
                     onClick={saveGrade}
                     disabled={isSaving || loading}
-                    className="w-full"
+                    className="w-full text-sm sm:text-base"
                   >
                     {isSaving ? (
                       <div className="flex items-center gap-2">
                         <RefreshCw className="w-4 h-4 animate-spin" />
-                        Saving Grade & Assessments...
+                        <span className="hidden sm:inline">Saving Grade & Assessments...</span>
+                        <span className="sm:hidden">Saving...</span>
                       </div>
                     ) : (
                       <div className="flex items-center gap-2">
                         <Save className="w-4 h-4" />
-                        Save Grade & {customAssessments.length} Custom Assessments
+                        <span className="hidden sm:inline">Save Grade & {customAssessments.length} Custom Assessments</span>
+                        <span className="sm:hidden">Save Grade</span>
                       </div>
                     )}
                   </Button>

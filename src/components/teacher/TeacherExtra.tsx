@@ -355,19 +355,19 @@ const TeacherExtra = ({ teacherData }: TeacherEventsProps) => {
           <TabsContent value="schedule" className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center justify-between">
+                <CardTitle className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                   <div className="flex items-center gap-2">
-                    <BookOpen className="h-5 w-5" />
-                    Schedule Extra/Remedial Classes
+                    <BookOpen className="h-4 w-4 sm:h-5 sm:w-5" />
+                    <span className="text-base sm:text-lg">Schedule Extra/Remedial Classes</span>
                   </div>
                   <Dialog open={newClassDialogOpen} onOpenChange={setNewClassDialogOpen}>
                     <DialogTrigger asChild>
-                      <Button>
+                      <Button className="w-full sm:w-auto">
                         <Plus className="h-4 w-4 mr-2" />
                         Schedule Class
                       </Button>
                     </DialogTrigger>
-                    <DialogContent className="max-w-md">
+                    <DialogContent className="max-w-md w-[95vw] sm:w-full max-h-[90vh] overflow-y-auto">
                       <DialogHeader>
                         <DialogTitle>Schedule New Class</DialogTitle>
                       </DialogHeader>
@@ -425,7 +425,7 @@ const TeacherExtra = ({ teacherData }: TeacherEventsProps) => {
                           />
                         </div>
                         
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                           <div>
                             <label className="text-sm font-medium">Start Time *</label>
                             <Input
@@ -486,80 +486,79 @@ const TeacherExtra = ({ teacherData }: TeacherEventsProps) => {
               <CardContent>
                 {scheduledClasses.length === 0 ? (
                   <div className="text-center py-8">
-                    <BookOpen className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                    <p className="text-muted-foreground">
+                    <BookOpen className="h-10 w-10 sm:h-12 sm:w-12 text-muted-foreground mx-auto mb-4" />
+                    <p className="text-muted-foreground text-sm sm:text-base px-4">
                       No scheduled classes yet. Schedule your first extra or remedial class!
                     </p>
                   </div>
                 ) : (
                   <div className="space-y-4">
                     {scheduledClasses.map((scheduledClass) => (
-                      <Card key={scheduledClass.id} className="p-4">
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-2">
-                              <h3 className="font-semibold">{scheduledClass.title}</h3>
+                      <Card key={scheduledClass.id} className="p-3 sm:p-4">
+                        <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
+                          <div className="flex-1 w-full min-w-0">
+                            <div className="flex flex-wrap items-center gap-2 mb-2">
+                              <h3 className="font-semibold text-sm sm:text-base truncate">{scheduledClass.title}</h3>
                               <Badge variant={
                                 scheduledClass.class_type === 'extra' ? 'default' :
                                 scheduledClass.class_type === 'remedial' ? 'secondary' :
                                 scheduledClass.class_type === 'makeup' ? 'outline' :
                                 'destructive'
-                              }>
+                              } className="text-xs flex-shrink-0">
                                 {scheduledClass.class_type.charAt(0).toUpperCase() + scheduledClass.class_type.slice(1)}
-                              </Badge>
-                              <Badge variant={
-                                scheduledClass.status === 'scheduled' ? 'default' :
-                                scheduledClass.status === 'completed' ? 'outline' :
-                                'destructive'
-                              }>
-                                {scheduledClass.status?.charAt(0).toUpperCase() + scheduledClass.status?.slice(1)}
                               </Badge>
                             </div>
                             
                             {scheduledClass.description && (
-                              <p className="text-sm text-muted-foreground mb-2">{scheduledClass.description}</p>
+                              <p className="text-xs sm:text-sm text-muted-foreground mb-2 line-clamp-2">
+                                {scheduledClass.description}
+                              </p>
                             )}
                             
-                            <div className="flex items-center gap-4 text-sm text-muted-foreground mb-2">
+                            <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-xs sm:text-sm text-muted-foreground mb-2">
                               <div className="flex items-center gap-1">
-                                <Calendar className="h-4 w-4" />
-                                {new Date(scheduledClass.scheduled_date).toLocaleDateString()}
+                                <Calendar className="h-3 w-3 sm:h-4 sm:w-4" />
+                                {new Date(scheduledClass.scheduled_date).toLocaleDateString('en-US', {
+                                  month: 'short',
+                                  day: 'numeric',
+                                  year: 'numeric'
+                                })}
                               </div>
                               <div className="flex items-center gap-1">
-                                <Clock className="h-4 w-4" />
+                                <Clock className="h-3 w-3 sm:h-4 sm:w-4" />
                                 {scheduledClass.start_time} - {scheduledClass.end_time}
                               </div>
                               {scheduledClass.room_location && (
                                 <div className="flex items-center gap-1">
-                                  <MapPin className="h-4 w-4" />
-                                  {scheduledClass.room_location}
+                                  <MapPin className="h-3 w-3 sm:h-4 sm:w-4" />
+                                  <span className="truncate">{scheduledClass.room_location}</span>
                                 </div>
                               )}
                             </div>
                             
                             {scheduledClass.courses && (
-                              <div className="flex items-center gap-2 text-sm">
-                                <BookOpen className="h-4 w-4 text-primary" />
-                                <span className="font-medium text-primary">
+                              <div className="flex items-center gap-2 text-xs sm:text-sm">
+                                <BookOpen className="h-3 w-3 sm:h-4 sm:w-4 text-primary flex-shrink-0" />
+                                <span className="font-medium text-primary truncate">
                                   {scheduledClass.courses.course_code} - {scheduledClass.courses.course_name}
                                 </span>
                               </div>
                             )}
                           </div>
                           
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 w-full sm:w-auto justify-end sm:justify-start">
                             {scheduledClass.status === 'scheduled' && (
                               <>
-                                <Button size="sm" variant="outline" onClick={() => startEditClass(scheduledClass)}>
+                                <Button size="sm" variant="outline" onClick={() => startEditClass(scheduledClass)} className="flex-1 sm:flex-initial text-xs sm:text-sm">
                                   Edit
                                 </Button>
-                                <Button size="sm" variant="destructive" onClick={() => cancelScheduledClass(scheduledClass.id)}>
+                                <Button size="sm" variant="destructive" onClick={() => cancelScheduledClass(scheduledClass.id)} className="flex-1 sm:flex-initial text-xs sm:text-sm">
                                   Cancel
                                 </Button>
                               </>
                             )}
                             {scheduledClass.status === 'completed' && (
-                              <Badge variant="outline">
+                              <Badge variant="outline" className="text-xs">
                                 <CheckCircle className="h-3 w-3 mr-1" />
                                 Completed
                               </Badge>
@@ -577,7 +576,7 @@ const TeacherExtra = ({ teacherData }: TeacherEventsProps) => {
 
         {/* Edit Dialog */}
         <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-          <DialogContent className="max-w-md">
+          <DialogContent className="max-w-md w-[95vw] sm:w-full max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Edit Class</DialogTitle>
             </DialogHeader>
@@ -631,7 +630,7 @@ const TeacherExtra = ({ teacherData }: TeacherEventsProps) => {
                   />
                 </div>
                 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="text-sm font-medium">Start Time *</label>
                     <Input

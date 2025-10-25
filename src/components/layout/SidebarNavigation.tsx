@@ -1,4 +1,4 @@
-import React from 'react';
+import React,{useEffect} from 'react';
 import { LucideIcon, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -30,7 +30,7 @@ const SidebarNavigation = ({
 }: SidebarNavigationProps) => {
   const getRoleStyles = (userType: string, isActive: boolean) => {
     if (!isActive) return '';
-    
+
     switch (userType) {
       case 'student':
         return 'bg-role-student/20 text-role-student border border-role-student/30';
@@ -49,7 +49,7 @@ const SidebarNavigation = ({
 
   const getRoleIconColor = (userType: string, isActive: boolean) => {
     if (!isActive) return '';
-    
+
     switch (userType) {
       case 'student': return 'text-role-student';
       case 'faculty': return 'text-role-teacher';
@@ -59,6 +59,17 @@ const SidebarNavigation = ({
       default: return 'text-primary';
     }
   };
+
+  useEffect(() => {
+    if (mobileOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [mobileOpen]);
 
   const handleItemClick = (itemId: string) => {
     onItemClick(itemId);
@@ -80,14 +91,23 @@ const SidebarNavigation = ({
       {/* Sidebar */}
       <div
         className={cn(
-          "bg-card border-r border-white/10 fixed inset-y-0 left-0 z-50 w-64 md:relative md:h-auto h-full",
-          "bg-black flex md:flex-col overflow-hidden",
-          "translate-x-0 opacity-100 -translate-x-full md:translate-x-0 opacity-0 md:opacity-100",
-          "transition-all duration-300 ease-in-out",
-          collapsed ? "md:w-16" : "md:w-64", 
+          // Base styles
+          "bg-card border-r border-white/10 bg-black flex flex-col transition-all duration-300 ease-in-out",
+
+          // Mobile styles
+          "fixed left-0 bottom-0 z-50 w-64 h-[calc(100vh-64px)]",
+
+          // Desktop styles
+          "md:sticky md:h-[calc(100vh-64px)]",
+
+          // Width transitions
+          collapsed ? "md:w-16" : "md:w-64",
+
+          // Mobile visibility
           mobileOpen
-            ? "translate-x-0 opacity-100 mt-[60px]"
-            : "-translate-x-full md:translate-x-0 opacity-0 md:opacity-100 mt-[60px]"
+            ? "translate-x-0 opacity-100"
+            : "-translate-x-full md:translate-x-0 opacity-0 md:opacity-100"
+
         )}
       >
         {/* Mobile Close Button */}
@@ -99,8 +119,10 @@ const SidebarNavigation = ({
             <X className="h-6 w-6" />
           </button>
         </div> */}
+
+
         {/* Navigation Items */}
-        <div className="p-4 space-y-2 overflow-y-auto flex-1">
+        <div className="flex-1 overflow-y-auto p-4 space-y-2">
           {items.map((item) => {
             const Icon = item.icon;
             const isActive = activeItem === item.id;

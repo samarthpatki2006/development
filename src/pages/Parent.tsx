@@ -508,7 +508,7 @@ const Parent = () => {
       </div>
 
       {/* Main Layout */}
-      <div className="relative z-10 flex min-h-[calc(100vh-4rem)]">
+      <div className="relative z-10 flex mt-[64px] min-h-[calc(100vh-4rem)]">
         {/* Sidebar */}
         <SidebarNavigation
           items={sidebarItems}
@@ -521,7 +521,7 @@ const Parent = () => {
         />
 
         {/* Main Content */}
-        <div className="flex-1 w-full min-w-0 transition-all duration-300 ease-in-out p-3 sm:p-6 mt-[60px] md:mt-[50px]">
+        <div className="flex-1 w-full min-w-0 transition-all duration-300 ease-in-out p-3 sm:p-6">
           {renderContent()}
         </div>
       </div>

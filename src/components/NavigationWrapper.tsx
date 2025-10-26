@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -24,6 +23,7 @@ const NavigationWrapper = ({ children }: NavigationWrapperProps) => {
   const navigate = useNavigate();
   const currentPath = location.pathname;
   const [session, setSession] = useState<Session | null>(null);
+  const [isChecking, setIsChecking] = useState(true);
 
   useEffect(() => {
     // Set up auth state listener
@@ -41,81 +41,151 @@ const NavigationWrapper = ({ children }: NavigationWrapperProps) => {
     });
 
     return () => subscription.unsubscribe();
-  }, [currentPath, navigate]);
+  }, [currentPath]);
 
   const handleAuthStateChange = async (session: Session | null) => {
-    // Check for mock user data (development mode)
-    const mockUserData = localStorage.getItem('colcord_user');
-    
-    // Handle unauthenticated users
-    if (!session && !mockUserData) {
-      if (currentPath !== '/') {
-        navigate('/');
-      }
-      return;
-    }
+    try {
+      setIsChecking(true);
 
-    // Handle mock user data (skip login functionality)
-    if (!session && mockUserData) {
-      try {
-        const userData = JSON.parse(mockUserData);
-        const correctRoute = USER_ROUTE_MAP[userData.user_type as keyof typeof USER_ROUTE_MAP];
-        
-        if (correctRoute && currentPath !== correctRoute) {
-          navigate(correctRoute);
-        }
-      } catch (error) {
-        console.error('Error parsing mock user data:', error);
-        localStorage.removeItem('colcord_user');
+      // Check for mock user data (development mode)
+      const mockUserData = localStorage.getItem('colcord_user');
+      
+      // Handle unauthenticated users
+      if (!session && !mockUserData) {
         if (currentPath !== '/') {
           navigate('/');
         }
-      }
-      return;
-    }
-
-    // Handle authenticated users
-    try {
-      // Get user profile to determine their type and route
-      const { data: profile, error } = await supabase
-        .from('user_profiles')
-        .select('user_type')
-        .eq('id', session.user.id)
-        .single();
-
-      if (error || !profile) {
-        console.error('Error fetching user profile:', error);
-        // If we can't get the user profile, sign them out
-        await supabase.auth.signOut();
-        navigate('/');
+        setIsChecking(false);
         return;
       }
 
-      const correctRoute = USER_ROUTE_MAP[profile.user_type as keyof typeof USER_ROUTE_MAP];
-      
-      if (!correctRoute) {
-        console.error('Invalid user type:', profile.user_type);
-        await supabase.auth.signOut();
-        navigate('/');
+      // Handle mock user data (skip login functionality for development)
+      if (!session && mockUserData) {
+        try {
+          const userData = JSON.parse(mockUserData);
+          const correctRoute = USER_ROUTE_MAP[userData.user_type as keyof typeof USER_ROUTE_MAP];
+          
+          if (correctRoute && currentPath !== correctRoute && currentPath !== '/first-login') {
+            navigate(correctRoute);
+          }
+        } catch (error) {
+          console.error('Error parsing mock user data:', error);
+          localStorage.removeItem('colcord_user');
+          if (currentPath !== '/') {
+            navigate('/');
+          }
+        }
+        setIsChecking(false);
         return;
       }
 
-      // Redirect from login page to user's dashboard
-      if (currentPath === '/') {
-        navigate(correctRoute);
-        return;
-      }
-      
-      // Redirect if user is on wrong route
-      if (currentPath !== correctRoute) {
-        navigate(correctRoute);
+      // Handle authenticated users
+      if (session) {
+        // Get user profile to determine their type and route
+        const { data: profile, error: profileError } = await supabase
+          .from('user_profiles')
+          .select('user_type, id')
+          .eq('id', session.user.id)
+          .single();
+
+        if (profileError || !profile) {
+          console.error('Error fetching user profile:', profileError);
+          // If we can't get the user profile, sign them out
+          await supabase.auth.signOut();
+          navigate('/');
+          setIsChecking(false);
+          return;
+        }
+
+        // ==========================================
+        // NEW: Check onboarding status for first login
+        // ==========================================
+        const { data: onboarding, error: onboardingError } = await supabase
+          .from('user_onboarding')
+          .select('password_reset_required, first_login_completed, onboarding_completed')
+          .eq('user_id', session.user.id)
+          .maybeSingle(); // Use maybeSingle() to handle cases where no record exists
+
+        // If user needs to reset password, redirect to first-login
+        if (onboarding && onboarding.password_reset_required) {
+          // Allow access to first-login page
+          if (currentPath === '/first-login') {
+            setIsChecking(false);
+            return;
+          }
+          
+          // Redirect from any other page to first-login
+          console.log('Password reset required, redirecting to /first-login');
+          navigate('/first-login');
+          setIsChecking(false);
+          return;
+        }
+
+        // If on first-login but password already changed, redirect to dashboard
+        if (currentPath === '/first-login' && onboarding && !onboarding.password_reset_required) {
+          const correctRoute = USER_ROUTE_MAP[profile.user_type as keyof typeof USER_ROUTE_MAP];
+          console.log('Password already changed, redirecting to dashboard');
+          navigate(correctRoute);
+          setIsChecking(false);
+          return;
+        }
+
+        // If on first-login but no onboarding record (legacy user), redirect to dashboard
+        if (currentPath === '/first-login' && !onboarding) {
+          const correctRoute = USER_ROUTE_MAP[profile.user_type as keyof typeof USER_ROUTE_MAP];
+          console.log('No onboarding record, redirecting to dashboard');
+          navigate(correctRoute);
+          setIsChecking(false);
+          return;
+        }
+        // ==========================================
+        // END: First login logic
+        // ==========================================
+
+        const correctRoute = USER_ROUTE_MAP[profile.user_type as keyof typeof USER_ROUTE_MAP];
+        
+        if (!correctRoute) {
+          console.error('Invalid user type:', profile.user_type);
+          await supabase.auth.signOut();
+          navigate('/');
+          setIsChecking(false);
+          return;
+        }
+
+        // Redirect from login page to user's dashboard (only if password is changed)
+        if (currentPath === '/') {
+          navigate(correctRoute);
+          setIsChecking(false);
+          return;
+        }
+        
+        // Redirect if user is on wrong route (but allow first-login)
+        if (currentPath !== correctRoute && currentPath !== '/first-login') {
+          navigate(correctRoute);
+        }
       }
     } catch (error) {
       console.error('Error handling auth state change:', error);
-      await supabase.auth.signOut();
+      if (session) {
+        await supabase.auth.signOut();
+      }
       navigate('/');
+    } finally {
+      setIsChecking(false);
     }
   };
+
+  // Show loading state while checking auth (except on login page)
+  if (isChecking && currentPath !== '/') {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   return <>{children}</>;
 };

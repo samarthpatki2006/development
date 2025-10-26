@@ -241,58 +241,6 @@ const StudentDashboard = ({ studentData, onNavigate }: StudentDashboardProps) =>
           </CardContent>
         </Card>
       </div>
-
-      {/* Current Courses Preview */}
-      <PermissionWrapper permission="view_submit_assignments">
-        <Card className="border-white/10">
-          <CardHeader>
-            <CardTitle className="text-2xl font-bold text-card-foreground">Current Courses</CardTitle>
-            <CardDescription>Your enrolled courses this semester - click to view details</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {[
-                { name: 'Data Structures & Algorithms', code: 'CS301', instructor: 'Dr. Smith', progress: 75 },
-                { name: 'Database Management Systems', code: 'CS302', instructor: 'Dr. Johnson', progress: 60 },
-                { name: 'Computer Networks', code: 'CS303', instructor: 'Dr. Brown', progress: 80 }
-              ].map((course, index) => (
-                <div 
-                  key={index} 
-                  className="p-6 border border-white/10 rounded-lg bg-white/5 hover:border-role-student/20 transition-all duration-300 hover-translate-up cursor-pointer hover:scale-105"
-                  onClick={handleCourseClick}
-                >
-                  <div className="flex justify-between items-start mb-4">
-                    <h4 className="font-bold text-card-foreground">{course.name}</h4>
-                    <Badge variant="secondary">{course.code}</Badge>
-                  </div>
-                  <p className="text-sm text-muted-foreground mb-4">{course.instructor}</p>
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Progress</span>
-                      <span className="text-card-foreground font-medium">{course.progress}%</span>
-                    </div>
-                    <div className="w-full  rounded-full h-2">
-                      <div 
-                        className=" h-2 rounded-full transition-all duration-500" 
-                        style={{ width: `${course.progress}%` }}
-                      ></div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-            <div className="mt-6 text-center">
-              <Button 
-                variant="outline" 
-                onClick={handleCourseClick}
-                className="hover:bg-role-student/10 hover:text-role-student hover:border-role-student/20"
-              >
-                View All Courses
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </PermissionWrapper>
     </div>
   );
 };

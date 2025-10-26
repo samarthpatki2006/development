@@ -92,10 +92,11 @@ const HostelFacility: React.FC<HostelFacilityProps> = ({ studentData }) => {
   const fetchData = async () => {
     setLoading(true);
 
-    // Fetch hostel rooms
+    // Fetch hostel rooms for the student's college
     const { data: hostelRoomsData } = await supabase
       .from('hostel_rooms')
       .select('*')
+      .eq('college_id', studentData.college_id)
       .eq('is_available', true)
       .order('block_name', { ascending: true });
     setHostelRooms(hostelRoomsData || []);
@@ -111,10 +112,11 @@ const HostelFacility: React.FC<HostelFacilityProps> = ({ studentData }) => {
       .order('application_date', { ascending: false });
     setApplications(applicationsData || []);
 
-    // Fetch facilities
+    // Fetch facilities for the student's college
     const { data: facilitiesData } = await supabase
       .from('facilities')
       .select('*')
+      .eq('college_id', studentData.college_id)
       .eq('is_available', true)
       .order('facility_name', { ascending: true });
     setFacilities(facilitiesData || []);
@@ -246,7 +248,7 @@ const HostelFacility: React.FC<HostelFacilityProps> = ({ studentData }) => {
             <Card className="border-l-4">
               <CardContent className="p-4">
                 <div className="flex items-center gap-2">
-                  <AlertCircle className="h-5 w-5 " />
+                  <AlertCircle className="h-5 w-5" />
                   <p className="text-sm">
                     <span className="font-medium">Tip:</span> You can apply to multiple hostels to increase your chances! 
                     You currently have {pendingApplications.length} pending application{pendingApplications.length > 1 ? 's' : ''}.
@@ -256,70 +258,80 @@ const HostelFacility: React.FC<HostelFacilityProps> = ({ studentData }) => {
             </Card>
           )}
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {Object.entries(hostelBlocks).map(([blockName, rooms]) => {
-              const availableRooms = getAvailableRoomsInBlock(rooms);
-              const hasBlockApplication = hasAppliedForBlock(blockName);
-              
-              return (
-                <Card key={blockName} className={`border-l-4 ${hasBlockApplication ? 'border-l-green-500 ' : 'border-l-blue-500'}`}>
-                  <CardHeader className="pb-3">
-                    <div className="flex justify-between items-start">
-                      <CardTitle className="text-lg">{blockName}</CardTitle>
-                      <div className="flex flex-col gap-1">
-                        <Badge variant='default'>Active</Badge>
-                        {hasBlockApplication && (
-                          <Badge variant='outline' className="text-xs">
-                            Applied
-                          </Badge>
-                        )}
-                      </div>
-                    </div>
-                    <p className="text-sm text-gray-600">Hostel Block</p>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-3">
-                      <div className="flex items-center text-sm text-gray-600">
-                        <Building className="h-4 w-4 mr-2" />
-                        {rooms.length} Total Rooms
-                      </div>
-                      
-                      <div className="flex justify-between text-sm">
-                        <span className="flex items-center">
-                          <Users className="h-4 w-4 mr-1" />
-                          Types: {[...new Set(rooms.map(r => r.room_type))].join(', ')}
-                        </span>
-                      </div>
-
-                      <div className="flex justify-between text-sm">
-                        <span>Available for You:</span>
-                        <span className={availableRooms.length > 0 ? 'text-green-600 font-medium' : 'text-red-500'}>
-                          {availableRooms.length}
-                        </span>
-                      </div>
-
-                      {hasBlockApplication && (
-                        <div className="text-xs text-green-600 font-medium">
-                          ✓ Application submitted to this block
+          {Object.keys(hostelBlocks).length === 0 ? (
+            <Card>
+              <CardContent className="text-center py-8">
+                <Building className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+                <p className="text-gray-600">No hostel blocks available at the moment</p>
+                <p className="text-sm text-gray-500 mt-2">Please check back later</p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {Object.entries(hostelBlocks).map(([blockName, rooms]) => {
+                const availableRooms = getAvailableRoomsInBlock(rooms);
+                const hasBlockApplication = hasAppliedForBlock(blockName);
+                
+                return (
+                  <Card key={blockName} className={`border-l-4 ${hasBlockApplication ? 'border-l-green-500' : 'border-l-blue-500'}`}>
+                    <CardHeader className="pb-3">
+                      <div className="flex justify-between items-start">
+                        <CardTitle className="text-lg">{blockName}</CardTitle>
+                        <div className="flex flex-col gap-1">
+                          <Badge variant='default'>Active</Badge>
+                          {hasBlockApplication && (
+                            <Badge variant='outline' className="text-xs">
+                              Applied
+                            </Badge>
+                          )}
                         </div>
-                      )}
+                      </div>
+                      <p className="text-sm text-gray-600">Hostel Block</p>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-3">
+                        <div className="flex items-center text-sm text-gray-600">
+                          <Building className="h-4 w-4 mr-2" />
+                          {rooms.length} Total Rooms
+                        </div>
+                        
+                        <div className="flex justify-between text-sm">
+                          <span className="flex items-center">
+                            <Users className="h-4 w-4 mr-1" />
+                            Types: {[...new Set(rooms.map(r => r.room_type))].join(', ')}
+                          </span>
+                        </div>
 
-                      <HostelApplicationDialog 
-                        onApply={(roomId, preferredRoomType, comments) => 
-                          applyForHostel(roomId, preferredRoomType, comments, blockName)
-                        }
-                        rooms={availableRooms}
-                        blockName={blockName}
-                        hasBlockApplication={hasBlockApplication}
-                        hasAllocation={!!currentAllocation}
-                        availableRoomsCount={availableRooms.length}
-                      />
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
+                        <div className="flex justify-between text-sm">
+                          <span>Available for You:</span>
+                          <span className={availableRooms.length > 0 ? 'text-green-600 font-medium' : 'text-red-500'}>
+                            {availableRooms.length}
+                          </span>
+                        </div>
+
+                        {hasBlockApplication && (
+                          <div className="text-xs text-green-600 font-medium">
+                            ✓ Application submitted to this block
+                          </div>
+                        )}
+
+                        <HostelApplicationDialog 
+                          onApply={(roomId, preferredRoomType, comments) => 
+                            applyForHostel(roomId, preferredRoomType, comments, blockName)
+                          }
+                          rooms={availableRooms}
+                          blockName={blockName}
+                          hasBlockApplication={hasBlockApplication}
+                          hasAllocation={!!currentAllocation}
+                          availableRoomsCount={availableRooms.length}
+                        />
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
         </TabsContent>
 
         <TabsContent value="applications" className="space-y-6">
@@ -359,7 +371,7 @@ const HostelFacility: React.FC<HostelFacilityProps> = ({ studentData }) => {
             <CardContent>
               {applications.length === 0 ? (
                 <div className="text-center py-8">
-                  <Bed className="h-12 w-12 mx-auto mb-4" />
+                  <Bed className="h-12 w-12 mx-auto mb-4 text-gray-400" />
                   <p>No hostel applications submitted yet</p>
                   <p className="text-sm text-gray-500 mt-2">
                     Apply to multiple hostels to maximize your chances!
@@ -414,7 +426,7 @@ const HostelFacility: React.FC<HostelFacilityProps> = ({ studentData }) => {
             <CardContent>
               {facilityRequests.length === 0 ? (
                 <div className="text-center py-8">
-                  <Wrench className="h-12 w-12 mx-auto mb-4" />
+                  <Wrench className="h-12 w-12 mx-auto mb-4 text-gray-400" />
                   <p>No facility requests submitted yet</p>
                 </div>
               ) : (
@@ -446,6 +458,13 @@ const HostelFacility: React.FC<HostelFacilityProps> = ({ studentData }) => {
                         
                         <p className="text-sm mb-3">{request.description}</p>
                         
+                        {request.response && (
+                          <div className="bg-blue-50 p-3 rounded mb-3">
+                            <p className="text-sm font-medium mb-1">Response:</p>
+                            <p className="text-sm">{request.response}</p>
+                          </div>
+                        )}
+                        
                         <Badge variant="outline" className="capitalize">
                           {request.priority} Priority
                         </Badge>
@@ -460,41 +479,66 @@ const HostelFacility: React.FC<HostelFacilityProps> = ({ studentData }) => {
           <Card>
             <CardHeader>
               <CardTitle>Campus Facilities</CardTitle>
+              <p className="text-sm text-gray-600">
+                Available facilities at your college campus
+              </p>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {facilities.map((facility: any) => (
-                  <Card key={facility.id} className="border hover:shadow-md transition-shadow">
-                    <CardContent className="p-4">
-                      <h4 className="font-semibold mb-2">{facility.facility_name}</h4>
-                      <div className="space-y-1 text-sm">
-                        <div className="flex items-center space-x-2">
-                          <Building className="h-4 w-4" />
-                          <span className="capitalize">{facility.facility_type}</span>
+              {facilities.length === 0 ? (
+                <div className="text-center py-8">
+                  <Building className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+                  <p className="text-gray-600">No facilities available at the moment</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {facilities.map((facility: any) => (
+                    <Card key={facility.id} className="border hover:shadow-md transition-shadow">
+                      <CardContent className="p-4">
+                        <h4 className="font-semibold mb-2">{facility.facility_name}</h4>
+                        <div className="space-y-1 text-sm">
+                          <div className="flex items-center space-x-2">
+                            <Building className="h-4 w-4 text-gray-500" />
+                            <span className="capitalize">{facility.facility_type}</span>
+                          </div>
+                          {facility.location && (
+                            <div className="flex items-center space-x-2">
+                              <MapPin className="h-4 w-4 text-gray-500" />
+                              <span>{facility.location}</span>
+                            </div>
+                          )}
+                          {facility.capacity && (
+                            <div className="flex items-center space-x-2">
+                              <Users className="h-4 w-4 text-gray-500" />
+                              <span>Capacity: {facility.capacity}</span>
+                            </div>
+                          )}
                         </div>
-                        {facility.location && (
-                          <div className="flex items-center space-x-2">
-                            <MapPin className="h-4 w-4" />
-                            <span>{facility.location}</span>
+                        
+                        {facility.amenities && Object.keys(facility.amenities).length > 0 && (
+                          <div className="mt-3">
+                            <p className="text-xs font-medium text-gray-600 mb-1">Amenities:</p>
+                            <div className="flex flex-wrap gap-1">
+                              {Object.entries(facility.amenities).map(([key, value]) => (
+                                value && (
+                                  <Badge key={key} variant="outline" className="text-xs">
+                                    {key.replace(/_/g, ' ')}
+                                  </Badge>
+                                )
+                              ))}
+                            </div>
                           </div>
                         )}
-                        {facility.capacity && (
-                          <div className="flex items-center space-x-2">
-                            <Users className="h-4 w-4" />
-                            <span>Capacity: {facility.capacity}</span>
-                          </div>
-                        )}
-                      </div>
-                      
-                      <div className="mt-3 pt-3 border-t">
-                        <Badge variant={facility.is_available ? 'default' : 'destructive'}>
-                          {facility.is_available ? 'Available' : 'Unavailable'}
-                        </Badge>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
+                        
+                        <div className="mt-3 pt-3 border-t">
+                          <Badge variant={facility.is_available ? 'default' : 'destructive'}>
+                            {facility.is_available ? 'Available' : 'Unavailable'}
+                          </Badge>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -503,7 +547,7 @@ const HostelFacility: React.FC<HostelFacilityProps> = ({ studentData }) => {
   );
 };
 
-// Enhanced Hostel Application Dialog Component
+// Hostel Application Dialog Component
 const HostelApplicationDialog: React.FC<{
   onApply: (roomId: string, preferredRoomType: string, comments: string) => void;
   rooms: any[];
@@ -617,7 +661,7 @@ const HostelApplicationDialog: React.FC<{
   );
 };
 
-// Facility Request Dialog Component (unchanged)
+// Facility Request Dialog Component
 const FacilityRequestDialog: React.FC<{
   onSubmit: (facilityId: string, requestType: string, title: string, description: string, priority: string) => void;
   facilities: any[];

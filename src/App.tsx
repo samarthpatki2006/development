@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -12,6 +11,7 @@ import Teacher from "./pages/Teacher";
 import NotFound from "./pages/NotFound";
 import Parent from "./pages/Parent";
 import Alumni from "./pages/Alumni";
+import FirstLogin from "./pages/FirstLogin"; // ADD THIS
 
 const queryClient = new QueryClient();
 
@@ -24,6 +24,8 @@ const App = () => (
         <NavigationWrapper>
           <Routes>
             <Route path="/" element={<Index />} />
+            {/* ADD THIS ROUTE - Must be before dashboard routes */}
+            <Route path="/first-login" element={<FirstLogin />} />
             <Route path="/admin" element={<Admin />} />
             <Route path="/student" element={<Student />} />
             <Route path="/teacher" element={<Teacher />} />

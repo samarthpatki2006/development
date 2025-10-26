@@ -22,10 +22,6 @@ const ScheduleTimetable: React.FC<ScheduleTimetableProps> = ({ studentData }) =>
   const { toast } = useToast();
 
   const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-  const timeSlots = [
-    '9:00 AM', '10:00 AM', '11:00 AM', '12:00 PM', 
-    '1:00 PM', '2:00 PM', '3:00 PM', '4:00 PM', '5:00 PM'
-  ];
 
   useEffect(() => {
     fetchScheduleData();
@@ -36,7 +32,6 @@ const ScheduleTimetable: React.FC<ScheduleTimetableProps> = ({ studentData }) =>
 
     setLoading(true);
     try {
-      // Get enrolled courses with regular schedule
       const { data: enrollments, error: enrollmentError } = await supabase
         .from('enrollments')
         .select(`
@@ -68,7 +63,6 @@ const ScheduleTimetable: React.FC<ScheduleTimetableProps> = ({ studentData }) =>
 
       let allScheduleData = [];
 
-      // Process regular classes
       if (enrollments) {
         const regularSchedule = enrollments.flatMap(enrollment => 
           enrollment.courses.class_schedule.map(schedule => ({
@@ -84,17 +78,14 @@ const ScheduleTimetable: React.FC<ScheduleTimetableProps> = ({ studentData }) =>
         allScheduleData = [...regularSchedule];
       }
 
-      // Get enrolled course IDs for extra class lookup
       const enrolledCourseIds = enrollments?.map(e => e.course_id) || [];
 
       if (enrolledCourseIds.length > 0) {
-        // Calculate week start and end dates
         const weekStart = new Date(currentWeek);
         weekStart.setDate(weekStart.getDate() - weekStart.getDay());
         const weekEnd = new Date(weekStart);
         weekEnd.setDate(weekStart.getDate() + 6);
 
-        // Get extra classes for the current week
         const { data: extraClasses, error: extraError } = await supabase
           .from('extra_class_schedule')
           .select(`
@@ -119,7 +110,6 @@ const ScheduleTimetable: React.FC<ScheduleTimetableProps> = ({ studentData }) =>
           .gte('scheduled_date', weekStart.toISOString().split('T')[0])
           .lte('scheduled_date', weekEnd.toISOString().split('T')[0]);
 
-        // If we have extra classes, get teacher information separately
         let teacherProfiles = {};
         if (extraClasses && extraClasses.length > 0) {
           const teacherIds = [...new Set(extraClasses.map(ec => ec.teacher_id))];
@@ -139,7 +129,6 @@ const ScheduleTimetable: React.FC<ScheduleTimetableProps> = ({ studentData }) =>
         if (extraError) {
           console.warn('Extra class fetch error:', extraError);
         } else if (extraClasses && extraClasses.length > 0) {
-          // Process extra classes
           const extraScheduleData = extraClasses.map(extraClass => {
             const scheduledDate = new Date(extraClass.scheduled_date);
             const teacher = teacherProfiles[extraClass.teacher_id];
@@ -168,7 +157,6 @@ const ScheduleTimetable: React.FC<ScheduleTimetableProps> = ({ studentData }) =>
 
       setWeeklySchedule(allScheduleData);
 
-      // Filter today's classes
       const today = new Date();
       const todaySchedule = allScheduleData.filter(cls => {
         if (cls.is_extra_class && cls.scheduled_date) {
@@ -194,7 +182,7 @@ const ScheduleTimetable: React.FC<ScheduleTimetableProps> = ({ studentData }) =>
   const getWeekDays = (startDate: Date) => {
     const week = [];
     const start = new Date(startDate);
-    start.setDate(start.getDate() - start.getDay()); // Start from Sunday
+    start.setDate(start.getDate() - start.getDay());
 
     for (let i = 0; i < 7; i++) {
       const day = new Date(start);
@@ -217,6 +205,12 @@ const ScheduleTimetable: React.FC<ScheduleTimetableProps> = ({ studentData }) =>
     const ampm = hour >= 12 ? 'PM' : 'AM';
     const displayHour = hour % 12 || 12;
     return `${displayHour}:${minutes} ${ampm}`;
+  };
+
+  const timeToMinutes = (timeString: string) => {
+    if (!timeString) return 0;
+    const [hours, minutes] = timeString.split(':').map(Number);
+    return hours * 60 + minutes;
   };
 
   const getClassesForDay = (dayOfWeek: number, specificDate?: Date) => {
@@ -253,6 +247,35 @@ const ScheduleTimetable: React.FC<ScheduleTimetableProps> = ({ studentData }) =>
     }
   };
 
+  const getClassPosition = (startTime: string, endTime: string) => {
+    const dayStartMinutes = 8 * 60;
+    const dayEndMinutes = 18 * 60;
+    const totalMinutes = dayEndMinutes - dayStartMinutes;
+    
+    const startMinutes = timeToMinutes(startTime);
+    const endMinutes = timeToMinutes(endTime);
+    const duration = endMinutes - startMinutes;
+    
+    const topPercent = ((startMinutes - dayStartMinutes) / totalMinutes) * 100;
+    const heightPercent = (duration / totalMinutes) * 100;
+    
+    return {
+      top: `${Math.max(0, topPercent)}%`,
+      height: `${Math.max(5, heightPercent)}%`
+    };
+  };
+
+  const generateTimeLabels = () => {
+    const labels = [];
+    for (let hour = 8; hour <= 18; hour++) {
+      labels.push({
+        time: `${hour}:00`,
+        display: formatTime(`${hour.toString().padStart(2, '0')}:00`)
+      });
+    }
+    return labels;
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-8">
@@ -264,11 +287,10 @@ const ScheduleTimetable: React.FC<ScheduleTimetableProps> = ({ studentData }) =>
   return (
     <PermissionWrapper permission="view_attendance">
       <div className="space-y-6">
-        {/* Header */}
         <div className="flex justify-between items-center">
           <div>
-            <h2 className="text-2xl font-bold">Schedule & Timetable</h2>
-            <p className="text-muted-foreground">View your class schedule including extra classes</p>
+            <h2 className="text-2xl font-bold">Class Schedule</h2>
+            <p className="text-muted-foreground">View your class schedule</p>
           </div>
         </div>
 
@@ -303,18 +325,25 @@ const ScheduleTimetable: React.FC<ScheduleTimetableProps> = ({ studentData }) =>
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-8 gap-2">
-                  {/* Time column */}
-                  <div className="space-y-2">
+                <div className="grid grid-cols-8 gap-2 min-h-[600px]">
+                  <div className="space-y-0 relative">
                     <div className="h-12"></div>
-                    {timeSlots.map(time => (
-                      <div key={time} className="h-16 text-xs text-muted-foreground flex items-center">
-                        {time}
-                      </div>
-                    ))}
+                    <div className="relative" style={{ height: 'calc(100% - 48px)' }}>
+                      {generateTimeLabels().map((label, index) => (
+                        <div 
+                          key={label.time}
+                          className="absolute text-xs text-muted-foreground w-full"
+                          style={{ 
+                            top: `${(index / (generateTimeLabels().length - 1)) * 100}%`,
+                            transform: 'translateY(-50%)'
+                          }}
+                        >
+                          {label.display}
+                        </div>
+                      ))}
+                    </div>
                   </div>
 
-                  {/* Day columns */}
                   {getWeekDays(currentWeek).map((date, dayIndex) => (
                     <div key={dayIndex} className="space-y-2">
                       <div className={`h-12 text-center p-2 rounded-lg ${
@@ -324,36 +353,44 @@ const ScheduleTimetable: React.FC<ScheduleTimetableProps> = ({ studentData }) =>
                         <div className="text-xs">{date.getDate()}</div>
                       </div>
                       
-                      {timeSlots.map((timeSlot, timeIndex) => {
-                        const dayClasses = getClassesForDay(dayIndex, date);
-                        const classAtTime = dayClasses.find(cls => {
-                          const startTime = formatTime(cls.start_time);
-                          return startTime === timeSlot;
-                        });
-
-                        return (
-                          <div key={timeIndex} className="h-16 border rounded">
-                            {classAtTime && (
-                              <div className={`p-1 rounded text-xs h-full border ${getClassTypeStyle(classAtTime)}`}>
-                                <div className="font-medium truncate flex items-center">
-                                  {classAtTime.is_extra_class && (
-                                    <Star className="h-2 w-2 mr-1 flex-shrink-0" />
-                                  )}
-                                  <span className="truncate">{classAtTime.course_code}</span>
-                                </div>
-                                <div className="text-xs opacity-80 truncate">
-                                  {classAtTime.room_location}
-                                </div>
-                                {classAtTime.is_extra_class && (
-                                  <div className="text-xs opacity-70 truncate capitalize">
-                                    {classAtTime.class_type}
-                                  </div>
+                      <div className="relative border rounded-lg" style={{ height: 'calc(100% - 56px)', minHeight: '500px' }}>
+                        {generateTimeLabels().map((_, index) => (
+                          <div 
+                            key={index}
+                            className="absolute w-full border-t border-muted"
+                            style={{ top: `${(index / (generateTimeLabels().length - 1)) * 100}%` }}
+                          />
+                        ))}
+                        
+                        {getClassesForDay(dayIndex, date).map((cls, clsIndex) => {
+                          const position = getClassPosition(cls.start_time, cls.end_time);
+                          return (
+                            <div 
+                              key={clsIndex}
+                              className={`absolute left-1 right-1 p-2 rounded text-xs border overflow-hidden ${getClassTypeStyle(cls)}`}
+                              style={position}
+                            >
+                              <div className="font-medium truncate flex items-center">
+                                {cls.is_extra_class && (
+                                  <Star className="h-2 w-2 mr-1 flex-shrink-0" />
                                 )}
+                                <span className="truncate">{cls.course_code}</span>
                               </div>
-                            )}
-                          </div>
-                        );
-                      })}
+                              <div className="text-xs opacity-80 truncate">
+                                {formatTime(cls.start_time)}
+                              </div>
+                              <div className="text-xs opacity-80 truncate">
+                                {cls.room_location}
+                              </div>
+                              {cls.is_extra_class && (
+                                <div className="text-xs opacity-70 truncate capitalize">
+                                  {cls.class_type}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -380,7 +417,7 @@ const ScheduleTimetable: React.FC<ScheduleTimetableProps> = ({ studentData }) =>
                       <div className="flex-shrink-0">
                         <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
                           cls.is_extra_class 
-                            ? 'bg-blue-50 text-blue-600'
+                            ? 'text-blue-600'
                             : 'bg-primary/10 text-primary'
                         }`}>
                           {cls.is_extra_class ? (

@@ -49,6 +49,10 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
   const [selectedCourseAnalytics, setSelectedCourseAnalytics] = useState<string>('');
   const [courseAnalytics, setCourseAnalytics] = useState<any[]>([]);
   const [editingStudent, setEditingStudent] = useState<string | null>(null);
+  
+  // Location tracking states
+  const [locationPermission, setLocationPermission] = useState<'granted' | 'denied' | 'prompt'>('prompt');
+  const [currentLocation, setCurrentLocation] = useState<{latitude: number, longitude: number} | null>(null);
 
   const [newSchedule, setNewSchedule] = useState({
     course_id: '',
@@ -59,13 +63,10 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
   });
 
   const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-  const timeSlots = [
-    '8:00 AM', '9:00 AM', '10:00 AM', '11:00 AM', '12:00 PM', 
-    '1:00 PM', '2:00 PM', '3:00 PM', '4:00 PM', '5:00 PM', '6:00 PM'
-  ];
 
   useEffect(() => {
     if (teacherData?.user_id) {
+      checkLocationPermission();
       fetchScheduleData();
       fetchTeacherCourses();
     }
@@ -98,6 +99,77 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
     }
   }, [selectedCourseAnalytics]);
 
+  const checkLocationPermission = async () => {
+    if ('geolocation' in navigator) {
+      try {
+        const permission = await navigator.permissions.query({ name: 'geolocation' });
+        setLocationPermission(permission.state);
+        
+        if (permission.state === 'granted') {
+          getCurrentLocation();
+        }
+      } catch (error) {
+        console.error('Permission check error:', error);
+      }
+    }
+  };
+
+  const getCurrentLocation = (): Promise<{latitude: number, longitude: number}> => {
+    return new Promise((resolve, reject) => {
+      if (!('geolocation' in navigator)) {
+        reject(new Error('Geolocation not supported'));
+        return;
+      }
+
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const location = {
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude
+          };
+          setCurrentLocation(location);
+          resolve(location);
+        },
+        (error) => {
+          console.error('Location error:', error);
+          reject(error);
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 0
+        }
+      );
+    });
+  };
+
+  const requestLocationPermission = async (): Promise<boolean> => {
+    try {
+      await getCurrentLocation();
+      setLocationPermission('granted');
+      toast.success('Location access granted');
+      return true;
+    } catch (error) {
+      setLocationPermission('denied');
+      toast.error('Location access is required to generate attendance QR codes');
+      return false;
+    }
+  };
+
+  const timeToMinutes = (timeStr: string): number => {
+    const [hours, minutes] = timeStr.split(':').map(Number);
+    return hours * 60 + minutes;
+  };
+
+  const generateSessionCode = () => {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let code = '';
+    for (let i = 0; i < 6; i++) {
+      code += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return code;
+  };
+
   const checkTimeValidity = (classData: any) => {
     const now = new Date();
     const currentTime = now.toTimeString().slice(0, 5);
@@ -113,7 +185,7 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
       setTimeRemaining(remainingMinutes);
       setCanGenerateQR(true);
     } else {
-      setCanGenerateQR(currentTime < classData.end_time);
+      setCanGenerateQR(false);
       setTimeRemaining(0);
     }
   };
@@ -329,12 +401,32 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
 
   const generateQRCode = async (classData: any) => {
     try {
+      if (locationPermission !== 'granted') {
+        const granted = await requestLocationPermission();
+        if (!granted) return;
+      }
+
+      const now = new Date();
+      const currentTime = now.toTimeString().slice(0, 5);
+      
+      if (currentTime < classData.start_time) {
+        toast.error('Cannot generate QR code before class starts');
+        return;
+      }
+
+      if (currentTime > classData.end_time) {
+        toast.error('Class has already ended. Cannot generate QR code');
+        return;
+      }
+
+      const location = await getCurrentLocation();
+
       const today = new Date().toISOString().split('T')[0];
       const sessionDate = classData.scheduled_date || today;
 
       const { data: existingSession } = await supabase
         .from('attendance_sessions')
-        .select('id, qr_code, is_active')
+        .select('id, qr_code, is_active, instructor_location')
         .eq('course_id', classData.course_id)
         .eq('session_date', sessionDate)
         .eq('start_time', classData.start_time)
@@ -348,17 +440,37 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
         session = existingSession;
         qrCodeData = existingSession.qr_code;
         
-        if (!existingSession.is_active) {
-          await supabase
-            .from('attendance_sessions')
-            .update({ 
-              is_active: true
-            })
-            .eq('id', existingSession.id);
-        }
+        await supabase
+          .from('attendance_sessions')
+          .update({ 
+            is_active: true,
+            instructor_location: {
+              latitude: location.latitude,
+              longitude: location.longitude,
+              timestamp: new Date().toISOString()
+            }
+          })
+          .eq('id', existingSession.id);
         
-        toast.info('Reopening existing session');
+        toast.info('Reopening existing session with updated location');
       } else {
+        let sessionCode;
+        let isUnique = false;
+        
+        while (!isUnique) {
+          sessionCode = generateSessionCode();
+          
+          const { data: existingCode } = await supabase
+            .from('attendance_sessions')
+            .select('id')
+            .eq('qr_code', sessionCode)
+            .single();
+          
+          if (!existingCode) {
+            isUnique = true;
+          }
+        }
+
         const sessionData = {
           course_id: classData.course_id,
           instructor_id: teacherData.user_id,
@@ -367,7 +479,14 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
           end_time: classData.end_time,
           session_type: classData.is_extra_class ? classData.class_type : 'lecture',
           topic: classData.title || classData.courses?.course_name,
-          is_active: true
+          qr_code: sessionCode,
+          is_active: true,
+          room_location: classData.room_location,
+          instructor_location: {
+            latitude: location.latitude,
+            longitude: location.longitude,
+            timestamp: new Date().toISOString()
+          }
         };
 
         const { data: newSession, error: sessionError } = await supabase
@@ -378,13 +497,7 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
 
         if (sessionError) throw sessionError;
 
-        qrCodeData = `session-${newSession.id}`;
-        
-        await supabase
-          .from('attendance_sessions')
-          .update({ qr_code: qrCodeData })
-          .eq('id', newSession.id);
-
+        qrCodeData = sessionCode;
         session = newSession;
       }
 
@@ -410,23 +523,18 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
       setTimeout(() => fetchAttendanceForSession(), 500);
       
       if (!existingSession) {
-        toast.success('QR Code generated successfully!');
+        toast.success('QR Code generated successfully! Location tracked.');
       }
 
-      const now = new Date();
-      const currentTime = now.toTimeString().slice(0, 5);
-      
-      if (currentTime <= classData.end_time) {
-        const endTimeParts = classData.end_time.split(':');
-        const endDate = new Date();
-        endDate.setHours(parseInt(endTimeParts[0]), parseInt(endTimeParts[1]), 0, 0);
-        const remainingMs = endDate.getTime() - now.getTime();
+      const endTimeParts = classData.end_time.split(':');
+      const endDate = new Date();
+      endDate.setHours(parseInt(endTimeParts[0]), parseInt(endTimeParts[1]), 0, 0);
+      const remainingMs = endDate.getTime() - now.getTime();
 
-        if (remainingMs > 0) {
-          setTimeout(async () => {
-            await closeSession(session.id, classData.course_id, sessionDate);
-          }, remainingMs);
-        }
+      if (remainingMs > 0) {
+        setTimeout(async () => {
+          await closeSession(session.id, classData.course_id, sessionDate);
+        }, remainingMs);
       }
 
     } catch (error: any) {
@@ -464,7 +572,8 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
           status: 'absent',
           session_id: sessionId,
           marked_by: teacherData.user_id,
-          marked_at: new Date().toISOString()
+          marked_at: new Date().toISOString(),
+          location_verified: false
         }));
 
       if (absentStudents.length > 0) {
@@ -493,6 +602,8 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
           status,
           marked_at,
           session_id,
+          device_info,
+          location_verified,
           user_profiles!attendance_student_id_fkey (
             id,
             first_name,
@@ -521,8 +632,6 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
 
       if (enrollError) throw enrollError;
 
-      const markedStudentIds = new Set((attendance || []).map(a => a.student_id));
-
       const allStudentsWithStatus = (allEnrolled || []).map(enrollment => {
         const attendanceRecord = (attendance || []).find(a => a.student_id === enrollment.student_id);
 
@@ -531,7 +640,9 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
           user_profiles: enrollment.user_profiles,
           status: attendanceRecord?.status || 'waiting',
           marked_at: attendanceRecord?.marked_at || null,
-          session_id: currentSessionId
+          session_id: currentSessionId,
+          device_info: attendanceRecord?.device_info,
+          location_verified: attendanceRecord?.location_verified
         };
       });
 
@@ -704,13 +815,13 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'present':
-        return 'bg-black border-green-300 text-green-700';
+        return 'bg-green-50 border-green-300 text-green-700';
       case 'late':
-        return 'bg-black border-yellow-300 text-yellow-700';
+        return 'bg-yellow-50 border-yellow-300 text-yellow-700';
       case 'absent':
-        return 'bg-black border-red-300 text-red-700';
+        return 'bg-red-50 border-red-300 text-red-700';
       default:
-        return 'bg-black border-gray-300 text-gray-700';
+        return 'bg-gray-50 border-gray-300 text-gray-700';
     }
   };
 
@@ -832,6 +943,41 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
     }
   };
 
+  const canGenerateQRForClass = (classItem: any) => {
+    const now = new Date();
+    const currentTime = now.toTimeString().slice(0, 5);
+    return currentTime >= classItem.start_time && currentTime <= classItem.end_time;
+  };
+
+  const getClassPosition = (startTime: string, endTime: string) => {
+    const dayStartMinutes = 8 * 60;
+    const dayEndMinutes = 18 * 60;
+    const totalMinutes = dayEndMinutes - dayStartMinutes;
+    
+    const startMinutes = timeToMinutes(startTime);
+    const endMinutes = timeToMinutes(endTime);
+    const duration = endMinutes - startMinutes;
+    
+    const topPercent = ((startMinutes - dayStartMinutes) / totalMinutes) * 100;
+    const heightPercent = (duration / totalMinutes) * 100;
+    
+    return {
+      top: `${Math.max(0, topPercent)}%`,
+      height: `${Math.max(5, heightPercent)}%`
+    };
+  };
+
+  const generateTimeLabels = () => {
+    const labels = [];
+    for (let hour = 8; hour <= 18; hour++) {
+      labels.push({
+        time: `${hour}:00`,
+        display: formatTime(`${hour.toString().padStart(2, '0')}:00`)
+      });
+    }
+    return labels;
+  };
+
   if (loading) {
     return (
       <div className="space-y-6">
@@ -846,6 +992,32 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
 
   return (
     <div className="space-y-6">
+      <Alert className={locationPermission === 'granted' ? 'border-green-200 ' : 'border-yellow-200'}>
+        <MapPin className={`h-4 w-4 ${locationPermission === 'granted' ? 'text-green-600' : 'text-yellow-600'}`} />
+        <AlertDescription>
+          {locationPermission === 'granted' ? (
+            <span className="text-green-800">
+              Location tracking enabled • Students must be within 15m to mark attendance
+            </span>
+          ) : (
+            <span className="text-yellow-800">
+              Location access required • Enable to generate attendance QR codes
+            </span>
+          )}
+        </AlertDescription>
+      </Alert>
+
+      {locationPermission !== 'granted' && (
+        <Card>
+          <CardContent className="pt-6">
+            <Button onClick={requestLocationPermission} className="w-full">
+              <MapPin className="h-4 w-4 mr-2" />
+              Enable Location Tracking
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
       <Tabs defaultValue="schedule" className="space-y-4">
         <TabsList>
           <TabsTrigger value="schedule">Schedule</TabsTrigger>
@@ -950,21 +1122,25 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
           <Dialog open={isQRDialogOpen} onOpenChange={setIsQRDialogOpen}>
             <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
-                <DialogTitle>Attendance QR Code & Live Tracking</DialogTitle>
+                <DialogTitle>Attendance Session - {selectedClass?.courses?.course_name}</DialogTitle>
               </DialogHeader>
               <div className="space-y-6">
                 {!canGenerateQR ? (
-                  <Alert className="border-blue-200">
-                    <Clock className="h-4 w-4" />
-                    <AlertDescription>
-                      Class has ended. Session can still accept late attendance (0.5x points).
+                  <Alert className="border-red-200">
+                    <Clock className="h-4 w-4 text-red-600" />
+                    <AlertDescription className="text-red-800">
+                      Class has ended. Session is now closed.
                     </AlertDescription>
                   </Alert>
                 ) : (
                   <Alert className="border-green-200">
                     <CheckCircle className="h-4 w-4 text-green-600" />
-                    <AlertDescription className="text-green-800">
-                      Session active • {timeRemaining} min remaining
+                    <AlertDescription className="text-green-800 flex items-center justify-between">
+                      <span>Session active • {timeRemaining} min remaining</span>
+                      <Badge variant="outline">
+                        <MapPin className="h-3 w-3 mr-1" />
+                        15m radius enforced
+                      </Badge>
                     </AlertDescription>
                   </Alert>
                 )}
@@ -975,11 +1151,18 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
                   </div>
                   <div className="text-center space-y-2">
                     <p className="text-sm font-medium">
-                      Session ID: <span className="font-mono text-primary">{sessionId}</span>
+                      Session Code: <span className="font-mono text-primary text-2xl font-bold tracking-wider">{sessionId}</span>
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Students can scan QR or enter this 6-character code
+                    </p>
+                    <p className="text-xs text-yellow-600 font-medium flex items-center justify-center gap-1">
+                      <MapPin className="h-3 w-3" />
+                      Must be within 15 meters of your location
                     </p>
                     <Button variant="outline" size="sm" onClick={copySessionId}>
                       {copiedSessionId ? <CheckCircle className="h-4 w-4 mr-2" /> : <Copy className="h-4 w-4 mr-2" />}
-                      {copiedSessionId ? 'Copied!' : 'Copy Session ID'}
+                      {copiedSessionId ? 'Copied!' : 'Copy Code'}
                     </Button>
                   </div>
                 </div>
@@ -987,7 +1170,7 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
                 <div>
                   <h3 className="font-semibold mb-3 flex items-center gap-2">
                     <Users className="h-5 w-5" />
-                    Live Attendance ({attendanceRecords.filter(r => r.status === 'present' || r.status === 'late').length} / {attendanceRecords.length})
+                    Live Attendance ({attendanceRecords.filter(r => r.status !== 'waiting').length} / {attendanceRecords.length})
                   </h3>
                   <div className="max-h-96 overflow-y-auto space-y-2">
                     {attendanceRecords.length === 0 ? (
@@ -1002,7 +1185,7 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
                           <div
                             key={index}
                             className={`flex items-center justify-between p-3 rounded-lg border ${
-                              isMarked ? getStatusColor(record.status) : 'border-muted '
+                              isMarked ? getStatusColor(record.status) : 'border-muted bg-background'
                             }`}
                           >
                             <div className="flex-1">
@@ -1012,8 +1195,17 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
                               <p className="text-sm text-muted-foreground">
                                 ID: {record.user_profiles?.user_code}
                               </p>
+                              {record.device_info?.distance && (
+                                <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
+                                  <MapPin className="h-3 w-3" />
+                                  {record.device_info.distance}m away
+                                  {record.location_verified && (
+                                    <CheckCircle className="h-3 w-3 text-green-600 ml-1" />
+                                  )}
+                                </p>
+                              )}
                             </div>
-                            <div className="text-right space-y-1 flex items-center gap-3">
+                            <div className="text-right space-y-2">
                               {isMarked ? (
                                 <>
                                   <div>
@@ -1097,14 +1289,23 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-8 gap-2">
-                <div className="space-y-2">
+              <div className="grid grid-cols-8 gap-2 min-h-[600px]">
+                <div className="space-y-0 relative">
                   <div className="h-12"></div>
-                  {timeSlots.map(time => (
-                    <div key={time} className="h-16 text-xs text-muted-foreground flex items-center justify-end pr-2">
-                      {time}
-                    </div>
-                  ))}
+                  <div className="relative" style={{ height: 'calc(100% - 48px)' }}>
+                    {generateTimeLabels().map((label, index) => (
+                      <div 
+                        key={label.time}
+                        className="absolute text-xs text-muted-foreground w-full pr-2 text-right"
+                        style={{ 
+                          top: `${(index / (generateTimeLabels().length - 1)) * 100}%`,
+                          transform: 'translateY(-50%)'
+                        }}
+                      >
+                        {label.display}
+                      </div>
+                    ))}
+                  </div>
                 </div>
 
                 {getWeekDays(currentWeek).map((date, dayIndex) => (
@@ -1116,38 +1317,57 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
                       <div className="text-xs">{date.getDate()}</div>
                     </div>
                     
-                    {timeSlots.map((timeSlot, timeIndex) => {
-                      const dayClasses = getClassesForDay(dayIndex, date);
-                      const classAtTime = dayClasses.find(cls => {
-                        const startTime = formatTime(cls.start_time);
-                        return startTime === timeSlot;
-                      });
-
-                      return (
-                        <div key={timeIndex} className="h-16 border rounded">
-                          {classAtTime && (
-                            <div 
-                              className={`p-1 rounded text-xs h-full border transition-colors cursor-pointer ${getClassTypeStyle(classAtTime)}`}
-                              onClick={() => generateQRCode(classAtTime)}
-                            >
-                              <div className="font-medium truncate flex items-center">
-                                {classAtTime.is_extra_class && (
-                                  <Star className="h-2 w-2 mr-1 flex-shrink-0" />
-                                )}
-                                <span className="truncate">{classAtTime.courses?.course_code}</span>
-                              </div>
-                              <div className="text-xs opacity-80 truncate">
-                                {classAtTime.room_location}
-                              </div>
-                              <div className="text-xs opacity-70 truncate flex items-center">
-                                <QrCodeIcon className="h-2 w-2 mr-1" />
-                                Click for QR
-                              </div>
+                    <div className="relative border rounded-lg" style={{ height: 'calc(100% - 56px)', minHeight: '500px' }}>
+                      {generateTimeLabels().map((_, index) => (
+                        <div 
+                          key={index}
+                          className="absolute w-full border-t border-muted"
+                          style={{ top: `${(index / (generateTimeLabels().length - 1)) * 100}%` }}
+                        />
+                      ))}
+                      
+                      {getClassesForDay(dayIndex, date).map((cls, clsIndex) => {
+                        const position = getClassPosition(cls.start_time, cls.end_time);
+                        const active = isClassActive(cls);
+                        return (
+                          <div 
+                            key={clsIndex}
+                            className={`absolute left-1 right-1 p-2 rounded text-xs border overflow-hidden cursor-pointer transition-all ${getClassTypeStyle(cls)} ${
+                              active ? 'ring-2 ring-green-500 ring-offset-1' : ''
+                            }`}
+                            style={position}
+                            onClick={() => generateQRCode(cls)}
+                          >
+                            <div className="font-medium truncate flex items-center">
+                              {cls.is_extra_class && (
+                                <Star className="h-2 w-2 mr-1 flex-shrink-0" />
+                              )}
+                              <span className="truncate">{cls.courses?.course_code}</span>
                             </div>
-                          )}
-                        </div>
-                      );
-                    })}
+                            <div className="text-xs opacity-80 truncate">
+                              {formatTime(cls.start_time)}
+                            </div>
+                            <div className="text-xs opacity-80 truncate">
+                              {cls.room_location}
+                            </div>
+                            {cls.is_extra_class && (
+                              <div className="text-xs opacity-70 truncate capitalize">
+                                {cls.class_type}
+                              </div>
+                            )}
+                            {active && (
+                              <div className="text-xs font-semibold text-green-600 mt-1">
+                                ACTIVE
+                              </div>
+                            )}
+                            <div className="text-xs opacity-70 truncate flex items-center mt-1">
+                              <QrCodeIcon className="h-2 w-2 mr-1" />
+                              Click for QR
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -1218,9 +1438,10 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
                           <Button 
                             onClick={() => generateQRCode(classItem)}
                             variant="default"
+                            disabled={!canGenerateQRForClass(classItem) || locationPermission !== 'granted'}
                           >
                             <QrCodeIcon className="h-4 w-4 mr-2" />
-                            Generate QR
+                            {canGenerateQRForClass(classItem) ? 'Generate QR' : 'Not Started'}
                           </Button>
                         </div>
                       </Card>

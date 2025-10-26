@@ -66,6 +66,7 @@ const TeacherCourses = ({ teacherData }: TeacherCoursesProps) => {
     description: '',
     material_type: 'document'
   });
+  const [uploadingFile, setUploadingFile] = useState(false);
 
   // Quiz grader states
   const [selectedSubmission, setSelectedSubmission] = useState(null);
@@ -446,19 +447,42 @@ const TeacherCourses = ({ teacherData }: TeacherCoursesProps) => {
   };
 
   const handleUploadMaterial = async (file: File) => {
-    try {
-      const fileUrl = `https://example.com/files/${file.name}`;
+    if (!file) return;
 
-      const { error } = await supabase
+    try {
+      // Create a unique file path
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Math.random().toString(36).substring(2)}_${Date.now()}.${fileExt}`;
+      const filePath = `${selectedCourse.id}/${fileName}`;
+
+      // Upload file to Supabase Storage
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('course-materials')
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
+
+      if (uploadError) throw uploadError;
+
+      // Get public URL
+      const { data: urlData } = supabase.storage
+        .from('course-materials')
+        .getPublicUrl(filePath);
+
+      // Insert material record into database
+      const { error: dbError } = await supabase
         .from('lecture_materials')
         .insert({
           ...newMaterial,
           course_id: selectedCourse.id,
           uploaded_by: teacherData.user_id,
-          file_url: fileUrl
+          file_url: urlData.publicUrl,
+          file_name: file.name,
+          file_size: file.size
         });
 
-      if (error) throw error;
+      if (dbError) throw dbError;
 
       toast({
         title: 'Success',
@@ -467,11 +491,38 @@ const TeacherCourses = ({ teacherData }: TeacherCoursesProps) => {
 
       setNewMaterial({ title: '', description: '', material_type: 'document' });
       fetchCourseDetails();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error uploading material:', error);
       toast({
         title: 'Error',
-        description: 'Failed to upload material',
+        description: error.message || 'Failed to upload material',
+        variant: 'destructive'
+      });
+    }
+  };
+
+  const handleDownloadMaterial = async (material: any) => {
+    try {
+      // If it's a Supabase storage URL, download directly
+      if (material.file_url) {
+        const link = document.createElement('a');
+        link.href = material.file_url;
+        link.download = material.file_name || material.title;
+        link.target = '_blank';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        toast({
+          title: 'Success',
+          description: 'Download started'
+        });
+      }
+    } catch (error) {
+      console.error('Error downloading material:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to download material',
         variant: 'destructive'
       });
     }
@@ -549,63 +600,128 @@ const TeacherCourses = ({ teacherData }: TeacherCoursesProps) => {
                         <DialogTitle>Upload Lecture Material</DialogTitle>
                       </DialogHeader>
                       <div className="space-y-4">
-                        <Input
-                          placeholder="Material title"
-                          value={newMaterial.title}
-                          onChange={(e) => setNewMaterial({...newMaterial, title: e.target.value})}
-                        />
-                        <Textarea
-                          placeholder="Description"
-                          value={newMaterial.description}
-                          onChange={(e) => setNewMaterial({...newMaterial, description: e.target.value})}
-                        />
-                        <select
-                          className="w-full p-2 border rounded bg-black"
-                          value={newMaterial.material_type}
-                          onChange={(e) => setNewMaterial({...newMaterial, material_type: e.target.value})}
-                        >
-                          <option value="document">Document</option>
-                          <option value="video">Video</option>
-                          <option value="audio">Audio</option>
-                          <option value="presentation">Presentation</option>
-                        </select>
-                        <Input
-                          type="file"
-                          onChange={(e) => {
-                            const file = e.target.files?.[0];
-                            if (file) handleUploadMaterial(file);
-                          }}
-                        />
+                        <div>
+                          <Label htmlFor="materialTitle">Material Title *</Label>
+                          <Input
+                            id="materialTitle"
+                            placeholder="e.g., Chapter 3 - Introduction to Algorithms"
+                            value={newMaterial.title}
+                            onChange={(e) => setNewMaterial({...newMaterial, title: e.target.value})}
+                            required
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="materialDescription">Description</Label>
+                          <Textarea
+                            id="materialDescription"
+                            placeholder="Brief description of the material content"
+                            value={newMaterial.description}
+                            onChange={(e) => setNewMaterial({...newMaterial, description: e.target.value})}
+                            rows={3}
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="materialType">Material Type</Label>
+                          <select
+                            id="materialType"
+                            className="w-full p-2 border rounded"
+                            value={newMaterial.material_type}
+                            onChange={(e) => setNewMaterial({...newMaterial, material_type: e.target.value})}
+                          >
+                            <option value="document">Document (PDF, DOCX, TXT)</option>
+                            <option value="video">Video</option>
+                            <option value="audio">Audio</option>
+                            <option value="presentation">Presentation (PPT, PPTX)</option>
+                            <option value="spreadsheet">Spreadsheet (XLS, XLSX)</option>
+                            <option value="image">Image</option>
+                          </select>
+                        </div>
+                        <div>
+                          <Label htmlFor="materialFile">Select File *</Label>
+                          <Input
+                            id="materialFile"
+                            type="file"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                // Auto-set title if empty
+                                if (!newMaterial.title) {
+                                  setNewMaterial({...newMaterial, title: file.name});
+                                }
+                                setUploadingFile(true);
+                                handleUploadMaterial(file).finally(() => {
+                                  setUploadingFile(false);
+                                  // Reset file input
+                                  e.target.value = '';
+                                });
+                              }
+                            }}
+                            disabled={uploadingFile || !newMaterial.title.trim()}
+                            accept="*/*"
+                          />
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Maximum file size: 50MB
+                          </p>
+                        </div>
+                        {uploadingFile && (
+                          <div className="flex items-center gap-2 text-sm text-blue-600">
+                            <RefreshCw className="h-4 w-4 animate-spin" />
+                            Uploading file...
+                          </div>
+                        )}
                       </div>
                     </DialogContent>
                   </Dialog>
                 </div>
 
                 <div className="grid gap-4">
-                  {materials.map((material) => (
-                    <Card key={material.id}>
-                      <CardContent className="p-4">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                            <FileText className="h-5 w-5 " />
-                            <div>
-                              <p className="font-medium">{material.title}</p>
-                              <p className="text-sm ">{material.description}</p>
-                              <p className="text-xs ">
-                                Uploaded {new Date(material.uploaded_at).toLocaleDateString()}
-                              </p>
+                  {materials.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <FileText className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                      <p>No materials uploaded yet</p>
+                      <p className="text-sm">Upload your first lecture material to get started</p>
+                    </div>
+                  ) : (
+                    materials.map((material) => (
+                      <Card key={material.id}>
+                        <CardContent className="p-4">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3 flex-1">
+                              <FileText className="h-5 w-5 text-blue-500" />
+                              <div className="flex-1">
+                                <p className="font-medium">{material.title}</p>
+                                {material.description && (
+                                  <p className="text-sm text-muted-foreground">{material.description}</p>
+                                )}
+                                <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1">
+                                  <span>
+                                    Uploaded {new Date(material.uploaded_at).toLocaleDateString()}
+                                  </span>
+                                  {material.file_name && (
+                                    <span>• {material.file_name}</span>
+                                  )}
+                                  {material.file_size && (
+                                    <span>• {(material.file_size / 1024 / 1024).toFixed(2)} MB</span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Badge variant="outline">{material.material_type}</Badge>
+                              <Button 
+                                size="sm" 
+                                variant="outline"
+                                onClick={() => handleDownloadMaterial(material)}
+                                title="Download material"
+                              >
+                                <Download className="h-4 w-4" />
+                              </Button>
                             </div>
                           </div>
-                          <div className="flex items-center gap-2">
-                            <Badge variant="outline">{material.material_type}</Badge>
-                            <Button size="sm" variant="outline">
-                              <Download className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
+                        </CardContent>
+                      </Card>
+                    ))
+                  )}
                 </div>
               </TabsContent>
 
@@ -618,15 +734,15 @@ const TeacherCourses = ({ teacherData }: TeacherCoursesProps) => {
                       <CardContent className="p-4">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-3">
-                            <FileText className="h-5 w-5 " />
+                            <FileText className="h-5 w-5" />
                             <div>
                               <p className="font-medium">{quiz.quiz_name}</p>
-                              <p className="text-sm ">{quiz.description}</p>
-                              <p className="text-xs ">
+                              <p className="text-sm text-muted-foreground">{quiz.description}</p>
+                              <p className="text-xs text-muted-foreground">
                                 {quiz.time_limit_minutes && `${quiz.time_limit_minutes} minutes • `}
                                 {quiz.attempts_allowed} attempt(s) • Pass: {quiz.pass_percentage}%
                               </p>
-                              <p className="text-xs ">
+                              <p className="text-xs text-muted-foreground">
                                 Created: {new Date(quiz.created_at).toLocaleDateString()}
                               </p>
                             </div>
@@ -636,7 +752,7 @@ const TeacherCourses = ({ teacherData }: TeacherCoursesProps) => {
                               {quiz.quiz_questions?.[0]?.count || 0} questions
                             </Badge>
                             <Badge variant="outline">
-                              {quiz.quiz_attempts?.[0]?.count || 0} attempts
+                              {quiz.quiz_submissions?.[0]?.count || 0} attempts
                             </Badge>
                             <Switch
                               checked={quiz.is_active}
@@ -722,7 +838,7 @@ const TeacherCourses = ({ teacherData }: TeacherCoursesProps) => {
                     <div className="space-y-4">
                       <div className="flex justify-between items-center">
                         <Label>Questions</Label>
-                        <div className="text-sm ">
+                        <div className="text-sm text-muted-foreground">
                           Total Marks: {getTotalMarks()}
                         </div>
                       </div>
@@ -938,7 +1054,7 @@ const TeacherCourses = ({ teacherData }: TeacherCoursesProps) => {
                         const currentScore = scores[question.id] || 0;
 
                         return (
-                          <Card key={question.id} className="p-4 border-l-4 border-l-primary bg-black/50">
+                          <Card key={question.id} className="p-4 border-l-4 border-l-primary">
                             <div className="space-y-4">
                               <div className="flex justify-between items-start">
                                 <div className="flex-1">
@@ -956,17 +1072,17 @@ const TeacherCourses = ({ teacherData }: TeacherCoursesProps) => {
                                   <p className="text-sm font-medium">Answer Choices:</p>
                                   <div className="grid gap-2">
                                     {question.options?.map((option, optIndex) => {
-                                      let bgColor = " border-gray-300";
+                                      let bgColor = "bg-muted";
                                       let textColor = "text-foreground";
                                       let icon = "";
                                       
                                       if (option === question.correct_answer) {
-                                        bgColor = "bg-green-700 border-green-300";
-                                        textColor = "text-white";
+                                        bgColor = "bg-green-100 dark:bg-green-900";
+                                        textColor = "text-green-800 dark:text-green-100";
                                         icon = " ✓ Correct";
                                       } else if (option === studentAnswer) {
-                                        bgColor = "bg-red-700 border-red-300";
-                                        textColor = "text-white";
+                                        bgColor = "bg-red-100 dark:bg-red-900";
+                                        textColor = "text-red-800 dark:text-red-100";
                                         icon = " ✗ Selected";
                                       }
 
@@ -988,10 +1104,10 @@ const TeacherCourses = ({ teacherData }: TeacherCoursesProps) => {
                                   <div className="grid grid-cols-2 gap-4">
                                     <div className={`p-3 rounded border ${
                                       question.correct_answer === "true" 
-                                        ? "bg-green-700 border-green-300 " 
+                                        ? "bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-100" 
                                         : studentAnswer === "true"
-                                        ? "bg-red-700 border-red-300"
-                                        : "bg-gray-700"
+                                        ? "bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-100"
+                                        : "bg-muted"
                                     }`}>
                                       <strong>True</strong> 
                                       {question.correct_answer === "true" && " ✓ Correct"}
@@ -999,10 +1115,10 @@ const TeacherCourses = ({ teacherData }: TeacherCoursesProps) => {
                                     </div>
                                     <div className={`p-3 rounded border ${
                                       question.correct_answer === "false" 
-                                        ? "bg-green-700 border-green-300 " 
-                                        : studentAnswer === "true"
-                                        ? "bg-red-700 border-red-300"
-                                        : "bg-gray-700"
+                                        ? "bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-100" 
+                                        : studentAnswer === "false"
+                                        ? "bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-100"
+                                        : "bg-muted"
                                     }`}>
                                       <strong>False</strong> 
                                       {question.correct_answer === "false" && " ✓ Correct"}
@@ -1022,13 +1138,13 @@ const TeacherCourses = ({ teacherData }: TeacherCoursesProps) => {
                                 <div className="space-y-3">
                                   <div>
                                     <p className="text-sm font-medium mb-1">Expected Answer:</p>
-                                    <div className="p-3 bg-blue-50 border border-blue-200 rounded">
+                                    <div className="p-3 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded">
                                       {question.correct_answer}
                                     </div>
                                   </div>
                                   <div>
                                     <p className="text-sm font-medium mb-1">Student's Answer:</p>
-                                    <div className="p-3 bg-gray-50 border rounded min-h-[60px]">
+                                    <div className="p-3 bg-muted border rounded min-h-[60px]">
                                       {studentAnswer || <em className="text-muted-foreground">No answer provided</em>}
                                     </div>
                                   </div>
@@ -1056,7 +1172,7 @@ const TeacherCourses = ({ teacherData }: TeacherCoursesProps) => {
                                 <div className="text-sm">
                                   {question.question_type !== "short_answer" && (
                                     <span className={`px-2 py-1 rounded text-xs font-medium ${
-                                      isCorrect ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
+                                      isCorrect ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100" : "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-100"
                                     }`}>
                                       {isCorrect ? "Correct" : "Incorrect"}
                                     </span>
@@ -1104,8 +1220,8 @@ const TeacherCourses = ({ teacherData }: TeacherCoursesProps) => {
                           </div>
                         ) : (
                           <>
-                            <div className="mb-4 p-3 bg-green-50 rounded-lg border border-green-200">
-                              <p className="text-sm text-green-800">
+                            <div className="mb-4 p-3 bg-green-50 dark:bg-green-950 rounded-lg border border-green-200 dark:border-green-800">
+                              <p className="text-sm text-green-800 dark:text-green-100">
                                 Found {submissions.length} submission{submissions.length !== 1 ? 's' : ''} to review
                               </p>
                             </div>
@@ -1178,8 +1294,8 @@ const TeacherCourses = ({ teacherData }: TeacherCoursesProps) => {
                               <p className="font-medium">
                                 {enrollment.user_profiles?.first_name} {enrollment.user_profiles?.last_name}
                               </p>
-                              <p className="text-sm text-gray-600">{enrollment.user_profiles?.email}</p>
-                              <p className="text-xs text-gray-500">
+                              <p className="text-sm text-muted-foreground">{enrollment.user_profiles?.email}</p>
+                              <p className="text-xs text-muted-foreground">
                                 Enrolled: {new Date(enrollment.enrollment_date).toLocaleDateString()}
                               </p>
                             </div>
@@ -1208,7 +1324,7 @@ const TeacherCourses = ({ teacherData }: TeacherCoursesProps) => {
                     <CardContent className="p-4 text-center">
                       <Award className="h-8 w-8 text-yellow-500 mx-auto mb-2" />
                       <p className="text-2xl font-bold">{materials.length}</p>
-                      <p className="text-sm text-gray-600">Materials Uploaded</p>
+                      <p className="text-sm text-muted-foreground">Materials Uploaded</p>
                     </CardContent>
                   </Card>
                   
@@ -1216,7 +1332,7 @@ const TeacherCourses = ({ teacherData }: TeacherCoursesProps) => {
                     <CardContent className="p-4 text-center">
                       <FileText className="h-8 w-8 text-green-500 mx-auto mb-2" />
                       <p className="text-2xl font-bold">{quizzes.length}</p>
-                      <p className="text-sm text-gray-600">Quizzes Created</p>
+                      <p className="text-sm text-muted-foreground">Quizzes Created</p>
                     </CardContent>
                   </Card>
                   
@@ -1224,7 +1340,7 @@ const TeacherCourses = ({ teacherData }: TeacherCoursesProps) => {
                     <CardContent className="p-4 text-center">
                       <Users className="h-8 w-8 text-blue-500 mx-auto mb-2" />
                       <p className="text-2xl font-bold">{students.length}</p>
-                      <p className="text-sm text-gray-600">Enrolled Students</p>
+                      <p className="text-sm text-muted-foreground">Enrolled Students</p>
                     </CardContent>
                   </Card>
                 </div>

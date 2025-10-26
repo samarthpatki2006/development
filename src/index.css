@@ -6,6 +6,7 @@
 /* ColCord Design System: Minimalist Tech Elegance with Industrial Precision
 Built for India, Global Standards. Deep black dominance with precise white accents.
 All colors MUST be HSL. Typography follows system font hierarchy.
+FULLY RESPONSIVE - Mobile First Design
 */
 
 @layer base {
@@ -73,6 +74,11 @@ All colors MUST be HSL. Typography follows system font hierarchy.
     --transition-standard: 300ms;
     --transition-complex: 500ms;
     --easing-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+
+    /* Responsive Spacing System */
+    --spacing-mobile: 1rem;
+    --spacing-tablet: 1.5rem;
+    --spacing-desktop: 2rem;
   }
 
   /* Dark mode uses the same enhanced system */
@@ -115,32 +121,101 @@ All colors MUST be HSL. Typography follows system font hierarchy.
   body {
     @apply bg-background text-foreground font-system antialiased;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, "Helvetica Neue", Arial, sans-serif;
+    /* Prevent horizontal scroll on mobile */
+    overflow-x: hidden;
   }
 
-  /* Typography System - Massive Bold Impact */
+  /* Responsive Typography System - Mobile First */
   .text-hero {
-    @apply text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight leading-none;
+    @apply text-3xl font-bold tracking-tight leading-tight;
+  }
+  
+  @media (min-width: 640px) {
+    .text-hero {
+      @apply text-4xl leading-tight;
+    }
+  }
+  
+  @media (min-width: 768px) {
+    .text-hero {
+      @apply text-5xl leading-none;
+    }
+  }
+  
+  @media (min-width: 1024px) {
+    .text-hero {
+      @apply text-6xl leading-none;
+    }
   }
 
   .text-section-header {
-    @apply text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight;
+    @apply text-3xl font-bold tracking-tight leading-tight;
+  }
+  
+  @media (min-width: 640px) {
+    .text-section-header {
+      @apply text-4xl;
+    }
+  }
+  
+  @media (min-width: 768px) {
+    .text-section-header {
+      @apply text-5xl;
+    }
+  }
+  
+  @media (min-width: 1024px) {
+    .text-section-header {
+      @apply text-6xl;
+    }
   }
 
   .text-body-large {
-    @apply text-xl font-normal leading-relaxed;
+    @apply text-base font-normal leading-relaxed;
+  }
+  
+  @media (min-width: 640px) {
+    .text-body-large {
+      @apply text-lg;
+    }
+  }
+  
+  @media (min-width: 768px) {
+    .text-body-large {
+      @apply text-xl;
+    }
   }
 
   /* Interaction States - Smooth & Purposeful */
   .hover-scale {
-    @apply transition-transform duration-300 ease-smooth hover:scale-105;
+    @apply transition-transform duration-300 ease-smooth;
+  }
+  
+  /* Only apply hover effects on devices that support hover */
+  @media (hover: hover) and (pointer: fine) {
+    .hover-scale:hover {
+      transform: scale(1.05);
+    }
   }
 
   .hover-translate-up {
-    @apply transition-transform duration-300 ease-smooth hover:-translate-y-1;
+    @apply transition-transform duration-300 ease-smooth;
+  }
+  
+  @media (hover: hover) and (pointer: fine) {
+    .hover-translate-up:hover {
+      transform: translateY(-0.25rem);
+    }
   }
 
   .hover-fade {
-    @apply transition-opacity duration-300 ease-smooth hover:opacity-80;
+    @apply transition-opacity duration-300 ease-smooth;
+  }
+  
+  @media (hover: hover) and (pointer: fine) {
+    .hover-fade:hover {
+      opacity: 0.8;
+    }
   }
 
   /* Focus States - Accessibility First */
@@ -148,20 +223,168 @@ All colors MUST be HSL. Typography follows system font hierarchy.
     @apply focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:outline-none;
   }
 
-  /* Industrial Grid System */
+  /* Responsive Industrial Grid System */
   .container-asymmetric {
-    @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+    @apply w-full mx-auto;
+    padding-left: var(--spacing-mobile);
+    padding-right: var(--spacing-mobile);
+  }
+  
+  @media (min-width: 640px) {
+    .container-asymmetric {
+      padding-left: var(--spacing-tablet);
+      padding-right: var(--spacing-tablet);
+      max-width: 640px;
+    }
+  }
+  
+  @media (min-width: 768px) {
+    .container-asymmetric {
+      max-width: 768px;
+    }
+  }
+  
+  @media (min-width: 1024px) {
+    .container-asymmetric {
+      padding-left: var(--spacing-desktop);
+      padding-right: var(--spacing-desktop);
+      max-width: 1024px;
+    }
+  }
+  
+  @media (min-width: 1280px) {
+    .container-asymmetric {
+      max-width: 1280px;
+    }
   }
 
   /* Enhanced visibility utilities */
   .card-subtle {
     background: hsl(var(--card));
     border: 1px solid hsl(var(--border));
+    border-radius: var(--radius);
   }
 
   .content-area {
     background: hsl(var(--muted));
     border: 1px solid hsl(var(--border));
+    border-radius: var(--radius);
+  }
+
+  /* Responsive Images & Media */
+  img, video, iframe {
+    max-width: 100%;
+    height: auto;
+  }
+
+  /* Responsive Tables */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  
+  @media (max-width: 767px) {
+    /* Stack tables on mobile if needed */
+    .responsive-table {
+      display: block;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+  }
+
+  /* Mobile-friendly touch targets */
+  button, a, input, select, textarea {
+    min-height: 44px; /* iOS recommended touch target */
+    min-width: 44px;
+  }
+  
+  @media (min-width: 768px) {
+    button, a, input, select, textarea {
+      min-height: 40px;
+      min-width: 40px;
+    }
+  }
+
+  /* Responsive Sidebar */
+  .sidebar-responsive {
+    width: 100%;
+    position: fixed;
+    left: -100%;
+    transition: left var(--transition-standard) var(--easing-smooth);
+  }
+  
+  .sidebar-responsive.open {
+    left: 0;
+  }
+  
+  @media (min-width: 768px) {
+    .sidebar-responsive {
+      width: 16rem;
+      position: relative;
+      left: 0;
+    }
+  }
+  
+  @media (min-width: 1024px) {
+    .sidebar-responsive {
+      width: 18rem;
+    }
+  }
+
+  /* Mobile Navigation Utilities */
+  .mobile-menu {
+    display: block;
+  }
+  
+  @media (min-width: 768px) {
+    .mobile-menu {
+      display: none;
+    }
+  }
+
+  .desktop-menu {
+    display: none;
+  }
+  
+  @media (min-width: 768px) {
+    .desktop-menu {
+      display: block;
+    }
+  }
+
+  /* Responsive Grid Utilities */
+  .grid-responsive {
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: 1fr;
+  }
+  
+  @media (min-width: 640px) {
+    .grid-responsive {
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1.5rem;
+    }
+  }
+  
+  @media (min-width: 1024px) {
+    .grid-responsive {
+      grid-template-columns: repeat(3, 1fr);
+      gap: 2rem;
+    }
+  }
+
+  /* Responsive Flex Utilities */
+  .flex-responsive {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+  
+  @media (min-width: 768px) {
+    .flex-responsive {
+      flex-direction: row;
+      gap: 1.5rem;
+    }
   }
 
   /* Custom animations for industrial precision */
@@ -187,5 +410,58 @@ All colors MUST be HSL. Typography follows system font hierarchy.
 
   .animate-fade-in-up {
     animation: fade-in-up 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  }
+
+  /* Responsive Text Alignment */
+  .text-center-mobile {
+    text-align: center;
+  }
+  
+  @media (min-width: 768px) {
+    .text-center-mobile {
+      text-align: left;
+    }
+  }
+
+  /* Responsive Spacing Utilities */
+  .section-spacing {
+    padding-top: 2rem;
+    padding-bottom: 2rem;
+  }
+  
+  @media (min-width: 640px) {
+    .section-spacing {
+      padding-top: 3rem;
+      padding-bottom: 3rem;
+    }
+  }
+  
+  @media (min-width: 768px) {
+    .section-spacing {
+      padding-top: 4rem;
+      padding-bottom: 4rem;
+    }
+  }
+  
+  @media (min-width: 1024px) {
+    .section-spacing {
+      padding-top: 6rem;
+      padding-bottom: 6rem;
+    }
+  }
+
+  /* Prevent text from being too small on mobile */
+  html {
+    -webkit-text-size-adjust: 100%;
+    -moz-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+
+  /* Safe area for notched devices (iPhone X+) */
+  @supports (padding: max(0px)) {
+    body {
+      padding-left: max(0px, env(safe-area-inset-left));
+      padding-right: max(0px, env(safe-area-inset-right));
+    }
   }
 }

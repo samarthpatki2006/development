@@ -4,8 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { BookOpen, FileText, Video, Download, ExternalLink, Clock, Award, TrendingUp, Trophy, Calculator } from 'lucide-react';
+import { BookOpen, FileText, Video, Download, ExternalLink, Clock, Award, TrendingUp, Trophy, Calculator, ArrowLeft } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import PermissionWrapper from '@/components/PermissionWrapper';
@@ -20,8 +19,9 @@ const CoursesLearningSnapshot: React.FC<CoursesLearningSnapshotProps> = ({ stude
   const [courseMaterials, setCourseMaterials] = useState<any[]>([]);
   const [courseAssignments, setCourseAssignments] = useState<any[]>([]);
   const [courseGrades, setCourseGrades] = useState<any[]>([]);
-  const [learningProgress, setLearningProgress] = useState<any>({});
   const [loading, setLoading] = useState(true);
+  const [showCourseDetails, setShowCourseDetails] = useState(false);
+  const [downloadingFile, setDownloadingFile] = useState<string | null>(null);
   
   // StudentGrades state
   const [grades, setGrades] = useState<any[]>([]);
@@ -40,7 +40,6 @@ const CoursesLearningSnapshot: React.FC<CoursesLearningSnapshotProps> = ({ stude
         return;
       }
 
-      // Get grades first
       const { data: gradesData } = await supabase
         .from("grades")
         .select("*")
@@ -52,14 +51,12 @@ const CoursesLearningSnapshot: React.FC<CoursesLearningSnapshotProps> = ({ stude
         return;
       }
 
-      // Then get class names for those grades
       const classIds = gradesData.map(g => g.class_id);
       const { data: classesData } = await supabase
         .from("classes")
         .select("id, name")
         .in("id", classIds);
 
-      // Combine the data
       const gradesWithClasses = gradesData.map(grade => ({
         ...grade,
         class_name: classesData?.find(c => c.id === grade.class_id)?.name || 'Unknown Class'
@@ -82,7 +79,6 @@ const CoursesLearningSnapshot: React.FC<CoursesLearningSnapshotProps> = ({ stude
         return;
       }
 
-      // Get quiz submissions first
       const { data: submissions } = await supabase
         .from("quiz_submissions")
         .select("*")
@@ -95,21 +91,18 @@ const CoursesLearningSnapshot: React.FC<CoursesLearningSnapshotProps> = ({ stude
         return;
       }
 
-      // Then get quiz details
       const quizIds = submissions.map(s => s.quiz_id);
       const { data: quizzesData } = await supabase
         .from("quizzes")
         .select("id, title, total_points, weightage, class_id")
         .in("id", quizIds);
 
-      // Get class names
       const classIds = quizzesData?.map(q => q.class_id).filter(Boolean) || [];
       const { data: classesData } = await supabase
         .from("classes")
         .select("id, name")
         .in("id", classIds);
 
-      // Combine all data
       const submissionsWithDetails = submissions.map(submission => {
         const quiz = quizzesData?.find(q => q.id === submission.quiz_id);
         const className = classesData?.find(c => c.id === quiz?.class_id)?.name || 'Unknown Class';
@@ -130,7 +123,6 @@ const CoursesLearningSnapshot: React.FC<CoursesLearningSnapshotProps> = ({ stude
     }
   };
 
-  // StudentGrades utility functions
   const getGradeColor = (grade: string) => {
     switch (grade?.toUpperCase()) {
       case 'A': return 'text-green-400';
@@ -199,9 +191,6 @@ const CoursesLearningSnapshot: React.FC<CoursesLearningSnapshotProps> = ({ stude
           })
         );
         setEnrolledCourses(coursesWithProgress);
-        if (coursesWithProgress.length > 0) {
-          setSelectedCourse(coursesWithProgress[0].courses);
-        }
       }
     } catch (error) {
       console.error('Error fetching enrolled courses:', error);
@@ -217,13 +206,11 @@ const CoursesLearningSnapshot: React.FC<CoursesLearningSnapshotProps> = ({ stude
 
   const calculateCourseProgress = async (courseId: string) => {
     try {
-      // Get total assignments
       const { data: assignments } = await supabase
         .from('assignments')
         .select('id')
         .eq('course_id', courseId);
 
-      // Get submitted assignments
       const { data: submissions } = await supabase
         .from('assignment_submissions')
         .select('assignment_id')
@@ -247,14 +234,12 @@ const CoursesLearningSnapshot: React.FC<CoursesLearningSnapshotProps> = ({ stude
 
   const fetchCourseDetails = async (courseId: string) => {
     try {
-      // Fetch course materials
       const { data: materials } = await supabase
         .from('lecture_materials')
         .select('*')
         .eq('course_id', courseId)
         .order('uploaded_at', { ascending: false });
 
-      // Fetch assignments
       const { data: assignments } = await supabase
         .from('assignments')
         .select(`
@@ -269,7 +254,6 @@ const CoursesLearningSnapshot: React.FC<CoursesLearningSnapshotProps> = ({ stude
         .eq('course_id', courseId)
         .eq('assignment_submissions.student_id', studentData.user_id);
 
-      // Fetch grades
       const { data: grades } = await supabase
         .from('grades')
         .select('*')
@@ -285,6 +269,68 @@ const CoursesLearningSnapshot: React.FC<CoursesLearningSnapshotProps> = ({ stude
     }
   };
 
+  const handleDownloadFile = async (material: any) => {
+    if (!material.file_url) {
+      toast({
+        title: 'Error',
+        description: 'File URL not available',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setDownloadingFile(material.id);
+    
+    try {
+      // Extract the file path from the full URL
+      // file_url format: https://[project-id].supabase.co/storage/v1/object/public/course-materials/[file-path]
+      const urlParts = material.file_url.split('/course-materials/');
+      const filePath = urlParts[1];
+
+      if (!filePath) {
+        throw new Error('Invalid file path');
+      }
+
+      // Download the file from Supabase Storage
+      const { data, error } = await supabase.storage
+        .from('course-materials')
+        .download(filePath);
+
+      if (error) {
+        throw error;
+      }
+
+      // Create a blob URL and trigger download
+      const blob = new Blob([data]);
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      
+      // Use the material title as filename, or extract from path
+      const fileName = material.title || filePath.split('/').pop() || 'download';
+      link.download = fileName;
+      
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+      toast({
+        title: 'Success',
+        description: 'File downloaded successfully',
+      });
+    } catch (error) {
+      console.error('Error downloading file:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to download file',
+        variant: 'destructive',
+      });
+    } finally {
+      setDownloadingFile(null);
+    }
+  };
+
   const getMaterialIcon = (type: string) => {
     switch (type?.toLowerCase()) {
       case 'video':
@@ -295,13 +341,6 @@ const CoursesLearningSnapshot: React.FC<CoursesLearningSnapshotProps> = ({ stude
       default:
         return <BookOpen className="h-4 w-4" />;
     }
-  };
-
-  const getOriginalGradeColor = (percentage: number) => {
-    if (percentage >= 85) return 'text-green-600 bg-green-50';
-    if (percentage >= 70) return 'text-blue-600 bg-blue-50';
-    if (percentage >= 60) return 'text-yellow-600 bg-yellow-50';
-    return 'text-red-600 bg-red-50';
   };
 
   const calculateOverallGPA = () => {
@@ -322,7 +361,16 @@ const CoursesLearningSnapshot: React.FC<CoursesLearningSnapshotProps> = ({ stude
     return (totalPoints / courseGrades.length).toFixed(2);
   };
 
-  // StudentGrades Component JSX
+  const handleCourseClick = (course: any) => {
+    setSelectedCourse(course.courses);
+    setShowCourseDetails(true);
+  };
+
+  const handleBackToCourses = () => {
+    setShowCourseDetails(false);
+    setSelectedCourse(null);
+  };
+
   const renderStudentGrades = () => {
     if (gradesLoading) {
       return (
@@ -339,7 +387,6 @@ const CoursesLearningSnapshot: React.FC<CoursesLearningSnapshotProps> = ({ stude
 
     return (
       <div className="space-y-6">
-        {/* Overall Grades */}
         <Card className="card-minimal glass-effect border-primary/20">
           <CardHeader className="border-b border-primary/20">
             <CardTitle className="flex items-center gap-2 text-primary">
@@ -381,7 +428,6 @@ const CoursesLearningSnapshot: React.FC<CoursesLearningSnapshotProps> = ({ stude
                         </div>
                       </div>
 
-                      {/* Grade Breakdown */}
                       {grade.grade_breakdown && typeof grade.grade_breakdown === 'object' && (
                         <div className="space-y-3">
                           <h4 className="font-medium text-foreground flex items-center gap-2">
@@ -389,7 +435,6 @@ const CoursesLearningSnapshot: React.FC<CoursesLearningSnapshotProps> = ({ stude
                             Grade Breakdown
                           </h4>
                           
-                          {/* Quiz Scores */}
                           {(grade.grade_breakdown as any)?.quiz_scores && Object.keys((grade.grade_breakdown as any).quiz_scores).length > 0 && (
                             <div className="space-y-2">
                               <p className="text-sm font-medium text-muted-foreground">Quiz Scores:</p>
@@ -411,7 +456,6 @@ const CoursesLearningSnapshot: React.FC<CoursesLearningSnapshotProps> = ({ stude
                             </div>
                           )}
 
-                          {/* Custom Assessments */}
                           {(grade.grade_breakdown as any)?.custom_scores && Object.keys((grade.grade_breakdown as any).custom_scores).length > 0 && (
                             <div className="space-y-2">
                               <p className="text-sm font-medium text-muted-foreground">Additional Assessments:</p>
@@ -444,7 +488,6 @@ const CoursesLearningSnapshot: React.FC<CoursesLearningSnapshotProps> = ({ stude
           </CardContent>
         </Card>
 
-        {/* Individual Quiz Results */}
         <Card className="card-minimal glass-effect border-primary/20">
           <CardHeader className="border-b border-primary/20">
             <CardTitle className="flex items-center gap-2 text-primary">
@@ -516,6 +559,136 @@ const CoursesLearningSnapshot: React.FC<CoursesLearningSnapshotProps> = ({ stude
     );
   }
 
+  // Course Details View
+  if (showCourseDetails && selectedCourse) {
+    return (
+      <PermissionWrapper permission="view_submit_assignments">
+        <div className="space-y-6">
+          {/* Back Button */}
+          <Button variant="outline" onClick={handleBackToCourses}>
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to Courses
+          </Button>
+
+          {/* Course Header */}
+          <Card>
+            <CardHeader>
+              <div className="flex justify-between items-start">
+                <div>
+                  <CardTitle className="text-2xl">{selectedCourse.course_name}</CardTitle>
+                  <div className="flex gap-2 mt-2">
+                    <Badge variant="outline">{selectedCourse.course_code}</Badge>
+                    <Badge>{selectedCourse.credits} Credits</Badge>
+                  </div>
+                  <p className="text-muted-foreground mt-2">{selectedCourse.description}</p>
+                </div>
+              </div>
+            </CardHeader>
+          </Card>
+
+          {/* Course Materials */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Course Materials</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {courseMaterials.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    No materials available for this course
+                  </div>
+                ) : (
+                  courseMaterials.map((material, index) => (
+                    <div key={index} className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent/5 transition-colors">
+                      <div className="flex items-center space-x-3">
+                        {getMaterialIcon(material.material_type)}
+                        <div>
+                          <p className="font-medium">{material.title}</p>
+                          <p className="text-sm text-muted-foreground">{material.description}</p>
+                          <p className="text-xs text-muted-foreground">
+                            Uploaded: {new Date(material.uploaded_at).toLocaleDateString()}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex space-x-2">
+                        {material.file_url && (
+                          <>
+                            <Button size="sm" variant="outline" asChild>
+                              <a href={material.file_url} target="_blank" rel="noopener noreferrer">
+                                <ExternalLink className="h-4 w-4 mr-1" />
+                                View
+                              </a>
+                            </Button>
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              onClick={() => handleDownloadFile(material)}
+                              disabled={downloadingFile === material.id}
+                            >
+                              <Download className="h-4 w-4 mr-1" />
+                              {downloadingFile === material.id ? 'Downloading...' : 'Download'}
+                            </Button>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Assignments */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Assignments</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {courseAssignments.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    No assignments for this course
+                  </div>
+                ) : (
+                  courseAssignments.map((assignment, index) => (
+                    <div key={index} className="p-4 border rounded-lg">
+                      <div className="flex justify-between items-start mb-3">
+                        <div>
+                          <h4 className="font-medium">{assignment.title}</h4>
+                          <p className="text-sm text-muted-foreground">{assignment.description}</p>
+                        </div>
+                        <Badge variant={assignment.assignment_submissions?.length > 0 ? 'default' : 'secondary'}>
+                          {assignment.assignment_submissions?.length > 0 ? 'Submitted' : 'Pending'}
+                        </Badge>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                        <div>
+                          <p className="text-muted-foreground">Due Date</p>
+                          <p>{new Date(assignment.due_date).toLocaleDateString()}</p>
+                        </div>
+                        <div>
+                          <p className="text-muted-foreground">Max Marks</p>
+                          <p>{assignment.max_marks}</p>
+                        </div>
+                        {assignment.assignment_submissions?.length > 0 && (
+                          <div>
+                            <p className="text-muted-foreground">Score</p>
+                            <p>{assignment.assignment_submissions[0].marks_obtained || 'Not graded'}</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </PermissionWrapper>
+    );
+  }
+
+  // Courses Overview (Main View)
   return (
     <PermissionWrapper permission="view_submit_assignments">
       <div className="space-y-6">
@@ -587,15 +760,18 @@ const CoursesLearningSnapshot: React.FC<CoursesLearningSnapshotProps> = ({ stude
         <Tabs defaultValue="courses" className="space-y-4">
           <TabsList>
             <TabsTrigger value="courses">My Courses</TabsTrigger>
-            <TabsTrigger value="materials">Course Materials</TabsTrigger>
+            <TabsTrigger value="grades">Grades & Performance</TabsTrigger>
           </TabsList>
 
           {/* Courses Overview */}
           <TabsContent value="courses" className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {enrolledCourses.map((enrollment, index) => (
-                <Card key={index} className="cursor-pointer hover:shadow-md transition-shadow"
-                      onClick={() => setSelectedCourse(enrollment.courses)}>
+                <Card 
+                  key={index} 
+                  className="cursor-pointer hover:shadow-lg hover:scale-105 transition-all duration-200"
+                  onClick={() => handleCourseClick(enrollment)}
+                >
                   <CardHeader>
                     <div className="flex justify-between items-start">
                       <div>
@@ -622,103 +798,8 @@ const CoursesLearningSnapshot: React.FC<CoursesLearningSnapshotProps> = ({ stude
             </div>
           </TabsContent>
 
-          {/* Course Materials */}
-          <TabsContent value="materials" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Course Materials - {selectedCourse?.course_name}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {courseMaterials.length === 0 ? (
-                    <div className="text-center py-8 text-muted-foreground">
-                      No materials available for this course
-                    </div>
-                  ) : (
-                    courseMaterials.map((material, index) => (
-                      <div key={index} className="flex items-center justify-between p-4 border rounded-lg">
-                        <div className="flex items-center space-x-3">
-                          {getMaterialIcon(material.material_type)}
-                          <div>
-                            <p className="font-medium">{material.title}</p>
-                            <p className="text-sm text-muted-foreground">{material.description}</p>
-                            <p className="text-xs text-muted-foreground">
-                              Uploaded: {new Date(material.uploaded_at).toLocaleDateString()}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex space-x-2">
-                          {material.file_url && (
-                            <Button size="sm" variant="outline" asChild>
-                              <a href={material.file_url} target="_blank" rel="noopener noreferrer">
-                                <ExternalLink className="h-4 w-4 mr-1" />
-                                View
-                              </a>
-                            </Button>
-                          )}
-                          <Button size="sm" variant="outline">
-                            <Download className="h-4 w-4 mr-1" />
-                            Download
-                          </Button>
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Assignments */}
-          <TabsContent value="assignments" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Assignments - {selectedCourse?.course_name}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {courseAssignments.length === 0 ? (
-                    <div className="text-center py-8 text-muted-foreground">
-                      No assignments for this course
-                    </div>
-                  ) : (
-                    courseAssignments.map((assignment, index) => (
-                      <div key={index} className="p-4 border rounded-lg">
-                        <div className="flex justify-between items-start mb-3">
-                          <div>
-                            <h4 className="font-medium">{assignment.title}</h4>
-                            <p className="text-sm text-muted-foreground">{assignment.description}</p>
-                          </div>
-                          <Badge variant={assignment.assignment_submissions?.length > 0 ? 'default' : 'secondary'}>
-                            {assignment.assignment_submissions?.length > 0 ? 'Submitted' : 'Pending'}
-                          </Badge>
-                        </div>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                          <div>
-                            <p className="text-muted-foreground">Due Date</p>
-                            <p>{new Date(assignment.due_date).toLocaleDateString()}</p>
-                          </div>
-                          <div>
-                            <p className="text-muted-foreground">Max Marks</p>
-                            <p>{assignment.max_marks}</p>
-                          </div>
-                          {assignment.assignment_submissions?.length > 0 && (
-                            <div>
-                              <p className="text-muted-foreground">Score</p>
-                              <p>{assignment.assignment_submissions[0].marks_obtained || 'Not graded'}</p>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Grades - Now uses StudentGrades component */}
-          <TabsContent value="grades" className="space-y-4">
+          {/* Grades Tab */}
+          <TabsContent value="grades">
             {renderStudentGrades()}
           </TabsContent>
         </Tabs>

@@ -5,12 +5,13 @@ import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { CheckCircle, XCircle, AlertTriangle, Camera, X, ScanLine, Clock } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { CheckCircle, XCircle, AlertTriangle, MapPin, Clock, Hash, Scan, QrCode as QrCodeIcon } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Html5Qrcode } from 'html5-qrcode';
+import QrScanner from 'qr-scanner';
 
 interface AttendanceOverviewProps {
   studentData: any;
@@ -31,24 +32,399 @@ const AttendanceOverview: React.FC<AttendanceOverviewProps> = ({ studentData }) 
   const [courses, setCourses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Location and QR scanning states
+  const [sessionCode, setSessionCode] = useState('');
   const [isScanning, setIsScanning] = useState(false);
-  const [qrCodeInput, setQrCodeInput] = useState('');
-  const [isMarked, setIsMarked] = useState(false);
-  const scannerRef = useRef<Html5Qrcode | null>(null);
-  const scannerDivId = 'qr-reader-student';
+  const [markingLoading, setMarkingLoading] = useState(false);
+  const [locationPermission, setLocationPermission] = useState<'granted' | 'denied' | 'prompt'>('prompt');
+  const [currentLocation, setCurrentLocation] = useState<{latitude: number, longitude: number} | null>(null);
+  const [todayAttendance, setTodayAttendance] = useState<any[]>([]);
+  const [activeSessions, setActiveSessions] = useState<any[]>([]);
+  const [scanDialogOpen, setScanDialogOpen] = useState(false);
+  const [videoRef, setVideoRef] = useState<HTMLVideoElement | null>(null);
+  const [qrScanner, setQrScanner] = useState<QrScanner | null>(null);
 
   useEffect(() => {
     if (studentData?.user_id) {
       fetchAttendanceData();
       fetchCourses();
+      checkLocationPermission();
+      fetchTodayAttendance();
+      fetchActiveSessions();
+      
+      const interval = setInterval(fetchActiveSessions, 30000);
+      return () => clearInterval(interval);
     }
+  }, [studentData, selectedCourse]);
 
+  useEffect(() => {
+    if (isScanning && videoRef && !qrScanner) {
+      const scanner = new QrScanner(
+        videoRef,
+        (result) => handleQRScan(result.data),
+        {
+          returnDetailedScanResult: true,
+          highlightScanRegion: true,
+          highlightCodeOutline: true,
+        }
+      );
+      setQrScanner(scanner);
+      scanner.start();
+    }
+    
     return () => {
-      if (scannerRef.current) {
-        scannerRef.current.stop().catch(console.error);
+      if (qrScanner) {
+        qrScanner.stop();
+        qrScanner.destroy();
+        setQrScanner(null);
       }
     };
-  }, [studentData, selectedCourse]);
+  }, [isScanning, videoRef]);
+
+  const checkLocationPermission = async () => {
+    if ('geolocation' in navigator) {
+      try {
+        const permission = await navigator.permissions.query({ name: 'geolocation' });
+        setLocationPermission(permission.state);
+        
+        if (permission.state === 'granted') {
+          getCurrentLocation();
+        }
+      } catch (error) {
+        console.error('Permission check error:', error);
+      }
+    }
+  };
+
+  const getCurrentLocation = (): Promise<{latitude: number, longitude: number}> => {
+    return new Promise((resolve, reject) => {
+      if (!('geolocation' in navigator)) {
+        reject(new Error('Geolocation not supported'));
+        return;
+      }
+
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const location = {
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude
+          };
+          setCurrentLocation(location);
+          resolve(location);
+        },
+        (error) => {
+          console.error('Location error:', error);
+          reject(error);
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 0
+        }
+      );
+    });
+  };
+
+  const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
+    const R = 6371e3;
+    const φ1 = lat1 * Math.PI / 180;
+    const φ2 = lat2 * Math.PI / 180;
+    const Δφ = (lat2 - lat1) * Math.PI / 180;
+    const Δλ = (lon2 - lon1) * Math.PI / 180;
+
+    const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
+              Math.cos(φ1) * Math.cos(φ2) *
+              Math.sin(Δλ/2) * Math.sin(Δλ/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+
+    return R * c;
+  };
+
+  const fetchTodayAttendance = async () => {
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      
+      const { data, error } = await supabase
+        .from('attendance')
+        .select(`
+          *,
+          courses (
+            course_name,
+            course_code
+          ),
+          attendance_sessions (
+            session_date,
+            start_time,
+            end_time,
+            topic
+          )
+        `)
+        .eq('student_id', studentData.user_id)
+        .eq('class_date', today);
+
+      if (error) throw error;
+      setTodayAttendance(data || []);
+    } catch (error) {
+      console.error('Error fetching attendance:', error);
+    }
+  };
+
+  const fetchActiveSessions = async () => {
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      const currentTime = new Date().toTimeString().slice(0, 5);
+
+      const { data: enrollments } = await supabase
+        .from('enrollments')
+        .select('course_id')
+        .eq('student_id', studentData.user_id)
+        .eq('status', 'enrolled');
+
+      if (!enrollments || enrollments.length === 0) return;
+
+      const courseIds = enrollments.map(e => e.course_id);
+
+      const { data: sessions, error } = await supabase
+        .from('attendance_sessions')
+        .select(`
+          *,
+          courses (
+            course_name,
+            course_code
+          ),
+          user_profiles!attendance_sessions_instructor_id_fkey (
+            first_name,
+            last_name
+          )
+        `)
+        .in('course_id', courseIds)
+        .eq('session_date', today)
+        .eq('is_active', true)
+        .lte('start_time', currentTime)
+        .gte('end_time', currentTime);
+
+      if (error) throw error;
+
+      const sessionsWithStatus = await Promise.all(
+        (sessions || []).map(async (session) => {
+          const { data: attendance } = await supabase
+            .from('attendance')
+            .select('status')
+            .eq('session_id', session.id)
+            .eq('student_id', studentData.user_id)
+            .single();
+
+          return {
+            ...session,
+            alreadyMarked: !!attendance,
+            markedStatus: attendance?.status
+          };
+        })
+      );
+
+      setActiveSessions(sessionsWithStatus);
+    } catch (error) {
+      console.error('Error fetching active sessions:', error);
+    }
+  };
+
+  const markAttendance = async (code: string, studentLocation: {latitude: number, longitude: number}) => {
+    try {
+      setMarkingLoading(true);
+
+      const { data: session, error: sessionError } = await supabase
+        .from('attendance_sessions')
+        .select(`
+          *,
+          courses (
+            course_name,
+            course_code
+          ),
+          user_profiles!attendance_sessions_instructor_id_fkey (
+            first_name,
+            last_name,
+            id
+          )
+        `)
+        .eq('qr_code', code.toUpperCase())
+        .eq('is_active', true)
+        .single();
+
+      if (sessionError || !session) {
+        toast.error('Invalid or expired session code');
+        return;
+      }
+
+      const { data: existingAttendance } = await supabase
+        .from('attendance')
+        .select('id, status')
+        .eq('session_id', session.id)
+        .eq('student_id', studentData.user_id)
+        .single();
+
+      if (existingAttendance) {
+        toast.info(`Already marked as ${existingAttendance.status}`);
+        return;
+      }
+
+      const { data: enrollment } = await supabase
+        .from('enrollments')
+        .select('id')
+        .eq('course_id', session.course_id)
+        .eq('student_id', studentData.user_id)
+        .eq('status', 'enrolled')
+        .single();
+
+      if (!enrollment) {
+        toast.error('You are not enrolled in this course');
+        return;
+      }
+
+      const instructorLocation = session.instructor_location;
+      
+      if (!instructorLocation || !instructorLocation.latitude || !instructorLocation.longitude) {
+        toast.error('Unable to verify location. Please try again.');
+        return;
+      }
+
+      const distance = calculateDistance(
+        studentLocation.latitude,
+        studentLocation.longitude,
+        instructorLocation.latitude,
+        instructorLocation.longitude
+      );
+
+      if (distance > 15) {
+        toast.error(`You are too far from the class (${Math.round(distance)}m away). Must be within 15m.`);
+        return;
+      }
+
+      const now = new Date();
+      const currentTime = now.toTimeString().slice(0, 5);
+      const classStartTime = session.start_time;
+      const classEndTime = session.end_time;
+
+      const [startHour, startMin] = classStartTime.split(':').map(Number);
+      const startDate = new Date();
+      startDate.setHours(startHour, startMin, 0, 0);
+      const tenMinutesLater = new Date(startDate.getTime() + 10 * 60000);
+      const tenMinutesLaterTime = `${tenMinutesLater.getHours().toString().padStart(2, '0')}:${tenMinutesLater.getMinutes().toString().padStart(2, '0')}`;
+
+      let status = 'present';
+      if (currentTime > classEndTime) {
+        toast.error('Class has ended. Cannot mark attendance.');
+        return;
+      } else if (currentTime > tenMinutesLaterTime) {
+        status = 'late';
+      }
+
+      const { error: attendanceError } = await supabase
+        .from('attendance')
+        .insert({
+          course_id: session.course_id,
+          student_id: studentData.user_id,
+          class_date: session.session_date,
+          status: status,
+          session_id: session.id,
+          marked_by: studentData.user_id,
+          location_verified: true,
+          device_info: {
+            latitude: studentLocation.latitude,
+            longitude: studentLocation.longitude,
+            distance: Math.round(distance),
+            timestamp: new Date().toISOString()
+          }
+        });
+
+      if (attendanceError) throw attendanceError;
+
+      toast.success(
+        status === 'present' 
+          ? '✓ Attendance marked successfully!' 
+          : '⚠ Marked as late (arrived after 10 minutes)'
+      );
+      
+      setSessionCode('');
+      setScanDialogOpen(false);
+      fetchAttendanceData();
+      fetchTodayAttendance();
+      fetchActiveSessions();
+
+    } catch (error: any) {
+      console.error('Error marking attendance:', error);
+      toast.error(error.message || 'Failed to mark attendance');
+    } finally {
+      setMarkingLoading(false);
+    }
+  };
+
+  const handleManualEntry = async () => {
+    if (!sessionCode || sessionCode.length !== 6) {
+      toast.error('Please enter a valid 6-character session code');
+      return;
+    }
+
+    if (locationPermission !== 'granted') {
+      const granted = await requestLocationPermission();
+      if (!granted) return;
+    }
+
+    try {
+      const location = await getCurrentLocation();
+      await markAttendance(sessionCode, location);
+    } catch (error) {
+      toast.error('Unable to get your location. Please enable location services.');
+    }
+  };
+
+  const handleQRScan = async (code: string) => {
+    if (locationPermission !== 'granted') {
+      const granted = await requestLocationPermission();
+      if (!granted) {
+        setScanDialogOpen(false);
+        return;
+      }
+    }
+
+    try {
+      const location = await getCurrentLocation();
+      await markAttendance(code, location);
+    } catch (error) {
+      toast.error('Unable to get your location. Please enable location services.');
+    }
+  };
+
+  const requestLocationPermission = async (): Promise<boolean> => {
+    try {
+      await getCurrentLocation();
+      setLocationPermission('granted');
+      toast.success('Location access granted');
+      return true;
+    } catch (error) {
+      setLocationPermission('denied');
+      toast.error('Location access is required to mark attendance');
+      return false;
+    }
+  };
+
+  const startScanning = () => {
+    if (locationPermission === 'denied') {
+      toast.error('Please enable location services in your browser settings');
+      return;
+    }
+    
+    if (locationPermission === 'prompt') {
+      requestLocationPermission().then(granted => {
+        if (granted) {
+          setScanDialogOpen(true);
+          setIsScanning(true);
+        }
+      });
+    } else {
+      setScanDialogOpen(true);
+      setIsScanning(true);
+    }
+  };
 
   const fetchCourses = async () => {
     if (!studentData?.user_id) return;
@@ -185,170 +561,29 @@ const AttendanceOverview: React.FC<AttendanceOverviewProps> = ({ studentData }) 
     setCourseStats(stats);
   };
 
-  const startScanner = async () => {
-    try {
-      setIsScanning(true);
-      
-      if (scannerRef.current) {
-        await scannerRef.current.stop().catch(() => {});
-        scannerRef.current = null;
-      }
-
-      await new Promise(resolve => setTimeout(resolve, 100));
-
-      const html5QrCode = new Html5Qrcode(scannerDivId);
-      scannerRef.current = html5QrCode;
-
-      const cameras = await Html5Qrcode.getCameras();
-      if (!cameras || cameras.length === 0) {
-        throw new Error('No cameras found on this device');
-      }
-
-      const cameraId = cameras.length > 1 ? cameras[cameras.length - 1].id : cameras[0].id;
-
-      await html5QrCode.start(
-        cameraId,
-        {
-          fps: 10,
-          qrbox: { width: 250, height: 250 },
-          aspectRatio: 1.0,
-        },
-        (decodedText) => {
-          setQrCodeInput(decodedText);
-          stopScanner();
-          toast.success('QR Code scanned successfully!');
-        },
-        () => {}
-      );
-    } catch (error: any) {
-      console.error('Scanner error:', error);
-      let errorMessage = 'Failed to start camera. Please check permissions.';
-      
-      if (error.name === 'NotAllowedError') {
-        errorMessage = 'Camera permission denied. Please allow camera access in your browser settings.';
-      } else if (error.name === 'NotFoundError') {
-        errorMessage = 'No camera found on this device.';
-      } else if (error.name === 'NotReadableError') {
-        errorMessage = 'Camera is already in use by another application.';
-      } else if (error.message) {
-        errorMessage = error.message;
-      }
-      
-      toast.error(errorMessage);
-      setIsScanning(false);
-      scannerRef.current = null;
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'present':
+        return 'bg-green-50 text-green-700 border-green-200';
+      case 'late':
+        return 'bg-yellow-50 text-yellow-700 border-yellow-200';
+      case 'absent':
+        return 'bg-red-50 text-red-700 border-red-200';
+      default:
+        return 'bg-gray-50 text-gray-700 border-gray-200';
     }
   };
 
-  const stopScanner = async () => {
-    if (scannerRef.current) {
-      try {
-        await scannerRef.current.stop();
-        scannerRef.current = null;
-        setIsScanning(false);
-      } catch (error) {
-        console.error('Error stopping scanner:', error);
-      }
-    }
-  };
-
-  const handleMarkAttendance = async () => {
-    if (!qrCodeInput.trim()) {
-      toast.error('Please scan or enter session ID');
-      return;
-    }
-
-    if (!studentData?.user_id) {
-      toast.error('Student data not found');
-      return;
-    }
-
-    const loadingToast = toast.loading('Verifying session...');
-
-    try {
-      const { data: session, error: sessionError } = await supabase
-        .from('attendance_sessions')
-        .select('*')
-        .eq('qr_code', qrCodeInput)
-        .eq('is_active', true)
-        .single();
-
-      if (sessionError || !session) {
-        toast.error('Invalid or expired session ID', { id: loadingToast });
-        return;
-      }
-
-      const { data: enrollment, error: enrollmentError } = await supabase
-        .from('enrollments')
-        .select('id')
-        .eq('student_id', studentData.user_id)
-        .eq('course_id', session.course_id)
-        .eq('status', 'enrolled')
-        .single();
-
-      if (enrollmentError || !enrollment) {
-        toast.error('You are not enrolled in this course', { id: loadingToast });
-        return;
-      }
-
-      const { data: existing } = await supabase
-        .from('attendance')
-        .select('id, status')
-        .eq('session_id', session.id)
-        .eq('student_id', studentData.user_id)
-        .single();
-
-      if (existing) {
-        toast.error(`Attendance already marked as ${existing.status}`, { id: loadingToast });
-        return;
-      }
-
-      const now = new Date();
-      const currentTime = now.toTimeString().slice(0, 5);
-      const isLate = currentTime > session.end_time;
-      const attendanceStatus = isLate ? 'late' : 'present';
-
-      const { error: insertError } = await supabase
-        .from('attendance')
-        .insert({
-          course_id: session.course_id,
-          student_id: studentData.user_id,
-          class_date: session.session_date,
-          status: attendanceStatus,
-          session_id: session.id,
-          marked_by: studentData.user_id,
-          device_info: {
-            userAgent: navigator.userAgent,
-            timestamp: new Date().toISOString()
-          }
-        });
-
-      if (insertError) throw insertError;
-
-      if (isLate) {
-        toast.success(
-          `Attendance marked as LATE (0.5x points)`,
-          { id: loadingToast }
-        );
-      } else {
-        toast.success(
-          `Attendance marked successfully!`,
-          { id: loadingToast }
-        );
-      }
-      
-      setIsMarked(true);
-      
-      await fetchAttendanceData();
-
-      setTimeout(() => {
-        setQrCodeInput('');
-        setIsMarked(false);
-      }, 3000);
-
-    } catch (error: any) {
-      console.error('Error marking attendance:', error);
-      toast.error(error.message || 'Failed to mark attendance', { id: loadingToast });
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'present':
+        return <CheckCircle className="h-5 w-5 text-green-600" />;
+      case 'late':
+        return <AlertTriangle className="h-5 w-5 text-yellow-600" />;
+      case 'absent':
+        return <XCircle className="h-5 w-5 text-red-600" />;
+      default:
+        return <Clock className="h-5 w-5 text-gray-600" />;
     }
   };
 
@@ -382,6 +617,15 @@ const AttendanceOverview: React.FC<AttendanceOverviewProps> = ({ studentData }) 
     if (percentage >= 75) return 'default';
     if (percentage >= 65) return 'secondary';
     return 'destructive';
+  };
+
+  const formatTime = (timeString: string) => {
+    if (!timeString) return '';
+    const [hours, minutes] = timeString.split(':');
+    const hour = parseInt(hours);
+    const ampm = hour >= 12 ? 'PM' : 'AM';
+    const displayHour = hour % 12 || 12;
+    return `${displayHour}:${minutes} ${ampm}`;
   };
 
   if (loading) {
@@ -474,98 +718,226 @@ const AttendanceOverview: React.FC<AttendanceOverviewProps> = ({ studentData }) 
           <TabsTrigger value="history">Attendance History</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="mark">
-          <Card className="p-8">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
-                <ScanLine className="h-6 w-6 text-primary" />
-              </div>
-              <div>
-                <h2 className="text-2xl font-bold">Mark Attendance</h2>
-                <p className="text-muted-foreground">Scan QR code to mark your attendance</p>
-              </div>
-            </div>
+        <TabsContent value="mark" className="space-y-6">
+          <Alert className={locationPermission === 'granted' ? 'border-green-200 bg-green-50' : 'border-yellow-200 bg-yellow-50'}>
+            <MapPin className={`h-4 w-4 ${locationPermission === 'granted' ? 'text-green-600' : 'text-yellow-600'}`} />
+            <AlertDescription>
+              {locationPermission === 'granted' ? (
+                <span className="text-green-800">
+                  Location access enabled • Required for attendance marking
+                </span>
+              ) : (
+                <span className="text-yellow-800">
+                  Location access required • Click "Enable Location" to mark attendance
+                </span>
+              )}
+            </AlertDescription>
+          </Alert>
 
-            {isMarked ? (
-              <div className="flex flex-col items-center justify-center py-12">
-                <div className="h-20 w-20 rounded-full bg-green-50 flex items-center justify-center mb-4 animate-in zoom-in">
-                  <CheckCircle className="h-12 w-12 text-green-600" />
-                </div>
-                <h3 className="text-2xl font-bold text-green-600 mb-2">Attendance Marked!</h3>
-                <p className="text-muted-foreground">You're all set for today</p>
-              </div>
-            ) : (
-              <div className="space-y-6">
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-2">
-                  <div className="flex items-start gap-2">
-                    <Clock className="h-5 w-5 text-blue-600 mt-0.5" />
-                    <div className="flex-1">
-                      <p className="font-medium text-blue-900">Late Attendance</p>
-                      <p className="text-sm text-blue-700">After class ends: Late status (0.5x points). Only faculty can change absent to late.</p>
-                    </div>
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <QrCodeIcon className="h-5 w-5" />
+                Mark Attendance
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {locationPermission !== 'granted' && (
+                <Button 
+                  onClick={requestLocationPermission} 
+                  className="w-full"
+                  variant="outline"
+                >
+                  <MapPin className="h-4 w-4 mr-2" />
+                  Enable Location Access
+                </Button>
+              )}
+
+              <div className="space-y-3">
+                <div>
+                  <label className="text-sm font-medium mb-2 block">
+                    Enter 6-Character Session Code
+                  </label>
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="ABC123"
+                      value={sessionCode}
+                      onChange={(e) => setSessionCode(e.target.value.toUpperCase())}
+                      maxLength={6}
+                      className="font-mono text-lg tracking-wider"
+                      disabled={markingLoading || locationPermission !== 'granted'}
+                    />
+                    <Button 
+                      onClick={handleManualEntry}
+                      disabled={markingLoading || sessionCode.length !== 6 || locationPermission !== 'granted'}
+                    >
+                      <Hash className="h-4 w-4 mr-2" />
+                      Submit
+                    </Button>
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="qrCode" className="flex items-center gap-2">
-                    <ScanLine className="h-4 w-4" />
-                    QR Code Session ID
-                  </Label>
-                  
-                  {isScanning ? (
-                    <div className="space-y-4">
-                      <div 
-                        id={scannerDivId}
-                        className="rounded-lg overflow-hidden border-2 border-primary"
-                      />
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={stopScanner}
-                        className="w-full"
-                      >
-                        <X className="h-4 w-4 mr-2" />
-                        Cancel Scanning
-                      </Button>
-                    </div>
-                  ) : (
-                    <>
-                      <div className="flex gap-2">
-                        <Input
-                          id="qrCode"
-                          placeholder="Scan or paste session ID here"
-                          value={qrCodeInput}
-                          onChange={(e) => setQrCodeInput(e.target.value)}
-                          className="h-12 font-mono"
-                        />
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={startScanner}
-                          className="h-12 px-6"
-                        >
-                          <Camera className="h-5 w-5" />
-                        </Button>
-                      </div>
-                      <p className="text-xs text-muted-foreground">
-                        Click the camera icon to scan QR code or enter session ID manually
-                      </p>
-                    </>
-                  )}
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t" />
+                  </div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-background px-2 text-muted-foreground">Or</span>
+                  </div>
                 </div>
 
                 <Button 
-                  onClick={handleMarkAttendance}
-                  size="lg" 
-                  className="w-full h-12"
-                  disabled={!qrCodeInput.trim()}
+                  onClick={startScanning}
+                  className="w-full"
+                  variant="outline"
+                  disabled={markingLoading || locationPermission !== 'granted'}
                 >
-                  <CheckCircle className="h-4 w-4 mr-2" />
-                  Submit Attendance
+                  <Scan className="h-4 w-4 mr-2" />
+                  Scan QR Code
                 </Button>
               </div>
-            )}
+            </CardContent>
           </Card>
+
+          {activeSessions.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Clock className="h-5 w-5 text-green-600" />
+                  Active Classes ({activeSessions.length})
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {activeSessions.map((session) => (
+                  <div 
+                    key={session.id}
+                    className={`p-4 rounded-lg border-2 ${
+                      session.alreadyMarked 
+                        ? 'border-gray-200 bg-gray-50' 
+                        : 'border-green-200 bg-green-50 animate-pulse'
+                    }`}
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <h4 className="font-semibold text-lg">{session.courses.course_name}</h4>
+                        <p className="text-sm text-muted-foreground">{session.courses.course_code}</p>
+                        <div className="flex items-center gap-4 mt-2 text-sm">
+                          <span className="flex items-center gap-1">
+                            <Clock className="h-3 w-3" />
+                            {formatTime(session.start_time)} - {formatTime(session.end_time)}
+                          </span>
+                          {session.room_location && (
+                            <span className="flex items-center gap-1">
+                              <MapPin className="h-3 w-3" />
+                              {session.room_location}
+                            </span>
+                          )}
+                        </div>
+                        {session.topic && (
+                          <p className="text-sm text-muted-foreground mt-1">{session.topic}</p>
+                        )}
+                      </div>
+                      <div>
+                        {session.alreadyMarked ? (
+                          <Badge variant="outline" className="capitalize">
+                            {getStatusIcon(session.markedStatus)}
+                            <span className="ml-1">{session.markedStatus}</span>
+                          </Badge>
+                        ) : (
+                          <Badge className="bg-green-600">
+                            Mark Now
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          )}
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Today's Attendance</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {todayAttendance.length === 0 ? (
+                <p className="text-center text-muted-foreground py-8">
+                  No attendance marked today
+                </p>
+              ) : (
+                <div className="space-y-3">
+                  {todayAttendance.map((record) => (
+                    <div 
+                      key={record.id}
+                      className={`p-4 rounded-lg border ${getStatusColor(record.status)}`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <h4 className="font-medium">{record.courses.course_name}</h4>
+                          <p className="text-sm opacity-80">{record.courses.course_code}</p>
+                          <div className="text-xs opacity-70 mt-1">
+                            Marked at {new Date(record.marked_at).toLocaleTimeString()}
+                          </div>
+                          {record.device_info?.distance && (
+                            <div className="text-xs opacity-70">
+                              Distance: {record.device_info.distance}m from instructor
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {getStatusIcon(record.status)}
+                          <Badge variant="outline" className="capitalize">
+                            {record.status}
+                          </Badge>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <Dialog open={scanDialogOpen} onOpenChange={(open) => {
+            setScanDialogOpen(open);
+            if (!open) {
+              setIsScanning(false);
+              if (qrScanner) {
+                qrScanner.stop();
+                qrScanner.destroy();
+                setQrScanner(null);
+              }
+            }
+          }}>
+            <DialogContent className="max-w-md">
+              <DialogHeader>
+                <DialogTitle>Scan QR Code</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div className="relative w-full aspect-square bg-black rounded-lg overflow-hidden">
+                  <video
+                    ref={setVideoRef}
+                    className="w-full h-full object-cover"
+                    autoPlay
+                    playsInline
+                  />
+                  <div className="absolute inset-0 border-2 border-white/30 pointer-events-none">
+                    <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-primary" />
+                    <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-primary" />
+                    <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-primary" />
+                    <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-primary" />
+                  </div>
+                </div>
+                <Alert>
+                  <Scan className="h-4 w-4" />
+                  <AlertDescription>
+                    Position the QR code within the frame. Make sure you're within 15m of your instructor.
+                  </AlertDescription>
+                </Alert>
+              </div>
+            </DialogContent>
+          </Dialog>
         </TabsContent>
 
         <TabsContent value="summary" className="space-y-4">

@@ -412,28 +412,6 @@ const AdminDashboard = ({ sessionData }: AdminDashboardProps) => {
               <Badge className="bg-purple-500/20 text-purple-300 border-purple-400/30 font-medium px-3 py-1">
                 {userProfile.hierarchy_level.replace('_', ' ').toUpperCase()}
               </Badge>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="border-white/20 bg-white/10 backdrop-blur-sm text-white hover:bg-white/20 hover:border-white/30"
-              >
-                <Bell className="w-4 h-4 mr-2" />
-                <span className="hidden sm:inline">Alerts</span>
-                {dashboardStats.pendingApprovals > 0 && (
-                  <Badge className="ml-2 bg-red-500 text-white text-xs px-1.5 py-0.5">
-                    {dashboardStats.pendingApprovals}
-                  </Badge>
-                )}
-              </Button>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={handleLogout} 
-                className="border-white/20 bg-white/10 backdrop-blur-sm text-white hover:bg-white/20 hover:border-white/30"
-              >
-                <LogOut className="w-4 h-4 mr-2" />
-                <span className="hidden sm:inline">Logout</span>
-              </Button>
             </div>
           </div>
         </div>

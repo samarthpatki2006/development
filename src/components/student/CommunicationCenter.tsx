@@ -29,7 +29,9 @@ import {
   BellOff,
   Download,
   Edit2,
-  Trash2
+  Trash2,
+  ArrowLeft,
+  Menu
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -45,32 +47,51 @@ const CommunicationHub = ({ studentData, initialChannelId }) => {
   const [messages, setMessages] = useState([]);
   const [contacts, setContacts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [showMobileSidebar, setShowMobileSidebar] = useState(true);
+  const [lastReadTimestamps, setLastReadTimestamps] = useState({});
+  const [typingUsers, setTypingUsers] = useState({});
   const messagesEndRef = useRef(null);
   const messagesContainerRef = useRef(null);
   const textareaRef = useRef(null);
+  const typingTimeoutRef = useRef(null);
   const { toast } = useToast();
 
   useEffect(() => {
     if (studentData?.user_id) {
       fetchChannels();
       fetchContacts();
+      loadLastReadTimestamps();
       
       // Subscribe to real-time message updates
       const messageSubscription = supabase
         .channel('messages')
         .on('postgres_changes', 
-          { event: '*', schema: 'public', table: 'messages' },
+          { event: 'INSERT', schema: 'public', table: 'messages' },
+          (payload) => {
+            handleNewMessage(payload.new);
+          }
+        )
+        .on('postgres_changes', 
+          { event: 'UPDATE', schema: 'public', table: 'messages' },
           (payload) => {
             if (selectedChannel && payload.new?.channel_id === selectedChannel.id) {
               fetchMessages(selectedChannel.id);
             }
-            fetchChannels(); // Update last message in channel list
           }
         )
         .subscribe();
 
+      // Subscribe to typing indicators
+      const typingChannel = supabase.channel('typing-indicators');
+      typingChannel
+        .on('broadcast', { event: 'typing' }, (payload) => {
+          handleTypingIndicator(payload);
+        })
+        .subscribe();
+
       return () => {
         messageSubscription.unsubscribe();
+        typingChannel.unsubscribe();
       };
     }
   }, [studentData?.user_id]);
@@ -85,13 +106,112 @@ const CommunicationHub = ({ studentData, initialChannelId }) => {
     }
   }, [initialChannelId, channels]);
 
-  // Auto-resize textarea
+  // Mark messages as read when viewing
   useEffect(() => {
-    if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto';
-      textareaRef.current.style.height = Math.min(textareaRef.current.scrollHeight, 120) + 'px';
+    if (selectedChannel) {
+      markChannelAsRead(selectedChannel.id);
     }
-  }, [newMessage]);
+  }, [messages, selectedChannel]);
+
+  const handleNewMessage = async (newMessageData) => {
+    // Update channels list to move conversation to top
+    await fetchChannels();
+    
+    // If message is in current channel, update messages
+    if (selectedChannel && newMessageData.channel_id === selectedChannel.id) {
+      await fetchMessages(selectedChannel.id);
+      
+      // Mark as read if user is viewing the channel
+      if (document.hasFocus()) {
+        markChannelAsRead(selectedChannel.id);
+      }
+    } else {
+      // Show notification for new message in other channels
+      const channel = channels.find(c => c.id === newMessageData.channel_id);
+      if (channel && newMessageData.sender_id !== studentData.user_id) {
+        toast({
+          title: channel.channel_name,
+          description: newMessageData.message_text.substring(0, 50) + '...',
+          duration: 3000,
+        });
+      }
+    }
+  };
+
+  const handleTypingIndicator = (payload) => {
+    const { channel_id, user_id, user_name, is_typing } = payload.payload;
+    
+    if (user_id === studentData.user_id) return;
+    
+    setTypingUsers(prev => {
+      const newState = { ...prev };
+      if (!newState[channel_id]) {
+        newState[channel_id] = {};
+      }
+      
+      if (is_typing) {
+        newState[channel_id][user_id] = user_name;
+      } else {
+        delete newState[channel_id][user_id];
+      }
+      
+      return newState;
+    });
+  };
+
+  const sendTypingIndicator = (isTyping) => {
+    if (!selectedChannel) return;
+    
+    supabase.channel('typing-indicators').send({
+      type: 'broadcast',
+      event: 'typing',
+      payload: {
+        channel_id: selectedChannel.id,
+        user_id: studentData.user_id,
+        user_name: `${studentData.first_name} ${studentData.last_name}`,
+        is_typing: isTyping
+      }
+    });
+  };
+
+  const handleTyping = () => {
+    sendTypingIndicator(true);
+    
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+    
+    typingTimeoutRef.current = setTimeout(() => {
+      sendTypingIndicator(false);
+    }, 3000);
+  };
+
+  const loadLastReadTimestamps = () => {
+    const stored = localStorage.getItem(`lastRead_${studentData.user_id}`);
+    if (stored) {
+      setLastReadTimestamps(JSON.parse(stored));
+    }
+  };
+
+  const markChannelAsRead = (channelId) => {
+    const now = new Date().toISOString();
+    const updated = { ...lastReadTimestamps, [channelId]: now };
+    setLastReadTimestamps(updated);
+    localStorage.setItem(`lastRead_${studentData.user_id}`, JSON.stringify(updated));
+  };
+
+  const getUnreadCount = (channel) => {
+    const lastRead = lastReadTimestamps[channel.id];
+    if (!lastRead) return channel.unreadCount || 0;
+    
+    const unreadMessages = messages.filter(
+      msg => msg.channel_id === channel.id && 
+             msg.sender_id !== studentData.user_id && 
+             new Date(msg.created_at) > new Date(lastRead)
+    );
+    
+    return unreadMessages.length;
+  };
 
   const fetchChannels = async () => {
     try {
@@ -122,12 +242,11 @@ const CommunicationHub = ({ studentData, initialChannelId }) => {
             user_type
           )
         `)
-        .in('id', channelIds)
-        .order('created_at', { ascending: false });
+        .in('id', channelIds);
 
       if (channelError) throw channelError;
 
-      // Get last message for each channel
+      // Get last message for each channel and sort by it
       const channelsWithMessages = await Promise.all(
         (channelData || []).map(async (channel) => {
           const { data: lastMessage } = await supabase
@@ -148,23 +267,20 @@ const CommunicationHub = ({ studentData, initialChannelId }) => {
             .select('*', { count: 'exact', head: true })
             .eq('channel_id', channel.id);
 
-          // Get unread count
-          const { data: unreadMessages } = await supabase
-            .from('messages')
-            .select('id')
-            .eq('channel_id', channel.id)
-            .neq('sender_id', studentData.user_id)
-            .gt('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString());
-
           return {
             ...channel,
             lastMessage: lastMessage?.message_text || 'No messages yet',
-            lastMessageTime: lastMessage?.created_at,
+            lastMessageTime: lastMessage?.created_at || channel.created_at,
             lastMessageSender: lastMessage?.sender,
             memberCount: count || 0,
-            unreadCount: unreadMessages?.length || 0
+            unreadCount: 0 // Will be calculated based on lastReadTimestamps
           };
         })
+      );
+
+      // Sort by last message time (most recent first)
+      channelsWithMessages.sort((a, b) => 
+        new Date(b.lastMessageTime) - new Date(a.lastMessageTime)
       );
 
       setChannels(channelsWithMessages);
@@ -235,7 +351,9 @@ const CommunicationHub = ({ studentData, initialChannelId }) => {
     setSelectedChannel(channel);
     setMessages([]);
     await fetchMessages(channel.id);
+    markChannelAsRead(channel.id);
     setActiveTab('chats');
+    setShowMobileSidebar(false); // Hide sidebar on mobile when chat is selected
   };
 
   const handleSendMessage = async () => {
@@ -243,6 +361,7 @@ const CommunicationHub = ({ studentData, initialChannelId }) => {
 
     const messageText = newMessage.trim();
     setNewMessage('');
+    sendTypingIndicator(false);
 
     try {
       const { error } = await supabase
@@ -298,6 +417,7 @@ const CommunicationHub = ({ studentData, initialChannelId }) => {
             setShowNewChatDialog(false);
             setContactSearchQuery('');
             setActiveTab('chats');
+            setShowMobileSidebar(false);
             return;
           }
         }
@@ -391,9 +511,20 @@ const CommunicationHub = ({ studentData, initialChannelId }) => {
     `${contact.first_name} ${contact.last_name}`.toLowerCase().includes(contactSearchQuery.toLowerCase())
   );
 
+  const getTypingText = () => {
+    if (!selectedChannel || !typingUsers[selectedChannel.id]) return null;
+    
+    const typing = Object.values(typingUsers[selectedChannel.id]);
+    if (typing.length === 0) return null;
+    
+    if (typing.length === 1) return `${typing[0]} is typing...`;
+    if (typing.length === 2) return `${typing[0]} and ${typing[1]} are typing...`;
+    return `${typing.length} people are typing...`;
+  };
+
   if (loading) {
     return (
-      <div className="h-screen flex items-center justify-center bg-background">
+      <div className="h-screen flex items-center justify-center bg-background overflow-hidden">
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-white/20 border-t-white rounded-full animate-spin mx-auto mb-4"></div>
           <p className="text-foreground/70">Loading messages...</p>
@@ -403,92 +534,68 @@ const CommunicationHub = ({ studentData, initialChannelId }) => {
   }
 
   return (
-    <div className="h-screen flex flex-col bg-background">
-      {/* Header */}
-      <div className="bg-sidebar-background border-b border-border px-6 py-4">
+    <div className="h-screen flex flex-col bg-background overflow-hidden">
+      {/* Header - Fixed */}
+      <div className="bg-sidebar-background border-b border-border px-4 md:px-6 py-3 md:py-4 flex-shrink-0">
         <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">Messages</h1>
-            <p className="text-sm text-muted-foreground">Stay connected with your campus community</p>
+          <div className="flex items-center space-x-3">
+            {selectedChannel && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="md:hidden -ml-2"
+                onClick={() => {
+                  setShowMobileSidebar(true);
+                  setSelectedChannel(null);
+                }}
+              >
+                <ArrowLeft className="h-5 w-5" />
+              </Button>
+            )}
+            <div>
+              <h1 className="text-xl md:text-2xl font-bold text-foreground">Messages</h1>
+              <p className="text-xs md:text-sm text-muted-foreground hidden sm:block">
+                Stay connected with your campus community
+              </p>
+            </div>
           </div>
-          <div className="flex items-center space-x-2">
-            <Dialog open={showNewChatDialog} onOpenChange={setShowNewChatDialog}>
-              <DialogTrigger asChild>
-                <Button size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90">
-                  <MessageSquare className="h-4 w-4 mr-2" />
-                  New Chat
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-md bg-popover border-border">
-                <DialogHeader>
-                  <DialogTitle className="text-foreground">Start a New Conversation</DialogTitle>
-                </DialogHeader>
-                <div className="space-y-4">
-                  <Input
-                    placeholder="Search contacts..."
-                    value={contactSearchQuery}
-                    onChange={(e) => setContactSearchQuery(e.target.value)}
-                    className="w-full bg-input border-border text-foreground"
-                  />
-                  <div className="max-h-80 overflow-y-auto space-y-2">
-                    {filteredContacts.length === 0 ? (
-                      <p className="text-center text-muted-foreground py-8">No contacts found</p>
-                    ) : (
-                      filteredContacts.map(contact => (
-                        <div
-                          key={contact.id}
-                          className="flex items-center justify-between p-3 hover:bg-accent rounded-sm cursor-pointer transition-colors"
-                          onClick={() => createDirectChannel(contact.id)}
-                        >
-                          <div className="flex items-center space-x-3">
-                            <div className="w-10 h-10 bg-primary/10 border border-border rounded-sm flex items-center justify-center text-foreground font-semibold">
-                              {getInitials(contact.first_name, contact.last_name)}
-                            </div>
-                            <div>
-                              <p className="font-medium text-foreground">
-                                {contact.first_name} {contact.last_name}
-                              </p>
-                              <p className="text-xs text-muted-foreground capitalize">{contact.user_type}</p>
-                            </div>
-                          </div>
-                          <Button size="sm" variant="ghost">
-                            <MessageSquare className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </div>
-              </DialogContent>
-            </Dialog>
-          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="md:hidden"
+            onClick={() => setShowMobileSidebar(!showMobileSidebar)}
+          >
+            <Menu className="h-5 w-5" />
+          </Button>
         </div>
       </div>
 
-      <div className="flex-1 flex overflow-hidden">
-        {/* Sidebar */}
-        <div className="w-80 bg-sidebar-background border-r border-sidebar-border flex flex-col">
-          {/* Search */}
-          <div className="p-4 border-b border-sidebar-border">
+      <div className="flex-1 flex overflow-hidden min-h-0">
+        {/* Sidebar - Fixed height with internal scroll */}
+        <div className={`${
+          showMobileSidebar ? 'flex' : 'hidden'
+        } md:flex w-full md:w-80 bg-sidebar-background border-r border-sidebar-border flex-col absolute md:relative z-10 h-full overflow-hidden`}>
+          {/* Search - Fixed */}
+          <div className="p-3 md:p-4 border-b border-sidebar-border flex-shrink-0">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Search messages..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 bg-input border-border text-foreground"
+                className="pl-10 bg-input border-border text-foreground text-sm"
               />
             </div>
           </div>
 
-          {/* Tabs */}
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
-            <TabsList className="grid w-full grid-cols-2 mx-3 mt-2 bg-muted">
-              <TabsTrigger value="chats" className="data-[state=active]:bg-accent">Chats</TabsTrigger>
-              <TabsTrigger value="contacts" className="data-[state=active]:bg-accent">Contacts</TabsTrigger>
+          {/* Tabs - Internal scroll only */}
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden min-h-0">
+            <TabsList className="grid w-full grid-cols-2 mx-3 mt-2 bg-muted flex-shrink-0">
+              <TabsTrigger value="chats" className="data-[state=active]:bg-accent text-sm">Chats</TabsTrigger>
+              <TabsTrigger value="contacts" className="data-[state=active]:bg-accent text-sm">Contacts</TabsTrigger>
             </TabsList>
 
-            <TabsContent value="chats" className="flex-1 overflow-y-auto mt-2 m-0">
+            <TabsContent value="chats" className="flex-1 overflow-y-auto mt-2 m-0 min-h-0">
               <div className="space-y-1 p-2">
                 {filteredChannels.length === 0 ? (
                   <div className="text-center py-8">
@@ -506,6 +613,9 @@ const CommunicationHub = ({ studentData, initialChannelId }) => {
                 ) : (
                   filteredChannels.map(channel => {
                     const isGroup = channel.channel_type === 'group' || channel.channel_type === 'course';
+                    const lastRead = lastReadTimestamps[channel.id];
+                    const hasUnread = lastRead ? new Date(channel.lastMessageTime) > new Date(lastRead) : false;
+                    const unreadCount = hasUnread ? 1 : 0;
                     
                     return (
                       <div
@@ -519,7 +629,7 @@ const CommunicationHub = ({ studentData, initialChannelId }) => {
                       >
                         <div className="flex items-start space-x-3">
                           <div className="relative flex-shrink-0">
-                            <div className={`w-12 h-12 rounded-sm flex items-center justify-center text-foreground font-semibold border border-border ${
+                            <div className={`w-10 md:w-12 h-10 md:h-12 rounded-sm flex items-center justify-center text-foreground font-semibold border border-border text-sm md:text-base ${
                               isGroup 
                                 ? 'bg-primary/10' 
                                 : 'bg-primary/5'
@@ -527,29 +637,39 @@ const CommunicationHub = ({ studentData, initialChannelId }) => {
                               {channel.channel_name.substring(0, 2).toUpperCase()}
                             </div>
                             {isGroup && (
-                              <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-sidebar-background border-2 border-sidebar-border rounded-sm flex items-center justify-center">
-                                <Users className="h-3 w-3 text-muted-foreground" />
+                              <div className="absolute -bottom-1 -right-1 w-4 md:w-5 h-4 md:h-5 bg-sidebar-background border-2 border-sidebar-border rounded-sm flex items-center justify-center">
+                                <Users className="h-2 md:h-3 w-2 md:w-3 text-muted-foreground" />
                               </div>
                             )}
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center justify-between mb-1">
-                              <p className="font-semibold text-foreground truncate">{channel.channel_name}</p>
-                              {channel.lastMessageTime && (
-                                <span className="text-xs text-muted-foreground">
-                                  {formatTimestamp(channel.lastMessageTime)}
-                                </span>
-                              )}
+                              <p className={`text-sm md:text-base truncate ${
+                                hasUnread ? 'font-bold text-foreground' : 'font-semibold text-foreground'
+                              }`}>
+                                {channel.channel_name}
+                              </p>
+                              <div className="flex items-center space-x-2">
+                                {channel.lastMessageTime && (
+                                  <span className="text-xs text-muted-foreground whitespace-nowrap">
+                                    {formatTimestamp(channel.lastMessageTime)}
+                                  </span>
+                                )}
+                              </div>
                             </div>
                             <div className="flex items-center justify-between">
-                              <p className="text-sm text-muted-foreground truncate">
+                              <p className={`text-xs md:text-sm truncate ${
+                                hasUnread ? 'font-medium text-foreground' : 'text-muted-foreground'
+                              }`}>
                                 {channel.lastMessageSender && isGroup
                                   ? `${channel.lastMessageSender.first_name}: ${channel.lastMessage}`
                                   : channel.lastMessage
                                 }
                               </p>
-                              {channel.unreadCount > 0 && (
-                                <Badge className="ml-2 bg-primary text-primary-foreground">{channel.unreadCount}</Badge>
+                              {hasUnread && (
+                                <Badge className="ml-2 bg-primary text-primary-foreground h-5 min-w-[20px] flex items-center justify-center px-1.5 text-xs flex-shrink-0">
+                                  {unreadCount}
+                                </Badge>
                               )}
                             </div>
                             {isGroup && (
@@ -564,10 +684,21 @@ const CommunicationHub = ({ studentData, initialChannelId }) => {
               </div>
             </TabsContent>
 
-            <TabsContent value="contacts" className="flex-1 overflow-y-auto mt-2 m-0">
-              <div className="space-y-1 p-2">
+            <TabsContent value="contacts" className="flex-1 flex flex-col overflow-hidden min-h-0 mt-2 m-0">
+              <div className="p-3 border-b border-sidebar-border flex-shrink-0">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search contacts..."
+                    value={contactSearchQuery}
+                    onChange={(e) => setContactSearchQuery(e.target.value)}
+                    className="pl-10 bg-input border-border text-foreground text-sm"
+                  />
+                </div>
+              </div>
+              <div className="flex-1 overflow-y-auto space-y-1 p-2 min-h-0">
                 {filteredContacts.length === 0 ? (
-                  <p className="text-center text-muted-foreground py-8">No contacts found</p>
+                  <p className="text-center text-muted-foreground py-8 text-sm">No contacts found</p>
                 ) : (
                   filteredContacts.map(contact => (
                     <div
@@ -576,16 +707,16 @@ const CommunicationHub = ({ studentData, initialChannelId }) => {
                       onClick={() => createDirectChannel(contact.id)}
                     >
                       <div className="flex items-center space-x-3">
-                        <div className="w-10 h-10 bg-primary/10 border border-border rounded-sm flex items-center justify-center text-foreground font-semibold">
+                        <div className="w-10 h-10 bg-primary/10 border border-border rounded-sm flex items-center justify-center text-foreground font-semibold text-sm">
                           {getInitials(contact.first_name, contact.last_name)}
                         </div>
-                        <div className="flex-1">
-                          <p className="font-medium text-foreground">
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-foreground text-sm truncate">
                             {contact.first_name} {contact.last_name}
                           </p>
                           <p className="text-xs text-muted-foreground capitalize">{contact.user_type}</p>
                         </div>
-                        <Button size="sm" variant="ghost">
+                        <Button size="sm" variant="ghost" className="flex-shrink-0">
                           <MessageSquare className="h-4 w-4" />
                         </Button>
                       </div>
@@ -597,15 +728,17 @@ const CommunicationHub = ({ studentData, initialChannelId }) => {
           </Tabs>
         </div>
 
-        {/* Chat Area */}
+        {/* Chat Area - Fixed height with internal scroll */}
         {selectedChannel ? (
-          <div className="flex-1 flex flex-col bg-background overflow-hidden">
-            {/* Chat Header */}
-            <div className="bg-sidebar-background border-b border-border px-6 py-4 flex-shrink-0">
+          <div className={`${
+            showMobileSidebar ? 'hidden' : 'flex'
+          } md:flex flex-1 flex-col bg-background overflow-hidden min-h-0`}>
+            {/* Chat Header - Fixed */}
+            <div className="bg-sidebar-background border-b border-border px-4 md:px-6 py-3 md:py-4 flex-shrink-0">
               <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-4">
-                  <div className="relative">
-                    <div className={`w-12 h-12 rounded-sm flex items-center justify-center text-foreground font-semibold border border-border ${
+                <div className="flex items-center space-x-3 md:space-x-4 min-w-0 flex-1">
+                  <div className="relative flex-shrink-0">
+                    <div className={`w-10 md:w-12 h-10 md:h-12 rounded-sm flex items-center justify-center text-foreground font-semibold border border-border text-sm md:text-base ${
                       selectedChannel.channel_type === 'group' || selectedChannel.channel_type === 'course'
                         ? 'bg-primary/10' 
                         : 'bg-primary/5'
@@ -613,9 +746,11 @@ const CommunicationHub = ({ studentData, initialChannelId }) => {
                       {selectedChannel.channel_name.substring(0, 2).toUpperCase()}
                     </div>
                   </div>
-                  <div>
-                    <h2 className="font-semibold text-foreground">{selectedChannel.channel_name}</h2>
-                    <p className="text-sm text-muted-foreground capitalize">
+                  <div className="min-w-0 flex-1">
+                    <h2 className="font-semibold text-foreground text-sm md:text-base truncate">
+                      {selectedChannel.channel_name}
+                    </h2>
+                    <p className="text-xs md:text-sm text-muted-foreground capitalize truncate">
                       {selectedChannel.channel_type === 'group' || selectedChannel.channel_type === 'course'
                         ? `${selectedChannel.memberCount} members`
                         : selectedChannel.channel_type.replace('_', ' ')
@@ -623,74 +758,64 @@ const CommunicationHub = ({ studentData, initialChannelId }) => {
                     </p>
                   </div>
                 </div>
-                <div className="flex items-center space-x-2">
-                  <Button variant="ghost" size="sm">
-                    <Phone className="h-5 w-5" />
-                  </Button>
-                  <Button variant="ghost" size="sm">
-                    <Video className="h-5 w-5" />
-                  </Button>
-                  <Button variant="ghost" size="sm">
-                    <Search className="h-5 w-5" />
-                  </Button>
-                  <Button variant="ghost" size="sm">
-                    <MoreVertical className="h-5 w-5" />
-                  </Button>
-                </div>
               </div>
             </div>
 
-            {/* Messages */}
+            {/* Messages - Scrollable area */}
             <div 
               ref={messagesContainerRef}
-              className="flex-1 overflow-y-auto p-6 space-y-4"
+              className="flex-1 overflow-y-auto p-3 md:p-6 space-y-3 md:space-y-4 min-h-0"
             >
               {messages.length === 0 ? (
                 <div className="flex items-center justify-center h-full">
                   <div className="text-center">
-                    <MessageSquare className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-                    <p className="text-foreground/70">No messages yet</p>
-                    <p className="text-sm text-muted-foreground">Start the conversation!</p>
+                    <MessageSquare className="h-12 md:h-16 w-12 md:w-16 text-muted-foreground mx-auto mb-4" />
+                    <p className="text-foreground/70 text-sm md:text-base">No messages yet</p>
+                    <p className="text-xs md:text-sm text-muted-foreground">Start the conversation!</p>
                   </div>
                 </div>
               ) : (
                 <>
-                  {messages.map((message) => {
+                  {messages.map((message, index) => {
                     const isMe = message.sender_id === studentData.user_id;
                     const isGroup = selectedChannel.channel_type === 'group' || selectedChannel.channel_type === 'course';
+                    const showAvatar = !isMe && (index === 0 || messages[index - 1].sender_id !== message.sender_id);
                     
                     return (
                       <div
                         key={message.id}
                         className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}
                       >
-                        <div className={`flex items-end space-x-2 max-w-md ${isMe ? 'flex-row-reverse space-x-reverse' : ''}`}>
-                          {!isMe && (
-                            <div className="w-8 h-8 bg-primary/10 border border-border rounded-sm flex items-center justify-center text-foreground text-xs font-semibold flex-shrink-0">
+                        <div className={`flex items-end space-x-2 max-w-[85%] md:max-w-md ${isMe ? 'flex-row-reverse space-x-reverse' : ''}`}>
+                          {!isMe && showAvatar && (
+                            <div className="w-7 h-7 md:w-8 md:h-8 bg-primary/10 border border-border rounded-sm flex items-center justify-center text-foreground text-xs font-semibold flex-shrink-0">
                               {getInitials(message.sender.first_name, message.sender.last_name)}
                             </div>
                           )}
-                          <div>
-                            {isGroup && !isMe && (
+                          {!isMe && !showAvatar && (
+                            <div className="w-7 h-7 md:w-8 md:h-8 flex-shrink-0"></div>
+                          )}
+                          <div className="max-w-full">
+                            {isGroup && !isMe && showAvatar && (
                               <p className="text-xs text-muted-foreground mb-1 ml-2">
                                 {message.sender.first_name} {message.sender.last_name}
                               </p>
                             )}
                             <div
-                              className={`px-4 py-2 ${
+                              className={`px-3 md:px-4 py-2 ${
                                 isMe
                                   ? 'bg-primary text-primary-foreground rounded-sm rounded-br-none'
                                   : 'bg-card border border-border text-foreground rounded-sm rounded-bl-none'
                               }`}
                             >
-                              <p className="text-sm break-words">{message.message_text}</p>
+                              <p className="text-xs md:text-sm break-words">{message.message_text}</p>
                             </div>
                             <div className={`flex items-center space-x-1 mt-1 ${isMe ? 'justify-end' : 'justify-start'}`}>
                               <span className="text-xs text-muted-foreground">
                                 {formatMessageTime(message.created_at)}
                               </span>
-                              {isMe && !message.is_edited && (
-                                <Check className="h-3 w-3 text-muted-foreground" />
+                              {isMe && (
+                                <CheckCheck className="h-3 w-3 text-muted-foreground" />
                               )}
                             </div>
                           </div>
@@ -703,57 +828,58 @@ const CommunicationHub = ({ studentData, initialChannelId }) => {
               )}
             </div>
 
-            {/* Message Input */}
-            <div className="bg-sidebar-background border-t border-border px-6 py-4 flex-shrink-0">
+            {/* Typing Indicator - Fixed */}
+            {getTypingText() && (
+              <div className="px-4 md:px-6 py-2 bg-sidebar-background/50 flex-shrink-0">
+                <p className="text-xs md:text-sm text-muted-foreground italic">{getTypingText()}</p>
+              </div>
+            )}
+
+            {/* Message Input - Fixed */}
+            <div className="bg-sidebar-background border-t border-border px-3 md:px-6 py-3 md:py-4 flex-shrink-0">
               <div className="flex items-end space-x-2">
-                <Button variant="ghost" size="sm" className="flex-shrink-0">
-                  <Paperclip className="h-5 w-5" />
-                </Button>
-                <Button variant="ghost" size="sm" className="flex-shrink-0">
-                  <Image className="h-5 w-5" />
-                </Button>
                 <div className="flex-1 relative">
                   <Textarea
                     ref={textareaRef}
                     placeholder="Type a message..."
                     value={newMessage}
-                    onChange={(e) => setNewMessage(e.target.value)}
+                    onChange={(e) => {
+                      setNewMessage(e.target.value);
+                      handleTyping();
+                    }}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' && !e.shiftKey) {
                         e.preventDefault();
                         handleSendMessage();
                       }
                     }}
-                    className="resize-none pr-10 bg-input border-border text-foreground min-h-[40px] max-h-[120px]"
+                    className="resize-none bg-input border-border text-foreground text-sm md:text-base"
+                    style={{ height: '40px', maxHeight: '120px', overflow: 'auto' }}
                     rows={1}
                   />
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="absolute right-2 top-1/2 transform -translate-y-1/2"
-                  >
-                    <Smile className="h-5 w-5" />
-                  </Button>
                 </div>
                 <Button
                   onClick={handleSendMessage}
                   disabled={!newMessage.trim()}
-                  className="flex-shrink-0 bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+                  className="flex-shrink-0 bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 h-10 w-10 md:h-auto md:w-auto md:px-4"
+                  size="sm"
                 >
-                  <Send className="h-5 w-5" />
+                  <Send className="h-4 w-4 md:h-5 md:w-5" />
                 </Button>
               </div>
             </div>
           </div>
         ) : (
-          <div className="flex-1 flex items-center justify-center bg-background">
-            <div className="text-center">
-              <div className="w-24 h-24 bg-primary/10 border border-border rounded-sm flex items-center justify-center mx-auto mb-4">
-                <MessageSquare className="h-12 w-12 text-foreground" />
+          <div className={`${
+            showMobileSidebar ? 'hidden' : 'flex'
+          } md:flex flex-1 items-center justify-center bg-background overflow-hidden`}>
+            <div className="text-center px-4">
+              <div className="w-20 md:w-24 h-20 md:h-24 bg-primary/10 border border-border rounded-sm flex items-center justify-center mx-auto mb-4">
+                <MessageSquare className="h-10 md:h-12 w-10 md:w-12 text-foreground" />
               </div>
-              <h3 className="text-xl font-semibold text-foreground mb-2">Select a conversation</h3>
-              <p className="text-muted-foreground mb-6">Choose from your existing chats or start a new one</p>
-              <Button onClick={() => setShowNewChatDialog(true)} className="bg-primary text-primary-foreground hover:bg-primary/90">
+              <h3 className="text-lg md:text-xl font-semibold text-foreground mb-2">Select a conversation</h3>
+              <p className="text-sm md:text-base text-muted-foreground mb-6">Choose from your existing chats or start a new one</p>
+              <Button onClick={() => setShowNewChatDialog(true)} className="bg-primary text-primary-foreground hover:bg-primary/90" size="sm">
                 <MessageSquare className="h-4 w-4 mr-2" />
                 Start New Chat
               </Button>
@@ -761,6 +887,51 @@ const CommunicationHub = ({ studentData, initialChannelId }) => {
           </div>
         )}
       </div>
+
+      {/* New Chat Dialog */}
+      <Dialog open={showNewChatDialog} onOpenChange={setShowNewChatDialog}>
+        <DialogContent className="sm:max-w-md max-h-[80vh] flex flex-col">
+          <DialogHeader className="flex-shrink-0">
+            <DialogTitle>Start New Conversation</DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col flex-1 overflow-hidden space-y-4">
+            <div className="relative flex-shrink-0">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search contacts..."
+                value={contactSearchQuery}
+                onChange={(e) => setContactSearchQuery(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+            <div className="flex-1 overflow-y-auto space-y-2 min-h-0">
+              {filteredContacts.length === 0 ? (
+                <p className="text-center text-muted-foreground py-8 text-sm">No contacts found</p>
+              ) : (
+                filteredContacts.map(contact => (
+                  <div
+                    key={contact.id}
+                    className="p-3 hover:bg-accent rounded-sm cursor-pointer transition-all"
+                    onClick={() => createDirectChannel(contact.id)}
+                  >
+                    <div className="flex items-center space-x-3">
+                      <div className="w-10 h-10 bg-primary/10 border border-border rounded-sm flex items-center justify-center text-foreground font-semibold flex-shrink-0">
+                        {getInitials(contact.first_name, contact.last_name)}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-foreground text-sm truncate">
+                          {contact.first_name} {contact.last_name}
+                        </p>
+                        <p className="text-xs text-muted-foreground capitalize">{contact.user_type}</p>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

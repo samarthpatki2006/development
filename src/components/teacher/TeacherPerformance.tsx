@@ -6,6 +6,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Textarea } from '@/components/ui/textarea';
 import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
 import { 
   BarChart3, 
   TrendingUp, 
@@ -14,9 +17,10 @@ import {
   Users,
   FileText,
   Share,
-  Eye,
   Target,
-  Award
+  Award,
+  Search,
+  Filter
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
@@ -27,8 +31,13 @@ interface TeacherPerformanceProps {
 }
 
 const TeacherPerformance = ({ teacherData }: TeacherPerformanceProps) => {
+  const [courses, setCourses] = useState<any[]>([]);
+  const [selectedCourse, setSelectedCourse] = useState<string>("");
+  const [searchTerm, setSearchTerm] = useState("");
+  
   const [students, setStudents] = useState<any[]>([]);
   const [performanceData, setPerformanceData] = useState<any[]>([]);
+  const [filteredPerformanceData, setFilteredPerformanceData] = useState<any[]>([]);
   const [atRiskStudents, setAtRiskStudents] = useState<any[]>([]);
   const [classAnalytics, setClassAnalytics] = useState<any>({});
   const [loading, setLoading] = useState(true);
@@ -37,16 +46,41 @@ const TeacherPerformance = ({ teacherData }: TeacherPerformanceProps) => {
   const [interventionNote, setInterventionNote] = useState('');
 
   useEffect(() => {
-    fetchPerformanceData();
+    fetchCourses();
   }, [teacherData]);
+
+  useEffect(() => {
+    if (selectedCourse) {
+      fetchPerformanceData();
+    }
+  }, [selectedCourse]);
+
+  useEffect(() => {
+    filterPerformanceData();
+  }, [performanceData, searchTerm, selectedCourse]);
+
+  const fetchCourses = async () => {
+    try {
+      const { data: user } = await supabase.auth.getUser();
+      if (!user.user) return;
+
+      const { data } = await supabase
+        .from('courses')
+        .select('id, course_name, course_code')
+        .eq('instructor_id', user.user.id)
+        .eq('is_active', true);
+
+      setCourses(data || []);
+    } catch (error) {
+      console.error('Error fetching courses:', error);
+    }
+  };
 
   const fetchPerformanceData = async () => {
     try {
       setLoading(true);
       await Promise.all([
         fetchStudents(),
-        fetchClassAnalytics(),
-        identifyAtRiskStudents()
       ]);
     } catch (error) {
       console.error('Error fetching performance data:', error);
@@ -56,43 +90,42 @@ const TeacherPerformance = ({ teacherData }: TeacherPerformanceProps) => {
   };
 
   const fetchStudents = async () => {
-    // Get students from teacher's courses
-    const { data: coursesData } = await supabase
-      .from('courses')
-      .select('id')
-      .eq('instructor_id', teacherData.user_id);
+    if (!selectedCourse) return;
 
-    if (coursesData) {
-      const courseIds = coursesData.map(course => course.id);
-      const { data, error } = await supabase
-        .from('enrollments')
-        .select(`
-          *,
-          user_profiles!enrollments_student_id_fkey (
-            id,
-            first_name,
-            last_name,
-            email
-          ),
-          courses (
-            course_name
-          )
-        `)
-        .in('course_id', courseIds)
-        .eq('status', 'enrolled');
+    const { data, error } = await supabase
+      .from('enrollments')
+      .select(`
+        *,
+        user_profiles!enrollments_student_id_fkey (
+          id,
+          first_name,
+          last_name,
+          email
+        ),
+        courses (
+          id,
+          course_name,
+          course_code
+        )
+      `)
+      .eq('course_id', selectedCourse)
+      .eq('status', 'enrolled');
 
-      if (!error && data) {
-        // Fetch performance data for each student
-        const studentsWithPerformance = await Promise.all(
-          data.map(async (student) => {
-            const performance = await calculateStudentPerformance(student.student_id, courseIds);
-            return { ...student, performance };
-          })
-        );
-        
-        setStudents(studentsWithPerformance);
-        setPerformanceData(studentsWithPerformance);
-      }
+    if (!error && data) {
+      // Fetch performance data for each student
+      const studentsWithPerformance = await Promise.all(
+        data.map(async (student) => {
+          const performance = await calculateStudentPerformance(student.student_id, [selectedCourse]);
+          return { ...student, performance };
+        })
+      );
+      
+      setStudents(studentsWithPerformance);
+      setPerformanceData(studentsWithPerformance);
+      
+      // Calculate analytics for filtered course
+      calculateClassAnalytics(studentsWithPerformance);
+      identifyAtRiskStudents(studentsWithPerformance);
     }
   };
 
@@ -150,22 +183,36 @@ const TeacherPerformance = ({ teacherData }: TeacherPerformanceProps) => {
     return 'stable';
   };
 
-  const fetchClassAnalytics = async () => {
-    // Calculate class-wide statistics
+  const calculateClassAnalytics = (studentsData: any[]) => {
+    const totalStudents = studentsData.length;
+    
+    const validGrades = studentsData.filter(s => s.performance?.averageGrade > 0);
+    const averageGrade = validGrades.length > 0
+      ? Math.round(validGrades.reduce((sum, s) => sum + s.performance.averageGrade, 0) / validGrades.length)
+      : 0;
+
+    const validAttendance = studentsData.filter(s => s.performance?.attendanceRate > 0);
+    const averageAttendance = validAttendance.length > 0
+      ? Math.round(validAttendance.reduce((sum, s) => sum + s.performance.attendanceRate, 0) / validAttendance.length)
+      : 0;
+
+    const highPerformers = studentsData.filter(s => s.performance?.averageGrade >= 80).length;
+    const atRiskCount = studentsData.filter(s => 
+      s.performance?.averageGrade < 60 || 
+      s.performance?.attendanceRate < 70
+    ).length;
+
     setClassAnalytics({
-      totalStudents: students.length,
-      averageGrade: 78,
-      averageAttendance: 85,
-      highPerformers: students.filter(s => s.performance?.averageGrade >= 80).length,
-      atRiskCount: students.filter(s => 
-        s.performance?.averageGrade < 60 || 
-        s.performance?.attendanceRate < 70
-      ).length
+      totalStudents,
+      averageGrade,
+      averageAttendance,
+      highPerformers,
+      atRiskCount
     });
   };
 
-  const identifyAtRiskStudents = async () => {
-    const atRisk = students.filter(student => {
+  const identifyAtRiskStudents = (studentsData: any[]) => {
+    const atRisk = studentsData.filter(student => {
       const perf = student.performance;
       return (
         perf?.averageGrade < 60 ||
@@ -176,6 +223,20 @@ const TeacherPerformance = ({ teacherData }: TeacherPerformanceProps) => {
     });
 
     setAtRiskStudents(atRisk);
+  };
+
+  const filterPerformanceData = () => {
+    let filtered = [...performanceData];
+
+    // Filter by search term (student name)
+    if (searchTerm) {
+      filtered = filtered.filter(student => {
+        const fullName = `${student.user_profiles?.first_name} ${student.user_profiles?.last_name}`.toLowerCase();
+        return fullName.includes(searchTerm.toLowerCase());
+      });
+    }
+
+    setFilteredPerformanceData(filtered);
   };
 
   const getInterventionSuggestions = (student: any) => {
@@ -207,7 +268,6 @@ const TeacherPerformance = ({ teacherData }: TeacherPerformanceProps) => {
 
   const shareProgressWithParents = async (studentId: string) => {
     try {
-      // In a real implementation, this would create a notification or report for parents
       toast({
         title: 'Success',
         description: 'Progress shared with parents successfully'
@@ -224,7 +284,6 @@ const TeacherPerformance = ({ teacherData }: TeacherPerformanceProps) => {
 
   const createInterventionPlan = async () => {
     try {
-      // In a real implementation, this would save the intervention plan
       toast({
         title: 'Success',
         description: 'Intervention plan created successfully'
@@ -241,7 +300,7 @@ const TeacherPerformance = ({ teacherData }: TeacherPerformanceProps) => {
     }
   };
 
-  if (loading) {
+  if (loading && selectedCourse) {
     return (
       <div className="space-y-6">
         <div className="animate-pulse space-y-4">
@@ -256,195 +315,257 @@ const TeacherPerformance = ({ teacherData }: TeacherPerformanceProps) => {
   return (
     <PermissionWrapper permission="view_grades">
       <div className="space-y-6">
-        {/* Class Overview */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card>
-            <CardContent className="p-4 text-center">
-              <Users className="h-8 w-8 mx-auto mb-2" />
-              <p className="text-2xl font-bold">{classAnalytics.totalStudents || 0}</p>
-              <p className="text-sm text-muted-foreground">Total Students</p>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardContent className="p-4 text-center">
-              <BarChart3 className="h-8 w-8 mx-auto mb-2" />
-              <p className="text-2xl font-bold">{classAnalytics.averageGrade || 0}%</p>
-              <p className="text-sm text-muted-foreground">Class Average</p>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardContent className="p-4 text-center">
-              <Award className="h-8 w-8 mx-auto mb-2" />
-              <p className="text-2xl font-bold">{classAnalytics.highPerformers || 0}</p>
-              <p className="text-sm text-muted-foreground">High Performers</p>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardContent className="p-4 text-center">
-              <AlertTriangle className="h-8 w-8 mx-auto mb-2" />
-              <p className="text-2xl font-bold">{classAnalytics.atRiskCount || 0}</p>
-              <p className="text-sm text-muted-foreground">At-Risk Students</p>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* At-Risk Students Alert */}
-        {atRiskStudents.length > 0 && (
-          <Alert>
-            <AlertTriangle className="h-4 w-4" />
-            <AlertDescription>
-              <strong>{atRiskStudents.length} students</strong> need attention. Consider intervention strategies.
-            </AlertDescription>
-          </Alert>
-        )}
-
-        {/* Student Performance Overview */}
+        {/* Filters Section */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <BarChart3 className="h-5 w-5" />
-              Student Performance Overview
+              <Filter className="h-5 w-5" />
+              Filter Students
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {performanceData.map((student) => {
-                const perf = student.performance;
-                const isAtRisk = perf?.averageGrade < 60 || perf?.attendanceRate < 70;
-                
-                return (
-                  <Card key={student.student_id} className={`p-4 ${isAtRisk ? 'border-red-200' : ''}`}>
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-3">
-                          <h3 className="font-semibold">
-                            {student.user_profiles?.first_name} {student.user_profiles?.last_name}
-                          </h3>
-                          <Badge variant="outline">{student.courses?.course_name}</Badge>
-                          {isAtRisk && (
-                            <Badge variant="destructive">
-                              <AlertTriangle className="h-3 w-3 mr-1" />
-                              At Risk
-                            </Badge>
-                          )}
-                          {perf?.recentTrend === 'improving' && (
-                            <Badge variant="default">
-                              <TrendingUp className="h-3 w-3 mr-1" />
-                              Improving
-                            </Badge>
-                          )}
-                          {perf?.recentTrend === 'declining' && (
-                            <Badge variant="destructive">
-                              <TrendingDown className="h-3 w-3 mr-1" />
-                              Declining
-                            </Badge>
-                          )}
-                        </div>
-                        
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                          <div>
-                            <p className="text-sm font-medium text-muted-foreground">Average Grade</p>
-                            <div className="flex items-center gap-2">
-                              <Progress value={perf?.averageGrade || 0} className="flex-1" />
-                              <span className="text-sm font-semibold">{perf?.averageGrade || 0}%</span>
-                            </div>
-                          </div>
-                          
-                          <div>
-                            <p className="text-sm font-medium text-muted-foreground">Attendance</p>
-                            <div className="flex items-center gap-2">
-                              <Progress value={perf?.attendanceRate || 0} className="flex-1" />
-                              <span className="text-sm font-semibold">{perf?.attendanceRate || 0}%</span>
-                            </div>
-                          </div>
-                          
-                          <div>
-                            <p className="text-sm font-medium text-muted-foreground">Participation</p>
-                            <div className="flex items-center gap-2">
-                              <Progress value={perf?.participationScore || 0} className="flex-1" />
-                              <span className="text-sm font-semibold">{perf?.participationScore || 0}%</span>
-                            </div>
-                          </div>
-                        </div>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="course-select">Select Course</Label>
+                <Select value={selectedCourse} onValueChange={setSelectedCourse}>
+                  <SelectTrigger id="course-select">
+                    <SelectValue placeholder="Choose a course" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {courses?.map((course) => (
+                      <SelectItem key={course.id} value={course.id}>
+                        {course.course_code} - {course.course_name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
-                        {isAtRisk && (
-                          <div className="mt-3 p-3 rounded-lg">
-                            <p className="text-sm font-medium mb-2">Intervention Suggestions:</p>
-                            <ul className="text-sm space-y-1">
-                              {getInterventionSuggestions(student).map((suggestion, index) => (
-                                <li key={index} className="flex items-center gap-2">
-                                  <Target className="h-3 w-3" />
-                                  {suggestion}
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        )}
-                      </div>
-                      
-                      <div className="flex gap-2">
-                        <Button 
-                          size="sm" 
-                          variant="outline"
-                          onClick={() => shareProgressWithParents(student.student_id)}
-                        >
-                          <Share className="h-4 w-4 mr-1" />
-                          Share with Parents
-                        </Button>
-                        
-                        {isAtRisk && (
-                          <Dialog>
-                            <DialogTrigger asChild>
-                              <Button 
-                                size="sm" 
-                                variant="default"
-                                onClick={() => setSelectedStudent(student)}
-                              >
-                                <FileText className="h-4 w-4 mr-1" />
-                                Create Plan
-                              </Button>
-                            </DialogTrigger>
-                            <DialogContent>
-                              <DialogHeader>
-                                <DialogTitle>
-                                  Create Intervention Plan for {student.user_profiles?.first_name} {student.user_profiles?.last_name}
-                                </DialogTitle>
-                              </DialogHeader>
-                              <div className="space-y-4">
-                                <div className="p-3 bg-muted rounded-lg">
-                                  <p className="text-sm font-medium mb-2">Current Performance:</p>
-                                  <div className="space-y-1 text-sm">
-                                    <p>Grade: {perf?.averageGrade}%</p>
-                                    <p>Attendance: {perf?.attendanceRate}%</p>
-                                    <p>Participation: {perf?.participationScore}%</p>
-                                  </div>
-                                </div>
-                                
-                                <Textarea
-                                  placeholder="Describe intervention plan, goals, and timeline..."
-                                  value={interventionNote}
-                                  onChange={(e) => setInterventionNote(e.target.value)}
-                                  rows={6}
-                                />
-                                
-                                <Button onClick={createInterventionPlan} className="w-full">
-                                  Create Intervention Plan
-                                </Button>
-                              </div>
-                            </DialogContent>
-                          </Dialog>
-                        )}
-                      </div>
-                    </div>
-                  </Card>
-                );
-              })}
+              <div className="space-y-2">
+                <Label htmlFor="student-search">Search Student Name</Label>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="student-search"
+                    placeholder="Type student name..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+              </div>
             </div>
           </CardContent>
         </Card>
+
+        {selectedCourse && (
+          <>
+            {/* Class Overview */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <Card>
+                <CardContent className="p-4 text-center">
+                  <Users className="h-8 w-8 mx-auto mb-2" />
+                  <p className="text-2xl font-bold">{classAnalytics.totalStudents || 0}</p>
+                  <p className="text-sm text-muted-foreground">Total Students</p>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardContent className="p-4 text-center">
+                  <BarChart3 className="h-8 w-8 mx-auto mb-2" />
+                  <p className="text-2xl font-bold">{classAnalytics.averageGrade || 0}%</p>
+                  <p className="text-sm text-muted-foreground">Class Average</p>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardContent className="p-4 text-center">
+                  <Award className="h-8 w-8 mx-auto mb-2" />
+                  <p className="text-2xl font-bold">{classAnalytics.highPerformers || 0}</p>
+                  <p className="text-sm text-muted-foreground">High Performers</p>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardContent className="p-4 text-center">
+                  <AlertTriangle className="h-8 w-8 mx-auto mb-2" />
+                  <p className="text-2xl font-bold">{classAnalytics.atRiskCount || 0}</p>
+                  <p className="text-sm text-muted-foreground">At-Risk Students</p>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* At-Risk Students Alert */}
+            {atRiskStudents.length > 0 && (
+              <Alert>
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription>
+                  <strong>{atRiskStudents.length} students</strong> need attention. Consider intervention strategies.
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {/* Student Performance Overview */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <BarChart3 className="h-5 w-5" />
+                  Student Performance Overview
+                  {searchTerm && (
+                    <Badge variant="secondary">
+                      Showing {filteredPerformanceData.length} of {performanceData.length} students
+                    </Badge>
+                  )}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {filteredPerformanceData.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    {searchTerm ? 'No students found matching your search.' : 'No students enrolled in this course.'}
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {filteredPerformanceData.map((student) => {
+                      const perf = student.performance;
+                      const isAtRisk = perf?.averageGrade < 60 || perf?.attendanceRate < 70;
+                      
+                      return (
+                        <Card key={student.student_id} className={`p-4 ${isAtRisk ? 'border-red-200' : ''}`}>
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-3">
+                                <h3 className="font-semibold">
+                                  {student.user_profiles?.first_name} {student.user_profiles?.last_name}
+                                </h3>
+                                <Badge variant="outline">{student.courses?.course_name}</Badge>
+                                {isAtRisk && (
+                                  <Badge variant="destructive">
+                                    <AlertTriangle className="h-3 w-3 mr-1" />
+                                    At Risk
+                                  </Badge>
+                                )}
+                                {perf?.recentTrend === 'improving' && (
+                                  <Badge variant="default">
+                                    <TrendingUp className="h-3 w-3 mr-1" />
+                                    Improving
+                                  </Badge>
+                                )}
+                                {perf?.recentTrend === 'declining' && (
+                                  <Badge variant="destructive">
+                                    <TrendingDown className="h-3 w-3 mr-1" />
+                                    Declining
+                                  </Badge>
+                                )}
+                              </div>
+                              
+                              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div>
+                                  <p className="text-sm font-medium text-muted-foreground">Average Grade</p>
+                                  <div className="flex items-center gap-2">
+                                    <Progress value={perf?.averageGrade || 0} className="flex-1" />
+                                    <span className="text-sm font-semibold">{perf?.averageGrade || 0}%</span>
+                                  </div>
+                                </div>
+                                
+                                <div>
+                                  <p className="text-sm font-medium text-muted-foreground">Attendance</p>
+                                  <div className="flex items-center gap-2">
+                                    <Progress value={perf?.attendanceRate || 0} className="flex-1" />
+                                    <span className="text-sm font-semibold">{perf?.attendanceRate || 0}%</span>
+                                  </div>
+                                </div>
+                              </div>
+
+                              {isAtRisk && (
+                                <div className="mt-3 p-3 rounded-lg">
+                                  <p className="text-sm font-medium mb-2">Intervention Suggestions:</p>
+                                  <ul className="text-sm space-y-1">
+                                    {getInterventionSuggestions(student).map((suggestion, index) => (
+                                      <li key={index} className="flex items-center gap-2">
+                                        <Target className="h-3 w-3" />
+                                        {suggestion}
+                                      </li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              )}
+                            </div>
+                            
+                            <div className="flex gap-2">
+                              <Button 
+                                size="sm" 
+                                variant="outline"
+                                onClick={() => shareProgressWithParents(student.student_id)}
+                              >
+                                <Share className="h-4 w-4 mr-1" />
+                                Share with Parents
+                              </Button>
+                              
+                              {isAtRisk && (
+                                <Dialog>
+                                  <DialogTrigger asChild>
+                                    <Button 
+                                      size="sm" 
+                                      variant="default"
+                                      onClick={() => setSelectedStudent(student)}
+                                    >
+                                      <FileText className="h-4 w-4 mr-1" />
+                                      Create Plan
+                                    </Button>
+                                  </DialogTrigger>
+                                  <DialogContent>
+                                    <DialogHeader>
+                                      <DialogTitle>
+                                        Create Intervention Plan for {student.user_profiles?.first_name} {student.user_profiles?.last_name}
+                                      </DialogTitle>
+                                    </DialogHeader>
+                                    <div className="space-y-4">
+                                      <div className="p-3 bg-muted rounded-lg">
+                                        <p className="text-sm font-medium mb-2">Current Performance:</p>
+                                        <div className="space-y-1 text-sm">
+                                          <p>Grade: {perf?.averageGrade}%</p>
+                                          <p>Attendance: {perf?.attendanceRate}%</p>
+                                          <p>Participation: {perf?.participationScore}%</p>
+                                        </div>
+                                      </div>
+                                      
+                                      <Textarea
+                                        placeholder="Describe intervention plan, goals, and timeline..."
+                                        value={interventionNote}
+                                        onChange={(e) => setInterventionNote(e.target.value)}
+                                        rows={6}
+                                      />
+                                      
+                                      <Button onClick={createInterventionPlan} className="w-full">
+                                        Create Intervention Plan
+                                      </Button>
+                                    </div>
+                                  </DialogContent>
+                                </Dialog>
+                              )}
+                            </div>
+                          </div>
+                        </Card>
+                      );
+                    })}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </>
+        )}
+
+        {!selectedCourse && (
+          <Card>
+            <CardContent className="p-8 text-center">
+              <Filter className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+              <p className="text-lg font-medium mb-2">Select a Course to View Performance</p>
+              <p className="text-sm text-muted-foreground">
+                Choose a course from the dropdown above to see student performance data
+              </p>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </PermissionWrapper>
   );

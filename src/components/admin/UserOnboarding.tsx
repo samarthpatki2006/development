@@ -8,9 +8,10 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { UserPlus, Mail, Eye, CheckCircle, XCircle, Clock, RefreshCw, Download } from 'lucide-react';
+import { UserPlus, Mail, Eye, CheckCircle, XCircle, Clock, RefreshCw, Download, Upload, AlertCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+import Papa from 'papaparse';
 
 interface UserOnboardingRecord {
   id: string;
@@ -58,6 +59,7 @@ const UserOnboarding = ({ userProfile }: { userProfile: UserProfile }) => {
     userType: 'student',
     preview: []
   });
+  const [isProcessingBulk, setIsProcessingBulk] = useState(false);
 
   const [newUserForm, setNewUserForm] = useState({
     first_name: '',
@@ -69,16 +71,14 @@ const UserOnboarding = ({ userProfile }: { userProfile: UserProfile }) => {
   useEffect(() => {
     loadOnboardingData();
     
-    // Set up periodic check for onboarding status updates
     const interval = setInterval(() => {
       checkOnboardingStatus();
-    }, 30000); // Check every 30 seconds
+    }, 30000);
     
     return () => clearInterval(interval);
   }, []);
 
   useEffect(() => {
-    // Check onboarding status when records change
     if (onboardingRecords.length > 0) {
       checkOnboardingStatus();
     }
@@ -88,7 +88,6 @@ const UserOnboarding = ({ userProfile }: { userProfile: UserProfile }) => {
     try {
       setIsLoading(true);
       
-      // Fetch onboarding records with user profiles
       const { data, error } = await supabase
         .from('user_onboarding')
         .select(`
@@ -151,6 +150,84 @@ const UserOnboarding = ({ userProfile }: { userProfile: UserProfile }) => {
     return password;
   };
 
+  const sendWelcomeEmail = async (
+    email: string,
+    firstName: string,
+    userCode: string,
+    tempPassword: string,
+    onboardingId: string
+  ) => {
+    try {
+      console.log('Sending welcome email to:', email);
+      
+      await supabase
+        .from('user_onboarding')
+        .update({
+          welcome_email_sent: true,
+          welcome_email_delivered: false,
+          welcome_email_failed: false,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', onboardingId);
+
+      console.log('Invoking send-welcome-email edge function...');
+      const { data, error } = await supabase.functions.invoke('send-welcome-email', {
+        body: {
+          email,
+          firstName,
+          userCode,
+          tempPassword,
+          onboardingId
+        }
+      });
+
+      console.log('Edge function response:', { data, error });
+
+      if (error) {
+        console.error('Error from edge function:', error);
+        
+        await supabase
+          .from('user_onboarding')
+          .update({
+            welcome_email_failed: true,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', onboardingId);
+        
+        throw new Error(`Email sending failed: ${error.message || 'Unknown error'}`);
+      }
+
+      if (!data || !data.success) {
+        console.error('Email function returned error:', data);
+        
+        await supabase
+          .from('user_onboarding')
+          .update({
+            welcome_email_failed: true,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', onboardingId);
+        
+        throw new Error(data?.error || 'Email sending failed');
+      }
+
+      console.log('Email sent successfully, marking as delivered');
+      
+      await supabase
+        .from('user_onboarding')
+        .update({
+          welcome_email_delivered: true,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', onboardingId);
+
+      await loadOnboardingData();
+    } catch (error) {
+      console.error('Error in sendWelcomeEmail:', error);
+      throw error;
+    }
+  };
+
   const handleAddUser = async () => {
     try {
       if (!newUserForm.first_name || !newUserForm.last_name || !newUserForm.email) {
@@ -165,98 +242,71 @@ const UserOnboarding = ({ userProfile }: { userProfile: UserProfile }) => {
       const userCode = generateUserCode(newUserForm.user_type);
       const tempPassword = generateTempPassword();
 
-      // First, create auth user with temporary password
-      const { data: authData, error: authError } = await supabase.auth.signUp({
+      console.log('Creating user with data:', {
+        first_name: newUserForm.first_name,
+        last_name: newUserForm.last_name,
         email: newUserForm.email,
-        password: tempPassword,
-        options: {
-          data: {
-            first_name: newUserForm.first_name,
-            last_name: newUserForm.last_name,
-            user_type: newUserForm.user_type,
-            college_id: userProfile.college_id,
-            user_code: userCode
-          }
-        }
+        user_type: newUserForm.user_type,
+        user_code: userCode
       });
 
-      if (authError) {
-        console.error('Auth error:', authError);
-        toast({
-          title: "Error",
-          description: authError.message || "Failed to create user account.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      if (!authData.user) {
-        toast({
-          title: "Error",
-          description: "Failed to create user account.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      // Create user profile
-      const { error: profileError } = await supabase
-        .from('user_profiles')
-        .insert({
-          id: authData.user.id,
-          college_id: userProfile.college_id,
-          user_code: userCode,
-          user_type: newUserForm.user_type,
+      const { data: createUserData, error: createUserError } = await supabase.functions.invoke('create-user-with-onboarding', {
+        body: {
           first_name: newUserForm.first_name,
           last_name: newUserForm.last_name,
           email: newUserForm.email,
-          is_active: true
-        });
-
-      if (profileError) {
-        console.error('Profile error:', profileError);
-        toast({
-          title: "Error",
-          description: "Failed to create user profile.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      // Create onboarding record
-      const { data: onboardingData, error: onboardingError } = await supabase
-        .from('user_onboarding')
-        .insert({
-          user_id: authData.user.id,
+          user_type: newUserForm.user_type,
           college_id: userProfile.college_id,
-          temp_password: tempPassword,
-          welcome_email_sent: false,
-          welcome_email_delivered: false,
-          welcome_email_opened: false,
-          welcome_email_failed: false,
-          first_login_completed: false,
-          password_reset_required: true,
-          onboarding_completed: false
-        })
-        .select()
-        .single();
+          user_code: userCode,
+          temp_password: tempPassword
+        }
+      });
 
-      if (onboardingError) {
-        console.error('Onboarding error:', onboardingError);
+      console.log('Edge Function response:', { data: createUserData, error: createUserError });
+
+      if (createUserError) {
+        console.error('Create user error:', createUserError);
         toast({
           title: "Error",
-          description: "Failed to create onboarding record.",
+          description: createUserError.message || "Failed to create user account.",
           variant: "destructive",
         });
         return;
       }
 
-      // Send welcome email (simulate for now)
-      setTimeout(async () => {
-        await handleSendWelcomeEmail(onboardingData.id);
-      }, 1000);
+      if (!createUserData || !createUserData.success) {
+        const errorMsg = createUserData?.error || "Failed to create user account.";
+        console.error('Create user failed:', errorMsg);
+        toast({
+          title: "Error",
+          description: errorMsg,
+          variant: "destructive",
+        });
+        return;
+      }
 
-      // Reset form and close dialog
+      console.log('User created successfully, sending welcome email...');
+
+      let emailSuccess = false;
+      try {
+        await sendWelcomeEmail(
+          newUserForm.email,
+          newUserForm.first_name,
+          userCode,
+          tempPassword,
+          createUserData.onboarding_id
+        );
+        emailSuccess = true;
+        console.log('Welcome email sent successfully');
+      } catch (emailError) {
+        console.error('Email sending error:', emailError);
+        toast({
+          title: "Warning",
+          description: `User created but email failed to send: ${emailError.message}`,
+          variant: "destructive",
+        });
+      }
+
       setNewUserForm({
         first_name: '',
         last_name: '',
@@ -265,18 +315,19 @@ const UserOnboarding = ({ userProfile }: { userProfile: UserProfile }) => {
       });
       setIsAddUserDialogOpen(false);
 
-      // Reload data
       await loadOnboardingData();
 
       toast({
         title: "Success",
-        description: `User created successfully. User code: ${userCode}`,
+        description: emailSuccess 
+          ? `User created successfully. Welcome email sent to ${newUserForm.email}`
+          : `User created successfully, but email failed to send. Click resend to try again.`,
       });
     } catch (error) {
       console.error('Error creating user:', error);
       toast({
         title: "Error",
-        description: "Failed to create user.",
+        description: error.message || "Failed to create user.",
         variant: "destructive",
       });
     }
@@ -284,40 +335,33 @@ const UserOnboarding = ({ userProfile }: { userProfile: UserProfile }) => {
 
   const handleSendWelcomeEmail = async (onboardingId: string) => {
     try {
-      // Update onboarding record to mark email as sent
-      const { error } = await supabase
+      const { data: record, error } = await supabase
         .from('user_onboarding')
-        .update({
-          welcome_email_sent: true,
-          welcome_email_delivered: false,
-          welcome_email_failed: false,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', onboardingId);
+        .select(`
+          *,
+          user_profiles (
+            first_name,
+            email,
+            user_code
+          )
+        `)
+        .eq('id', onboardingId)
+        .single();
 
-      if (error) {
-        console.error('Error updating email status:', error);
-        return;
+      if (error || !record) {
+        throw new Error('Failed to fetch onboarding record');
       }
 
-      // Simulate email delivery after 2 seconds
-      setTimeout(async () => {
-        const { error: deliveryError } = await supabase
-          .from('user_onboarding')
-          .update({
-            welcome_email_delivered: true,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', onboardingId);
-
-        if (!deliveryError) {
-          await loadOnboardingData();
-        }
-      }, 2000);
-
-      await loadOnboardingData();
+      await sendWelcomeEmail(
+        record.user_profiles.email,
+        record.user_profiles.first_name,
+        record.user_profiles.user_code,
+        record.temp_password,
+        onboardingId
+      );
     } catch (error) {
       console.error('Error sending welcome email:', error);
+      throw error;
     }
   };
 
@@ -398,19 +442,181 @@ const UserOnboarding = ({ userProfile }: { userProfile: UserProfile }) => {
     }
   };
 
-  // Function to automatically check and update onboarding status
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      Papa.parse(file, {
+        header: true,
+        skipEmptyLines: true,
+        transformHeader: (header) => header.trim().toLowerCase(),
+        complete: (results) => {
+          const validRecords = results.data.filter((row: any) => {
+            return row.first_name && row.last_name && row.email;
+          });
+
+          if (validRecords.length === 0) {
+            toast({
+              title: "Error",
+              description: "No valid records found in CSV. Expected columns: first_name, last_name, email",
+              variant: "destructive",
+            });
+            return;
+          }
+
+          setBulkImportData({
+            ...bulkImportData,
+            file,
+            preview: validRecords.slice(0, 5)
+          });
+
+          toast({
+            title: "CSV Loaded",
+            description: `Found ${validRecords.length} valid record(s). Preview showing first ${Math.min(5, validRecords.length)}.`,
+          });
+        },
+        error: (error) => {
+          console.error('CSV parsing error:', error);
+          toast({
+            title: "Error",
+            description: "Failed to parse CSV file.",
+            variant: "destructive",
+          });
+        }
+      });
+    } catch (error) {
+      console.error('Error reading file:', error);
+      toast({
+        title: "Error",
+        description: "Failed to read CSV file.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleBulkImport = async () => {
+    if (!bulkImportData.file) {
+      toast({
+        title: "Error",
+        description: "Please select a CSV file.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsProcessingBulk(true);
+
+    try {
+      Papa.parse(bulkImportData.file, {
+        header: true,
+        skipEmptyLines: true,
+        transformHeader: (header) => header.trim().toLowerCase(),
+        complete: async (results) => {
+          const validRecords = results.data.filter((row: any) => {
+            return row.first_name && row.last_name && row.email;
+          });
+
+          let successCount = 0;
+          let failCount = 0;
+          const errors: string[] = [];
+
+          for (const row of validRecords) {
+            try {
+              const userCode = generateUserCode(bulkImportData.userType);
+              const tempPassword = generateTempPassword();
+
+              const { data: createUserData, error: createUserError } = await supabase.functions.invoke('create-user-with-onboarding', {
+                body: {
+                  first_name: row.first_name.trim(),
+                  last_name: row.last_name.trim(),
+                  email: row.email.trim(),
+                  user_type: bulkImportData.userType,
+                  college_id: userProfile.college_id,
+                  user_code: userCode,
+                  temp_password: tempPassword
+                }
+              });
+
+              if (createUserError) {
+                throw new Error(createUserError.message || 'Failed to create user');
+              }
+
+              if (!createUserData.success) {
+                throw new Error(createUserData.error || 'Failed to create user');
+              }
+
+              try {
+                await sendWelcomeEmail(
+                  row.email.trim(),
+                  row.first_name.trim(),
+                  userCode,
+                  tempPassword,
+                  createUserData.onboarding_id
+                );
+                successCount++;
+              } catch (emailError) {
+                console.error(`Email failed for ${row.email}:`, emailError);
+                successCount++;
+                errors.push(`${row.email}: User created but email failed - ${emailError.message}`);
+              }
+            } catch (error: any) {
+              failCount++;
+              errors.push(`${row.email}: ${error.message}`);
+              console.error(`Error processing ${row.email}:`, error);
+            }
+          }
+
+          setIsProcessingBulk(false);
+          setIsBulkImportDialogOpen(false);
+          setBulkImportData({
+            file: null,
+            userType: 'student',
+            preview: []
+          });
+
+          await loadOnboardingData();
+
+          toast({
+            title: "Bulk Import Complete",
+            description: `Successfully imported ${successCount} user(s). ${failCount > 0 ? `Failed: ${failCount}` : ''}`,
+            variant: failCount > 0 ? "destructive" : "default",
+          });
+
+          if (errors.length > 0) {
+            console.error('Import errors:', errors);
+          }
+        },
+        error: (error) => {
+          setIsProcessingBulk(false);
+          console.error('CSV parsing error:', error);
+          toast({
+            title: "Error",
+            description: "Failed to parse CSV file.",
+            variant: "destructive",
+          });
+        }
+      });
+    } catch (error) {
+      setIsProcessingBulk(false);
+      console.error('Error in bulk import:', error);
+      toast({
+        title: "Error",
+        description: "Failed to process bulk import.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const checkOnboardingStatus = async () => {
     try {
-      // Get all pending onboarding records
       const pendingRecords = onboardingRecords.filter(record => !record.onboarding_completed);
       
       for (const record of pendingRecords) {
         if (record.user_id) {
-          // Check if user has logged in by querying auth.users or checking last sign in
           const { data: userData, error: userError } = await supabase.auth.admin.getUserById(record.user_id);
           
           if (!userError && userData.user && userData.user.last_sign_in_at) {
-            // User has logged in, mark onboarding as completed
             await handleMarkOnboardingCompleted(record.id);
           }
         }
@@ -498,11 +704,11 @@ const UserOnboarding = ({ userProfile }: { userProfile: UserProfile }) => {
               <Dialog open={isBulkImportDialogOpen} onOpenChange={setIsBulkImportDialogOpen}>
                 <DialogTrigger asChild>
                   <Button variant="outline">
-                    <Download className="w-4 h-4 mr-2" />
+                    <Upload className="w-4 h-4 mr-2" />
                     Bulk Import
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="max-w-2xl">
+                <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
                   <DialogHeader>
                     <DialogTitle>Bulk Import Users</DialogTitle>
                     <DialogDescription>
@@ -510,26 +716,38 @@ const UserOnboarding = ({ userProfile }: { userProfile: UserProfile }) => {
                     </DialogDescription>
                   </DialogHeader>
                   <div className="space-y-4 py-4">
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                      <div className="flex items-start space-x-2">
+                        <AlertCircle className="w-5 h-5 text-blue-600 mt-0.5" />
+                        <div className="text-sm text-blue-800">
+                          <p className="font-semibold mb-1">CSV Format Requirements:</p>
+                          <ul className="list-disc list-inside space-y-1">
+                            <li>Required columns: <code className="bg-blue-100 px-1 rounded">first_name</code>, <code className="bg-blue-100 px-1 rounded">last_name</code>, <code className="bg-blue-100 px-1 rounded">email</code></li>
+                            <li>Column names are case-insensitive</li>
+                            <li>Empty rows will be skipped</li>
+                            <li>Welcome emails will be sent automatically</li>
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
+
                     <div>
-                      <Label htmlFor="csv_file">CSV File</Label>
+                      <Label htmlFor="csv_file">CSV File *</Label>
                       <Input
                         id="csv_file"
                         type="file"
                         accept=".csv"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0] || null;
-                          setBulkImportData({ ...bulkImportData, file });
-                        }}
+                        onChange={handleFileChange}
+                        disabled={isProcessingBulk}
                       />
-                      <p className="text-sm text-gray-500 mt-1">
-                        Expected columns: first_name, last_name, email
-                      </p>
                     </div>
+
                     <div>
-                      <Label htmlFor="bulk_user_type">User Type</Label>
+                      <Label htmlFor="bulk_user_type">User Type *</Label>
                       <Select 
                         value={bulkImportData.userType} 
                         onValueChange={(value) => setBulkImportData({ ...bulkImportData, userType: value })}
+                        disabled={isProcessingBulk}
                       >
                         <SelectTrigger>
                           <SelectValue />
@@ -543,13 +761,63 @@ const UserOnboarding = ({ userProfile }: { userProfile: UserProfile }) => {
                         </SelectContent>
                       </Select>
                     </div>
+
+                    {bulkImportData.preview.length > 0 && (
+                      <div>
+                        <Label className="mb-2 block">Preview (First 5 Records)</Label>
+                        <div className="border rounded-lg overflow-hidden">
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead>First Name</TableHead>
+                                <TableHead>Last Name</TableHead>
+                                <TableHead>Email</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {bulkImportData.preview.map((row: any, index) => (
+                                <TableRow key={index}>
+                                  <TableCell>{row.first_name}</TableCell>
+                                  <TableCell>{row.last_name}</TableCell>
+                                  <TableCell>{row.email}</TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        </div>
+                      </div>
+                    )}
                   </div>
                   <div className="flex justify-end space-x-2">
-                    <Button variant="outline" onClick={() => setIsBulkImportDialogOpen(false)}>
+                    <Button 
+                      variant="outline" 
+                      onClick={() => {
+                        setIsBulkImportDialogOpen(false);
+                        setBulkImportData({
+                          file: null,
+                          userType: 'student',
+                          preview: []
+                        });
+                      }}
+                      disabled={isProcessingBulk}
+                    >
                       Cancel
                     </Button>
-                    <Button disabled>
-                      Import Users (Coming Soon)
+                    <Button 
+                      onClick={handleBulkImport}
+                      disabled={!bulkImportData.file || isProcessingBulk}
+                    >
+                      {isProcessingBulk ? (
+                        <>
+                          <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                          Importing...
+                        </>
+                      ) : (
+                        <>
+                          <Upload className="w-4 h-4 mr-2" />
+                          Import Users
+                        </>
+                      )}
                     </Button>
                   </div>
                 </DialogContent>

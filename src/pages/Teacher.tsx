@@ -41,7 +41,6 @@ import TeacherParentInteraction from '@/components/teacher/TeacherParentInteract
 import TeacherSupport from '@/components/teacher/TeacherSupport';
 import { supabase } from '@/integrations/supabase/client';
 import GradeManager from '@/components/teacher/GradeManager';
-import StudentEnrollmentManagement from '@/components/teacher/StudentEnrollmentManagement';
 import TeacherExtra from '@/components/teacher/TeacherExtra';
 
 const Teacher = () => {
@@ -275,9 +274,8 @@ const Teacher = () => {
   const sidebarItems = [
     { id: 'dashboard', label: 'Dashboard', icon: GraduationCap },
     { id: 'schedule', label: 'Schedule', icon: Calendar },
-    { id: 'enrollment', label: 'Enrollment', icon: Users },
-    { id: 'attendance-tracking', label: 'Attendance Tracking', icon: ClipboardList },
-    { id: 'enhanced-attendance', label: 'Enhanced Attendance Tracker', icon: ClipboardList },
+    // { id: 'attendance-tracking', label: 'Attendance Tracking', icon: ClipboardList },
+    // { id: 'enhanced-attendance', label: 'Enhanced Attendance Tracker', icon: ClipboardList },
     { id: 'courses', label: 'Course & Quiz', icon: BookOpen },
     { id: 'gradebook', label: 'Grading', icon: ClipboardList },
     { id: 'extra-classes', label: 'Extra Classes', icon: PlusCircleIcon },
@@ -297,12 +295,10 @@ const Teacher = () => {
         return <TeacherDashboard teacherData={teacherData} onNavigate={setActiveView} />;
       case 'schedule':
         return <TeacherSchedule teacherData={teacherData} />;
-      case 'enrollment':
-        return <StudentEnrollmentManagement teacherData={teacherData}/>;
-      case 'attendance-tracking':
-        return <AttendanceTracking teacherData={teacherData} />;
-      case 'enhanced-attendance':
-        return <EnhancedAttendanceTracker teacherData={teacherData} />;
+      // case 'attendance-tracking':
+      //   return <AttendanceTracking teacherData={teacherData} />;
+      // case 'enhanced-attendance':
+      //   return <EnhancedAttendanceTracker teacherData={teacherData} />;
       case 'courses':
         return <TeacherCourses teacherData={teacherData} />;
       case 'gradebook':

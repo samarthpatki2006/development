@@ -5,7 +5,7 @@ import {
   BookOpen, Calendar, MessageSquare, CreditCard, Building, HelpCircle,
   GraduationCap, Clock, FileText, Bell, Settings, User, Sparkle,
   LogOut, Mail, AlertCircle, CheckCircle, Info, X, Award,
-  TrendingUp, UserCircle, Bot
+  TrendingUp, UserCircle, Bot, Users
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import SidebarNavigation from '@/components/layout/SidebarNavigation';
@@ -24,6 +24,7 @@ import Events from '@/components/student/Events';
 import Chatbot from '@/components/student/Chatbot';
 import MarketplaceApp from '@/components/student/Marketplace';
 import Anouncements from '@/components/student/Anouncements';
+import ClubActivityCenter from '@/components/student/ClubActivityCenter';
 
 // NEW: Added TypeScript type for a single notification
 type Notification = {
@@ -57,6 +58,7 @@ const Student = () => {
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [selectedChannelId, setSelectedChannelId] = useState<string | null>(null);
+  const [hasClubAccess, setHasClubAccess] = useState(false); // NEW: State for club access
   const navigate = useNavigate();
 
   const notificationRef = useRef<HTMLDivElement>(null);
@@ -92,6 +94,33 @@ const Student = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // NEW: Function to check if user has club access
+  const checkClubAccess = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('user_tag_assignments')
+        .select(`
+          tag_id,
+          user_tags!inner (
+            tag_category
+          )
+        `)
+        .eq('user_id', userId)
+        .eq('is_active', true);
+
+      if (error) throw error;
+
+      const hasClubTags = data?.some(
+        assignment => assignment.user_tags.tag_category === 'club'
+      );
+
+      setHasClubAccess(hasClubTags || false);
+    } catch (error) {
+      console.error('Error checking club access:', error);
+      setHasClubAccess(false);
+    }
+  };
+
   // Check user authentication and profile
   useEffect(() => {
     const checkUser = async () => {
@@ -105,7 +134,7 @@ const Student = () => {
             .single();
 
           if (profile && profile.user_type === 'student') {
-            setStudentData({
+            const userData = {
               user_id: profile.id,
               user_type: profile.user_type,
               first_name: profile.first_name,
@@ -113,7 +142,11 @@ const Student = () => {
               college_id: profile.college_id,
               user_code: profile.user_code,
               email: profile.email
-            });
+            };
+            setStudentData(userData);
+            
+            // NEW: Check club access after setting student data
+            await checkClubAccess(profile.id);
           } else {
             navigate('/');
           }
@@ -285,19 +318,23 @@ const Student = () => {
   if (!studentData) {
     return null;
   }
-    const sidebarItems = [
+
+  // NEW: Build sidebar items dynamically based on club access
+  const sidebarItems = [
     { id: 'dashboard', label: 'Dashboard', icon: GraduationCap },
     { id: 'schedule', label: 'Schedule', icon: Clock },
     { id: 'attendance', label: 'Attendance', icon: Calendar },
     { id: 'courses', label: 'Courses', icon: BookOpen },
-    { id: 'chatbot', label: 'Chatbot', icon: Bot },
+    // { id: 'chatbot', label: 'Chatbot', icon: Bot },
     { id: 'quizzes', label: 'Quizzes', icon: Sparkle },
     { id: 'gradebook', label: 'Gradebook', icon: FileText },
     { id: 'events', label: 'Events', icon: Bell },
     { id: 'marketplace', label: 'Marketplace', icon: Award },
+    // NEW: Conditionally add club activity center
+    ...(hasClubAccess ? [{ id: 'clubs', label: 'Club Activities', icon: Users }] : []),
     { id: 'communication', label: 'Communication', icon: MessageSquare },
     { id: 'announcements', label: 'Anouncements', icon: Mail },
-    { id: 'payments', label: 'Payments', icon: CreditCard },
+    // { id: 'payments', label: 'Payments', icon: CreditCard },
     { id: 'hostel', label: 'Hostel', icon: Building },
     { id: 'support', label: 'Support', icon: HelpCircle },
   ];
@@ -312,8 +349,8 @@ const Student = () => {
         return <AttendanceOverview studentData={studentData} />;
       case 'courses':
         return <CoursesLearningSnapshot studentData={studentData} />;
-      case 'chatbot':
-        return <Chatbot />;
+      // case 'chatbot':
+      //   return <Chatbot />;
       case 'quizzes':
         return <QuizTaker />;
       case 'gradebook':
@@ -322,18 +359,21 @@ const Student = () => {
         return <Events studentData={studentData} />;
       case 'marketplace':
         return <MarketplaceApp onNavigateToChat={handleNavigateToChat} />;
+      // NEW: Club activity center case
+      case 'clubs':
+        return hasClubAccess ? <ClubActivityCenter studentData={studentData} /> : <StudentDashboard studentData={studentData} onNavigate={setActiveView}/>;
       case 'communication':
         return <CommunicationCenter studentData={studentData} initialChannelId={selectedChannelId} />;
       case 'announcements':
         return <Anouncements studentData={studentData} />;
-      case 'payments':
-        return <PaymentsFees studentData={studentData} />;
+      // case 'payments':
+      //   return <PaymentsFees studentData={studentData} />;
       case 'hostel':
         return <HostelFacility studentData={studentData} />;
       case 'support':
         return <SupportHelp studentData={studentData} />;
       default:
-        return <StudentDashboard studentData={studentData} />;
+        return <StudentDashboard studentData={studentData} onNavigate={setActiveView}/>;
     }
   };
 
@@ -456,7 +496,6 @@ const Student = () => {
                 )}
               </div>
               
-              {/* FIXED: Completed the User Menu JSX */}
               <div className="relative" ref={userMenuRef}>
                 <Button 
                   variant="ghost" 
@@ -515,6 +554,16 @@ const Student = () => {
                       >
                         <Clock className="h-4 w-4 mr-3" /> My Schedule
                       </Button>
+                      {/* NEW: Conditionally show club menu item */}
+                      {hasClubAccess && (
+                        <Button
+                          variant="ghost"
+                          onClick={() => { setShowUserMenu(false); setActiveView('clubs'); }}
+                          className="w-full justify-start text-sm text-muted-foreground hover:text-foreground hover:bg-white/5 rounded-lg"
+                        >
+                          <Users className="h-4 w-4 mr-3" /> My Clubs
+                        </Button>
+                      )}
                       <Button
                         variant="ghost"
                         onClick={() => { setShowUserMenu(false); setActiveView('support'); }}

@@ -33,6 +33,15 @@ import FacilityManagement from '../components/admin/FacilityManagement';
 import RoleManagement from '../components/admin/RoleManagement';
 import AuditLogs from '../components/admin/AuditLogs';
 import SystemSettings from '../components/admin/SystemSettings';
+import StudentEnrollmentManagement from '@/components/teacher/StudentEnrollmentManagement';
+
+interface TagFeature {
+  feature_key: string;
+  feature_name: string;
+  feature_route: string;
+  icon: string;
+  display_order: number;
+}
 
 const Admin = () => {
   const navigate = useNavigate();
@@ -43,6 +52,8 @@ const Admin = () => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [userProfile, setUserProfile] = useState(null);
   const [adminRoles, setAdminRoles] = useState([]);
+  const [userTags, setUserTags] = useState<string[]>([]);
+  const [availableFeatures, setAvailableFeatures] = useState<TagFeature[]>([]);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
@@ -123,93 +134,312 @@ const Admin = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  useEffect(() => {
-    const checkAuth = async () => {
-  try {
-    // First check Supabase session
-    const { data: { session }, error } = await supabase.auth.getSession();
-    
-    if (error) {
-      console.error('Session error:', error);
-      navigate('/');
-      return;
+  // Fetch user's assigned tags
+  const fetchUserTags = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('user_tag_assignments')
+        .select(`
+          user_tags!inner(
+            tag_name,
+            is_active
+          )
+        `)
+        .eq('user_id', userId)
+        .eq('is_active', true)
+        .or('expires_at.is.null,expires_at.gt.now()');
+
+      if (error) {
+        console.error('Error fetching user tags:', error);
+        return [];
+      }
+
+      const tags = data
+        ?.filter(assignment => assignment.user_tags?.is_active)
+        .map(assignment => assignment.user_tags.tag_name) || [];
+
+      return tags;
+    } catch (error) {
+      console.error('Error in fetchUserTags:', error);
+      return [];
     }
+  };
 
-    if (session?.user) {
-      // Get user profile from database
-      const { data: profile, error: profileError } = await supabase
-        .from('user_profiles')
-        .select('*')
-        .eq('id', session.user.id)
-        .single();
+  // Fetch user's assigned tag features
+  const fetchUserFeatures = async (userId: string, tags: string[]) => {
+    try {
+      const { data, error } = await supabase
+        .from('user_tag_assignments')
+        .select(`
+          tag_id,
+          user_tags!inner(
+            id,
+            tag_name,
+            tag_category,
+            is_active,
+            tag_features(
+              feature_key,
+              feature_name,
+              feature_route,
+              icon,
+              display_order,
+              is_enabled
+            )
+          )
+        `)
+        .eq('user_id', userId)
+        .eq('is_active', true)
+        .or('expires_at.is.null,expires_at.gt.now()');
 
-      if (profileError || !profile) {
-        console.error('Profile error:', profileError);
-        navigate('/');
+      if (error) {
+        console.error('Error fetching user features:', error);
+        setAvailableFeatures([{
+          feature_key: 'dashboard',
+          feature_name: 'Dashboard',
+          feature_route: '/admin/dashboard',
+          icon: 'Activity',
+          display_order: 0
+        }]);
         return;
       }
 
-      // Set session data
-      const userData = {
-        user_id: profile.id,
-        user_type: profile.user_type,
-        first_name: profile.first_name,
-        last_name: profile.last_name,
-        college_id: profile.college_id,
-        user_code: profile.user_code,
-        email: profile.email
-      };
+      // Extract and deduplicate features
+      const featuresMap = new Map<string, TagFeature>();
+      
+      if (data && data.length > 0) {
+        data.forEach(assignment => {
+          const tag = assignment.user_tags;
+          if (tag && tag.is_active && tag.tag_features) {
+            tag.tag_features.forEach(feature => {
+              if (feature.is_enabled && !featuresMap.has(feature.feature_key)) {
+                featuresMap.set(feature.feature_key, {
+                  feature_key: feature.feature_key,
+                  feature_name: feature.feature_name,
+                  feature_route: feature.feature_route,
+                  icon: feature.icon,
+                  display_order: feature.display_order
+                });
+              }
+            });
+          }
+        });
+      }
 
-      setSessionData(userData);
-      setIsAuthenticated(true);
-      setUserProfile(profile);
-      setAdminRoles([{
-        role_type: 'super_admin',
-        permissions: { all: true },
-        assigned_at: new Date().toISOString()
-      }]);
-    } else {
-      // Fallback to localStorage for development
-      const storedSession = localStorage.getItem('colcord_user');
-      if (storedSession) {
-        const parsedSession = JSON.parse(storedSession);
-        if (parsedSession.user_type && parsedSession.user_id) {
-          setSessionData(parsedSession);
-          setIsAuthenticated(true);
-          
-          const profile = {
-            id: parsedSession.user_id,
-            first_name: parsedSession.first_name || 'Admin',
-            last_name: parsedSession.last_name || 'User',
-            email: parsedSession.email || '',
-            user_code: parsedSession.user_code || 'ADM001',
-            user_type: parsedSession.user_type || 'admin',
-            is_active: true,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-            college_id: parsedSession.college_id || '',
-            hierarchy_level: parsedSession.user_type || 'admin'
-          };
-          setUserProfile(profile);
-          setAdminRoles([{
-            role_type: 'super_admin',
-            permissions: { all: true },
-            assigned_at: new Date().toISOString()
-          }]);
-        } else {
-          navigate('/');
+      // CRITICAL: super_admin has access to ALL features
+      const isSuperAdmin = tags.includes('super_admin');
+      
+      if (isSuperAdmin) {
+        console.log('Super admin detected - granting access to all features');
+        
+        // Add enrollment feature (from user_admin)
+        if (!featuresMap.has('enrollment')) {
+          featuresMap.set('enrollment', {
+            feature_key: 'enrollment',
+            feature_name: 'Enrollment Management',
+            feature_route: '/admin/enrollment',
+            icon: 'Users',
+            display_order: 1.5
+          });
+        }
+        
+        // Add role management (super_admin exclusive)
+        if (!featuresMap.has('roles')) {
+          featuresMap.set('roles', {
+            feature_key: 'roles',
+            feature_name: 'Role Management',
+            feature_route: '/admin/roles',
+            icon: 'Shield',
+            display_order: 6
+          });
         }
       } else {
-        navigate('/');
+        // Non-super admin users: add features based on their specific tags
+        
+        // Add enrollment tab only for user_admin tag
+        if (tags.includes('user_admin')) {
+          console.log('Adding enrollment feature for user_admin tag');
+          featuresMap.set('enrollment', {
+            feature_key: 'enrollment',
+            feature_name: 'Enrollment Management',
+            feature_route: '/admin/enrollment',
+            icon: 'Users',
+            display_order: 1.5
+          });
+        }
+        
+        // Remove role management if user doesn't have super_admin
+        console.log('Removing role management - user does not have super_admin tag');
+        featuresMap.delete('roles');
       }
+
+      // Convert to array and sort by display_order
+      const features = Array.from(featuresMap.values()).sort(
+        (a, b) => a.display_order - b.display_order
+      );
+
+      // Always ensure dashboard is available
+      if (!features.some(f => f.feature_key === 'dashboard')) {
+        features.unshift({
+          feature_key: 'dashboard',
+          feature_name: 'Dashboard',
+          feature_route: '/admin/dashboard',
+          icon: 'Activity',
+          display_order: 0
+        });
+      }
+
+      setAvailableFeatures(features);
+    } catch (error) {
+      console.error('Error in fetchUserFeatures:', error);
+      setAvailableFeatures([{
+        feature_key: 'dashboard',
+        feature_name: 'Dashboard',
+        feature_route: '/admin/dashboard',
+        icon: 'Activity',
+        display_order: 0
+      }]);
     }
-  } catch (error) {
-    console.error('Auth check error:', error);
-    navigate('/');
-  } finally {
-    setIsLoading(false);
-  }
-};
+  };
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error('Session error:', error);
+          navigate('/');
+          return;
+        }
+
+        if (session?.user) {
+          const { data: profile, error: profileError } = await supabase
+            .from('user_profiles')
+            .select('*')
+            .eq('id', session.user.id)
+            .single();
+
+          if (profileError || !profile) {
+            console.error('Profile error:', profileError);
+            navigate('/');
+            return;
+          }
+
+          const userData = {
+            user_id: profile.id,
+            user_type: profile.user_type,
+            first_name: profile.first_name,
+            last_name: profile.last_name,
+            college_id: profile.college_id,
+            user_code: profile.user_code,
+            email: profile.email
+          };
+
+          setSessionData(userData);
+          setIsAuthenticated(true);
+          setUserProfile(profile);
+
+          // Fetch user's tags
+          const tags = await fetchUserTags(profile.id);
+          setUserTags(tags);
+
+          // Fetch tag assignments for display
+          const { data: tagAssignments } = await supabase
+            .from('user_tag_assignments')
+            .select(`
+              tag_id,
+              assigned_at,
+              expires_at,
+              user_tags(tag_name, display_name, tag_category)
+            `)
+            .eq('user_id', profile.id)
+            .eq('is_active', true);
+
+          if (tagAssignments && tagAssignments.length > 0) {
+            const roles = tagAssignments.map(ta => ({
+              role_type: ta.user_tags?.tag_name || 'admin',
+              display_name: ta.user_tags?.display_name || 'Admin',
+              tag_category: ta.user_tags?.tag_category || 'admin_role',
+              permissions: {},
+              assigned_at: ta.assigned_at
+            }));
+            setAdminRoles(roles);
+
+            // Fetch available features with tag-based filtering
+            await fetchUserFeatures(profile.id, tags);
+          } else {
+            setAdminRoles([]);
+            setAvailableFeatures([{
+              feature_key: 'dashboard',
+              feature_name: 'Dashboard',
+              feature_route: '/admin/dashboard',
+              icon: 'Activity',
+              display_order: 0
+            }]);
+          }
+        } else {
+          // Fallback to localStorage for development
+          const storedSession = localStorage.getItem('colcord_user');
+          if (storedSession) {
+            const parsedSession = JSON.parse(storedSession);
+            if (parsedSession.user_type && parsedSession.user_id) {
+              setSessionData(parsedSession);
+              setIsAuthenticated(true);
+              
+              const profile = {
+                id: parsedSession.user_id,
+                first_name: parsedSession.first_name || 'Admin',
+                last_name: parsedSession.last_name || 'User',
+                email: parsedSession.email || '',
+                user_code: parsedSession.user_code || 'ADM001',
+                user_type: parsedSession.user_type || 'admin',
+                is_active: true,
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+                college_id: parsedSession.college_id || '',
+                hierarchy_level: parsedSession.user_type || 'admin'
+              };
+              setUserProfile(profile);
+              
+              // For development, assume super_admin and user_admin tags
+              const devTags = ['super_admin', 'user_admin'];
+              setUserTags(devTags);
+              
+              setAdminRoles([{
+                role_type: 'super_admin',
+                display_name: 'Super Admin',
+                tag_category: 'admin_role',
+                permissions: { all: true },
+                assigned_at: new Date().toISOString()
+              }]);
+
+              // For development, show all features
+              setAvailableFeatures([
+                { feature_key: 'dashboard', feature_name: 'Dashboard', feature_route: '/admin/dashboard', icon: 'Activity', display_order: 0 },
+                { feature_key: 'users', feature_name: 'User Management', feature_route: '/admin/users', icon: 'Users', display_order: 1 },
+                { feature_key: 'enrollment', feature_name: 'Enrollment Management', feature_route: '/admin/enrollment', icon: 'Users', display_order: 1.5 },
+                { feature_key: 'courses', feature_name: 'Course Management', feature_route: '/admin/courses', icon: 'BookOpen', display_order: 2 },
+                { feature_key: 'events', feature_name: 'Event Management', feature_route: '/admin/events', icon: 'Calendar', display_order: 3 },
+                { feature_key: 'finance', feature_name: 'Finance Management', feature_route: '/admin/finance', icon: 'DollarSign', display_order: 4 },
+                { feature_key: 'facilities', feature_name: 'Facility Management', feature_route: '/admin/facilities', icon: 'Building', display_order: 5 },
+                { feature_key: 'roles', feature_name: 'Role Management', feature_route: '/admin/roles', icon: 'Shield', display_order: 6 },
+                { feature_key: 'audit', feature_name: 'Audit Logs', feature_route: '/admin/audit', icon: 'FileText', display_order: 7 },
+                { feature_key: 'system', feature_name: 'System Settings', feature_route: '/admin/system', icon: 'Settings', display_order: 8 }
+              ]);
+            } else {
+              navigate('/');
+            }
+          } else {
+            navigate('/');
+          }
+        }
+      } catch (error) {
+        console.error('Auth check error:', error);
+        navigate('/');
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
     checkAuth();
   }, [navigate]);
@@ -221,7 +451,32 @@ const Admin = () => {
   };
 
   const handleNavigationChange = (view) => {
-    setActiveView(view);
+    // Check if user has access to this feature
+    const hasAccess = availableFeatures.some(f => f.feature_key === view);
+    
+    // Super admin bypasses all tag checks
+    const isSuperAdmin = userTags.includes('super_admin');
+    
+    if (isSuperAdmin) {
+      // Super admin can access everything
+      if (hasAccess) {
+        setActiveView(view);
+      }
+      return;
+    }
+    
+    // Additional tag-based checks for non-super admins
+    if (view === 'enrollment' && !userTags.includes('user_admin')) {
+      return;
+    }
+    
+    if (view === 'roles' && !userTags.includes('super_admin')) {
+      return;
+    }
+    
+    if (hasAccess) {
+      setActiveView(view);
+    }
   };
 
   const toggleNotifications = () => {
@@ -247,6 +502,21 @@ const Admin = () => {
     }
   };
 
+  const getIconComponent = (iconName: string) => {
+    const iconMap = {
+      Activity,
+      Users,
+      BookOpen,
+      Calendar,
+      DollarSign,
+      Building,
+      Shield,
+      FileText,
+      Settings
+    };
+    return iconMap[iconName] || Activity;
+  };
+
   const unreadCount = notifications.filter(n => !n.read).length;
 
   if (isLoading) {
@@ -270,24 +540,84 @@ const Admin = () => {
     );
   }
 
-  const sidebarItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: Activity },
-    { id: 'users', label: 'User Management', icon: Users },
-    { id: 'courses', label: 'Course Management', icon: BookOpen },
-    { id: 'events', label: 'Event Management', icon: Calendar },
-    { id: 'finance', label: 'Finance Management', icon: DollarSign },
-    { id: 'facilities', label: 'Facility Management', icon: Building },
-    { id: 'roles', label: 'Role Management', icon: Shield },
-    { id: 'audit', label: 'Audit Logs', icon: FileText },
-    { id: 'system', label: 'System Settings', icon: Settings },
-  ];
+  // Build sidebar items from available features
+  const sidebarItems = availableFeatures.map(feature => ({
+    id: feature.feature_key,
+    label: feature.feature_name,
+    icon: getIconComponent(feature.icon)
+  }));
 
   const renderContent = () => {
+    // Check if user has access to current view
+    const hasAccess = availableFeatures.some(f => f.feature_key === activeView);
+    
+    // Super admin bypasses all restrictions
+    const isSuperAdmin = userTags.includes('super_admin');
+    
+    if (!isSuperAdmin) {
+      // Additional tag-based checks for non-super admins
+      if (activeView === 'enrollment' && !userTags.includes('user_admin')) {
+        return (
+          <div className="flex items-center justify-center min-h-[400px]">
+            <div className="text-center">
+              <Shield className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+              <h2 className="text-2xl font-semibold text-foreground mb-2">Access Denied</h2>
+              <p className="text-muted-foreground">You need the 'user_admin' tag to access Enrollment Management.</p>
+              <Button 
+                onClick={() => setActiveView('dashboard')} 
+                className="mt-4"
+              >
+                Return to Dashboard
+              </Button>
+            </div>
+          </div>
+        );
+      }
+      
+      if (activeView === 'roles' && !userTags.includes('super_admin')) {
+        return (
+          <div className="flex items-center justify-center min-h-[400px]">
+            <div className="text-center">
+              <Shield className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+              <h2 className="text-2xl font-semibold text-foreground mb-2">Access Denied</h2>
+              <p className="text-muted-foreground">You need the 'super_admin' tag to access Role Management.</p>
+              <Button 
+                onClick={() => setActiveView('dashboard')} 
+                className="mt-4"
+              >
+                Return to Dashboard
+              </Button>
+            </div>
+          </div>
+        );
+      }
+    }
+    
+    if (!hasAccess && !isSuperAdmin) {
+      return (
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <Shield className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+            <h2 className="text-2xl font-semibold text-foreground mb-2">Access Denied</h2>
+            <p className="text-muted-foreground">You don't have permission to access this feature.</p>
+            <Button 
+              onClick={() => setActiveView('dashboard')} 
+              className="mt-4"
+            >
+              Return to Dashboard
+            </Button>
+          </div>
+        </div>
+      );
+    }
+
     switch (activeView) {
       case 'dashboard':
         return <AdminDashboard sessionData={sessionData} onNavigate={handleNavigationChange} />;
       case 'users':
         return <EnhancedUserManagement userProfile={userProfile} adminRoles={adminRoles} />;
+      case 'enrollment':
+        return <StudentEnrollmentManagement teacherData={sessionData} />;
       case 'courses':
         return <CourseManagement userProfile={userProfile} />;
       case 'events':
@@ -338,6 +668,26 @@ const Admin = () => {
                     <div className="h-2 w-2 bg-role-admin rounded-full animate-pulse-indicator"></div>
                     <span className="text-lg font-medium text-foreground">Admin Portal</span>
                   </div>
+                  {adminRoles.length > 0 && (
+                    <div className="flex items-center space-x-2">
+                      <div className="h-6 w-px bg-white/20"></div>
+                      <div className="flex flex-wrap gap-2">
+                        {adminRoles.slice(0, 2).map((role, index) => (
+                          <span 
+                            key={index}
+                            className="px-2 py-1 bg-blue-500/20 text-blue-400 text-xs rounded-md font-medium"
+                          >
+                            {role.display_name || role.role_type}
+                          </span>
+                        ))}
+                        {adminRoles.length > 2 && (
+                          <span className="px-2 py-1 bg-blue-500/20 text-blue-400 text-xs rounded-md font-medium">
+                            +{adminRoles.length - 2}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </>
               )}
             </div>
@@ -462,20 +812,52 @@ const Admin = () => {
                           </div>
                         </div>
                       </div>
+                      {adminRoles.length > 0 && (
+                        <div className="mt-3 pt-3 border-t border-white/10">
+                          <p className="text-xs text-muted-foreground mb-2">Assigned Roles:</p>
+                          <div className="flex flex-wrap gap-1">
+                            {adminRoles.map((role, index) => (
+                              <span 
+                                key={index}
+                                className="px-2 py-1 bg-blue-500/20 text-blue-400 text-xs rounded-md font-medium"
+                              >
+                                {role.display_name || role.role_type}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {userTags.length > 0 && (
+                        <div className="mt-3 pt-3 border-t border-white/10">
+                          <p className="text-xs text-muted-foreground mb-2">Active Tags:</p>
+                          <div className="flex flex-wrap gap-1">
+                            {userTags.map((tag, index) => (
+                              <span 
+                                key={index}
+                                className="px-2 py-1 bg-purple-500/20 text-purple-400 text-xs rounded-md font-medium"
+                              >
+                                {tag}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
                     
                     <div className="p-2">
-                      <Button
-                        variant="ghost"
-                        className="w-full justify-start text-left hover:bg-white/10"
-                        onClick={() => {
-                          setActiveView('system');
-                          setShowUserMenu(false);
-                        }}
-                      >
-                        <Settings className="h-4 w-4 mr-3" />
-                        Account Settings
-                      </Button>
+                      {availableFeatures.some(f => f.feature_key === 'system') && (
+                        <Button
+                          variant="ghost"
+                          className="w-full justify-start text-left hover:bg-white/10"
+                          onClick={() => {
+                            setActiveView('system');
+                            setShowUserMenu(false);
+                          }}
+                        >
+                          <Settings className="h-4 w-4 mr-3" />
+                          Account Settings
+                        </Button>
+                      )}
                       
                       <div className="my-2 h-px bg-white/10"></div>
                       

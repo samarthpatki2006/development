@@ -3,13 +3,13 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
-const BREVO_API_KEY = 'REDACTED_SENDINBLUE_KEY'
-const SUPABASE_URL = 'https://dfqmkjywdzbpysjwllgx.supabase.co'
-const SUPABASE_SERVICE_ROLE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRmcW1ranl3ZHpicHlzandsbGd4Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1MTgzMTMxNiwiZXhwIjoyMDY3NDA3MzE2fQ.VsELdN8nCPoNrNh4GM_I22G0nYDr9Cy5Q7gnu3EGbU4'
+const BREVO_API_KEY = Deno.env.get('BREVO_API_KEY')
+const SUPABASE_URL = Deno.env.get('SUPABASE_URL')
+const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
 
-const FROM_EMAIL = 'adithya@colcord.co.in'
-const FROM_NAME = 'ColCord'
-const LOGIN_URL = 'https://development-tau-six.vercel.app'
+const FROM_EMAIL = Deno.env.get('FROM_EMAIL') 
+const FROM_NAME = Deno.env.get('FROM_NAME') || 'College Portal'
+const LOGIN_URL = Deno.env.get('LOGIN_URL')
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -25,9 +25,7 @@ interface WelcomeEmailRequest {
 }
 
 serve(async (req) => {
-  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
   console.log('🚀 SEND-WELCOME-EMAIL FUNCTION INVOKED')
-  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
   console.log('Request method:', req.method)
   console.log('Timestamp:', new Date().toISOString())
 

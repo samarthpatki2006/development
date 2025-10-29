@@ -2,15 +2,16 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from "@/components/ui/use-toast";
 import { Button } from '@/components/ui/button';
-import { 
-  Home, 
-  Calendar, 
-  Users, 
-  Heart, 
-  FileText, 
-  HelpCircle, 
-  Bell, 
-  Settings, 
+import { Badge } from '@/components/ui/badge';
+import {
+  Home,
+  Calendar,
+  Users,
+  Heart,
+  FileText,
+  HelpCircle,
+  Bell,
+  Settings,
   User,
   LogOut,
   Mail,
@@ -19,7 +20,8 @@ import {
   Info,
   X,
   Award,
-  Briefcase
+  Briefcase,
+  Menu
 } from 'lucide-react';
 import SidebarNavigation from '@/components/layout/SidebarNavigation';
 import AlumniDashboard from '@/components/alumni/AlumniDashboard';
@@ -34,18 +36,18 @@ import AlumniCommunicationHub from '@/components/alumni/AlumniCommunicationHub';
 const Alumni = () => {
   const [activeView, setActiveView] = useState('dashboard');
   const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const navigate = useNavigate();
-  
   const notificationRef = useRef(null);
   const userMenuRef = useRef(null);
 
   // Mock notifications for alumni
-  const [notifications] = useState([
+  const [notifications,setNotifications] = useState([
     {
       id: 1,
       type: 'info',
@@ -91,16 +93,24 @@ const Alumni = () => {
   // Check for mobile view
   useEffect(() => {
     const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768);
-      if (window.innerWidth < 768) {
-        setSidebarCollapsed(true);
+      const mobile = window.innerWidth < 768;
+      setIsMobile(mobile);
+      // Close mobile menu when switching to desktop
+      if (!mobile) {
+        setMobileMenuOpen(false);
       }
     };
-
     checkMobile();
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
+  const handleSidebarToggle = () => {
+    if (isMobile) {
+      setMobileMenuOpen(!mobileMenuOpen);
+    } else {
+      setSidebarCollapsed(!sidebarCollapsed);
+    }
+  };
 
   // Handle clicks outside dropdowns
   useEffect(() => {
@@ -116,6 +126,35 @@ const Alumni = () => {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  const handleUserMenuClick = () => {
+    setShowUserMenu(!showUserMenu);
+    setShowNotifications(false);
+  };
+
+  const handleNotificationClick = () => {
+    setShowNotifications(!showNotifications);
+    setShowUserMenu(false);
+  };
+
+  const markNotificationAsRead = (notificationId) => {
+    setNotifications(prevNotifications =>
+      prevNotifications.map(notification =>
+        notification.id === notificationId
+          ? { ...notification, read: true }
+          : notification
+      )
+    );
+  };
+
+  const clearAllNotifications = () => {
+    setNotifications([]);
+    setShowNotifications(false);
+    toast({
+      title: 'Notifications Cleared',
+      description: 'All notifications have been cleared.',
+    });
+  };
 
   useEffect(() => {
     const initializeUser = async () => {
@@ -142,10 +181,9 @@ const Alumni = () => {
         console.error('Error checking user:', error);
         navigate('/');
       } finally {
-        setLoading(false);
+        setIsLoading(false);
       }
     };
-
     initializeUser();
   }, [navigate]);
 
@@ -159,15 +197,6 @@ const Alumni = () => {
     navigate('/');
   };
 
-  const toggleNotifications = () => {
-    setShowNotifications(!showNotifications);
-    setShowUserMenu(false);
-  };
-
-  const toggleUserMenu = () => {
-    setShowUserMenu(!showUserMenu);
-    setShowNotifications(false);
-  };
 
   const getNotificationIcon = (type) => {
     switch (type) {
@@ -184,10 +213,13 @@ const Alumni = () => {
 
   const unreadCount = notifications.filter(n => !n.read).length;
 
-  if (loading) {
+  if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-background">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-role-alumni" />
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-2 text-gray-600">Loading alumni dashboard...</p>
+        </div>
       </div>
     );
   }
@@ -209,7 +241,7 @@ const Alumni = () => {
   const renderContent = () => {
     switch (activeView) {
       case 'dashboard':
-        return <AlumniDashboard user={user} onNavigate={setActiveView}/>;
+        return <AlumniDashboard user={user} onNavigate={setActiveView} />;
       case 'events':
         return <AlumniEvents user={user} />;
       case 'networking':
@@ -228,167 +260,179 @@ const Alumni = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background overflow-x-hidden">
       {/* Background Grid */}
       <div className="fixed inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:40px_40px] pointer-events-none"></div>
-      
+
       {/* Header */}
-      <div className="relative z-[100] bg-background/95 backdrop-blur-sm border-b border-white/10">
-        <div className="container px-4 mx-auto">
+      <div className="fixed w-full z-[100] bg-background/95 backdrop-blur-sm border-b border-white/10">
+        <div className="container mx-auto px-3 sm:px-4">
           <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-6">
+            <div className="flex items-center space-x-3 sm:space-x-6">
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+                onClick={handleSidebarToggle}
                 className="h-9 w-9 rounded-lg hover:bg-white/10 transition-colors"
               >
                 <span className="sr-only">Toggle sidebar</span>
-                <div className="w-4 h-4 flex flex-col space-y-1">
-                  <div className="w-full h-0.5 bg-foreground"></div>
-                  <div className="w-full h-0.5 bg-foreground"></div>
-                  <div className="w-full h-0.5 bg-foreground"></div>
-                </div>
+                <Menu className="h-7 w-7" />
               </Button>
-              <h1 className="text-2xl font-bold text-foreground">ColCord</h1>
-              {!isMobile && (
-                <>
+
+              {/*Logo*/}
+              <div className="flex items-center space-x-2">
+                <h1 className="text-xl sm:text-2xl font-bold text-foreground">ColCord</h1>
+                <div className="hidden sm:flex items-center space-x-2">
                   <div className="h-6 w-px bg-white/20"></div>
                   <div className="flex items-center space-x-2">
                     <div className="h-2 w-2 bg-role-alumni rounded-full animate-pulse-indicator"></div>
-                    <span className="text-lg font-medium text-foreground">Alumni Portal</span>
+                    <span className="text-sm sm:text-lg font-medium text-foreground">Alumni Portal</span>
                   </div>
-                </>
-              )}
+                </div>
+              </div>
             </div>
-            <div className="flex items-center space-x-3">
-              {!isMobile && (
-                <span className="text-sm text-muted-foreground">
-                  Welcome, {user.first_name} {user.last_name}
-                </span>
-              )}
-              
+
+
+
+            {/*Right Section*/}
+            <div className="flex items-center space-x-2 sm:space-x-3">
               {/* Notifications Dropdown */}
               <div className="relative" ref={notificationRef}>
-                <Button 
-                  variant="ghost" 
+                <Button
+                  variant="ghost"
                   size="icon"
-                  onClick={toggleNotifications}
-                  className="h-9 w-9 rounded-lg hover:bg-white/10 transition-colors relative"
+                  onClick={handleNotificationClick}
+                  className="h-9 w-9 rounded-lg hover:bg-white/10 transition-all relative will-change-transform"
                 >
-                  <Bell className="h-5 w-5 text-foreground" />
+                  <Bell className="h-9 w-9 text-foreground" />
                   {unreadCount > 0 && (
-                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center min-w-[20px]">
-                      {unreadCount}
-                    </span>
+                    <div className="absolute -top-1 -right-1 h-5 w-5 bg-red-500 rounded-full flex items-center justify-center">
+                      <span className="text-xs text-white font-medium">{unreadCount}</span>
+                    </div>
                   )}
                 </Button>
 
                 {/* Notifications Panel */}
                 {showNotifications && (
-                  <div className="absolute right-0 mt-2 w-80 max-w-[90vw] bg-background/95 backdrop-blur-md border border-white/20 rounded-xl shadow-2xl z-[9999]">
-                    <div className="p-4 border-b border-white/10">
-                      <div className="flex items-center justify-between">
-                        <h3 className="text-lg font-semibold text-foreground">Notifications</h3>
+                  <div className="fixed right-3 sm:right-4 top-20 w-72 sm:w-96 bg-background/95 backdrop-blur-xl border border-white/20 rounded-xl shadow-2xl z-[9999]">
+                    <div className="p-4 border-b border-white/10 flex items-center justify-between">
+                      <h3 className="text-base sm:text-lg font-semibold text-foreground">Notifications</h3>
+                      <div className="flex items-center space-x-2">
+                        {notifications.length > 0 && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={clearAllNotifications}
+                            className="text-xs text-muted-foreground hover:text-foreground"
+                          >
+                            Clear All
+                          </Button>
+                        )}
                         <Button
                           variant="ghost"
                           size="icon"
                           onClick={() => setShowNotifications(false)}
-                          className="h-6 w-6 rounded-lg hover:bg-white/10"
+                          className="h-6 w-6"
                         >
                           <X className="h-4 w-4" />
                         </Button>
                       </div>
-                      {unreadCount > 0 && (
-                        <p className="text-sm text-muted-foreground mt-1">
-                          {unreadCount} unread notification{unreadCount > 1 ? 's' : ''}
-                        </p>
-                      )}
                     </div>
-                    <div className="max-h-80 overflow-y-auto">
-                      {notifications.map((notification) => (
-                        <div
-                          key={notification.id}
-                          className={`p-4 border-b border-white/5 hover:bg-white/5 transition-colors ${
-                            !notification.read ? 'bg-white/5' : ''
-                          }`}
-                        >
-                          <div className="flex items-start space-x-3">
-                            {getNotificationIcon(notification.type)}
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center justify-between">
-                                <p className="text-sm font-medium text-foreground truncate">
-                                  {notification.title}
-                                </p>
-                                {!notification.read && (
-                                  <div className="h-2 w-2 bg-blue-500 rounded-full ml-2 flex-shrink-0"></div>
-                                )}
+
+
+
+                    <div className="max-h-80 sm:max-h-96 overflow-y-auto">
+                      {notifications.length === 0 ? (
+                        <div className="p-6 text-center">
+                          <Bell className="h-10 sm:h-12 w-10 sm:w-12 text-muted-foreground mx-auto mb-3 opacity-50" />
+                          <p className="text-sm text-muted-foreground">No notifications</p>
+                        </div>
+                      ) : (
+                        notifications.map((notification) => (
+                          <div
+                            key={notification.id}
+                            className={`p-4 border-b border-white/10 cursor-pointer hover:bg-white/5 transition-colors ${!notification.read ? 'bg-white/5' : ''
+                              }`}
+                            onClick={() => markNotificationAsRead(notification.id)}
+                          >
+                            <div className="flex items-start space-x-3">
+                              <div className="flex-shrink-0 mt-1">
+                                {getNotificationIcon(notification.type)}
                               </div>
-                              <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
-                                {notification.message}
-                              </p>
-                              <p className="text-xs text-muted-foreground mt-2">
-                                {notification.time}
-                              </p>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center justify-between">
+                                  <p className="text-sm font-medium text-foreground truncate">
+                                    {notification.title}
+                                  </p>
+                                  {!notification.read && (
+                                    <div className="h-2 w-2 bg-blue-500 rounded-full ml-2"></div>
+                                  )}
+                                </div>
+                                <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
+                                  {notification.message}
+                                </p>
+                                <p className="text-xs text-muted-foreground mt-2">
+                                  {notification.time}
+                                </p>
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      ))}
-                    </div>
-                    <div className="p-4 border-t border-white/10">
-                      <Button variant="ghost" className="w-full text-sm text-muted-foreground hover:text-foreground">
-                        View All Notifications
-                      </Button>
+                        ))
+                      )}
                     </div>
                   </div>
                 )}
               </div>
-              
-              
+
+
               {/* User Menu Dropdown */}
               <div className="relative" ref={userMenuRef}>
-                <Button 
-                  variant="ghost" 
+                <Button
+                  variant="ghost"
                   size="icon"
-                  onClick={toggleUserMenu}
-                  className="h-9 w-9 rounded-lg hover:bg-white/10 transition-colors"
+                  onClick={handleUserMenuClick}
+                  className="h-9 w-9 rounded-lg hover:bg-white/10 transition-all will-change-transform"
                 >
-                  <User className="h-5 w-5 text-foreground" />
+                  <User className="h-9 w-9 text-foreground" />
                 </Button>
 
                 {/* User Menu Panel */}
                 {showUserMenu && (
-                  <div className="absolute right-0 mt-2 w-72 max-w-[90vw] bg-background/95 backdrop-blur-md border border-white/20 rounded-xl shadow-2xl z-[9999]">
+                  <div className="fixed right-3 sm:right-4 top-20 w-60 sm:w-64 bg-background/95 backdrop-blur-xl border border-white/20 rounded-xl shadow-2xl z-[9999]">
                     <div className="p-4 border-b border-white/10">
                       <div className="flex items-center space-x-3">
-                        <div className="h-12 w-12 rounded-full bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center">
+                        <div className="h-10 w-10 sm:h-12 w-10 sm:w-12 rounded-full bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center">
                           <span className="text-white font-semibold text-lg">
                             {user.first_name?.[0]}{user.last_name?.[0]}
                           </span>
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-base font-semibold text-foreground truncate">
+                          <p className="text-sm font-medium text-foreground truncate">
                             {user.first_name} {user.last_name}
                           </p>
-                          <p className="text-sm text-muted-foreground truncate">
+                          <p className="text-xs text-muted-foreground truncate">
                             {user.email}
                           </p>
-                          <div className="flex items-center space-x-2 mt-1">
-                            <div className="px-2 py-1 bg-role-alumni/20 text-role-alumni text-xs rounded-md font-medium">
-                              Alumni
-                            </div>
-                            <span className="text-xs text-muted-foreground">
+
+
+                          <div className="flex items-center space-x-2 mt-2">
+                            <Badge className="bg-yellow-500/20 text-yellow-300 border-yellow-400/30 font-medium text-xs pointer-events-none">
+                              alumni
+                            </Badge>
+                            <span className="text-yellow-300 border-yellow-400/30 text-xs font-medium">
                               {user.user_code || 'ALM001'}
                             </span>
                           </div>
                         </div>
                       </div>
                     </div>
-                    
-                    <div className="p-2">
+
+
+                    {/*User Dropdown elements*/}
+                    <div className="p-2 space-y-2 sm:space-y-0">
                       <Button
                         variant="ghost"
-                        className="w-full justify-start text-left hover:bg-white/10"
+                        className="w-full justify-start text-blue-sm-left hover:bg-white/10 hover-text will-change-transform"
                         onClick={() => {
                           setActiveView('networking');
                           setShowUserMenu(false);
@@ -397,10 +441,10 @@ const Alumni = () => {
                         <Users className="h-4 w-4 mr-3" />
                         My Network
                       </Button>
-                      
+
                       <Button
                         variant="ghost"
-                        className="w-full justify-start text-left hover:bg-white/10"
+                        className="w-full justify-start text-sm-left hover:bg-white/10 hover-text will-change-transform"
                         onClick={() => {
                           setActiveView('contributions');
                           setShowUserMenu(false);
@@ -409,10 +453,10 @@ const Alumni = () => {
                         <Heart className="h-4 w-4 mr-3" />
                         My Contributions
                       </Button>
-                      
+
                       <Button
                         variant="ghost"
-                        className="w-full justify-start text-left hover:bg-white/10"
+                        className="w-full justify-start text-sm-left hover:bg-white/10 hover-text will-change-transform"
                         onClick={() => {
                           setActiveView('support');
                           setShowUserMenu(false);
@@ -421,16 +465,20 @@ const Alumni = () => {
                         <Settings className="h-4 w-4 mr-3" />
                         Account Settings
                       </Button>
-                      
-                      <div className="my-2 h-px bg-white/10"></div>
-                      
+
+
+
+                      <div className="h-px bg-white/10 my-2"></div>
                       <Button
                         variant="ghost"
-                        className="w-full justify-start text-left hover:bg-red-500/10 text-red-400 hover:text-red-300"
-                        onClick={handleLogout}
+                        onClick={() => {
+                          setShowUserMenu(false);
+                          handleLogout();
+                        }}
+                        className="w-full justify-start text-sm text-red-400 hover:text-red-300 hover:bg-ref-500/10 rounded-lg will-change-transform"
                       >
-                        <LogOut className="h-4 w-4 mr-3" />
-                        Sign Out
+                        <LogOut className="text-red-300 h-4 w-4 mr-3" />
+                        Logout
                       </Button>
                     </div>
                   </div>
@@ -442,29 +490,23 @@ const Alumni = () => {
       </div>
 
       {/* Main Layout */}
-      <div className="relative z-10 flex">
+      <div className="relative z-10 flex mt-[64px] min-h-[calc(100vh-4rem)]">
         {/* Sidebar */}
         <SidebarNavigation
           items={sidebarItems}
           activeItem={activeView}
           onItemClick={setActiveView}
           userType="alumni"
-          collapsed={isMobile || sidebarCollapsed}
+          collapsed={sidebarCollapsed}
+          mobileOpen={mobileMenuOpen}
+          onMobileClose={() => setMobileMenuOpen(false)}
         />
 
         {/* Main Content */}
-        <div className={`flex-1 p-4 md:p-6 ${isMobile ? 'ml-0' : ''}`}>
+        <div className="flex-1 w-full min-w-0 transition-all duration-300 ease-in-out p-3 sm:p-6">
           {renderContent()}
         </div>
       </div>
-      
-      {/* Mobile overlay when sidebar is open */}
-      {isMobile && !sidebarCollapsed && (
-        <div 
-          className="fixed inset-0 bg-black/50 z-[50] md:hidden"
-          onClick={() => setSidebarCollapsed(true)}
-        />
-      )}
     </div>
   );
 };

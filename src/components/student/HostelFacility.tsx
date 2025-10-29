@@ -7,10 +7,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
-import { 
-  Building, 
-  Bed, 
-  Wrench, 
+import {
+  Building,
+  Bed,
+  Wrench,
   Plus,
   MapPin,
   Users,
@@ -207,15 +207,15 @@ const HostelFacility: React.FC<HostelFacilityProps> = ({ studentData }) => {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold">Hostel & Facilities</h2>
-        <div className="flex gap-2">
-          <Badge variant="outline" className="px-3 py-1">
+    <div className="space-y-4 sm:space-y-6 px-3 sm:px-4 md:px-6 w-full max-w-full">
+      <div className="flex flex-col xs:flex-row justify-between items-start xs:items-center gap-3">
+        <h2 className="text-lg sm:text-xl md:text-2xl font-bold">Hostel & Facilities</h2>
+        <div className="flex flex-wrap gap-2">
+          <Badge variant="outline" className="px-2 sm:px-3 py-1 text-xs sm:text-sm whitespace-nowrap">
             {Object.keys(hostelBlocks).length} Hostel Blocks Available
           </Badge>
           {pendingApplications.length > 0 && (
-            <Badge variant="secondary" className="px-3 py-1">
+            <Badge variant="secondary" className="px-2 sm:px-3 py-1 text-xs sm:text-sm whitespace-nowrap">
               {pendingApplications.length} Pending Applications
             </Badge>
           )}
@@ -371,7 +371,7 @@ const HostelFacility: React.FC<HostelFacilityProps> = ({ studentData }) => {
             <CardContent>
               {applications.length === 0 ? (
                 <div className="text-center py-8">
-                  <Bed className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+                  <Bed className="h-12 w-12 mx-auto mb-4" />
                   <p>No hostel applications submitted yet</p>
                   <p className="text-sm text-gray-500 mt-2">
                     Apply to multiple hostels to maximize your chances!
@@ -414,49 +414,49 @@ const HostelFacility: React.FC<HostelFacilityProps> = ({ studentData }) => {
           </Card>
         </TabsContent>
 
-        <TabsContent value="facilities" className="space-y-6">
+        <TabsContent value="facilities" className="space-y-4 sm:space-y-6">
           <div className="flex justify-end">
             <FacilityRequestDialog onSubmit={submitFacilityRequest} facilities={facilities} />
           </div>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>My Facility Requests</CardTitle>
+          <Card className="w-full">
+            <CardHeader className="p-4 sm:p-5 md:p-6">
+              <CardTitle className="text-base sm:text-lg">My Facility Requests</CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-4 sm:p-5 md:p-6">
               {facilityRequests.length === 0 ? (
-                <div className="text-center py-8">
-                  <Wrench className="h-12 w-12 mx-auto mb-4 text-gray-400" />
-                  <p>No facility requests submitted yet</p>
+                <div className="text-center py-6 sm:py-8">
+                  <Wrench className="h-10 w-10 sm:h-12 sm:w-12 text-gray-400 mx-auto mb-3 sm:mb-4" />
+                  <p className="text-sm sm:text-base">No facility requests submitted yet</p>
                 </div>
               ) : (
-                <div className="space-y-4">
+                <div className="space-y-3 sm:space-y-4 max-h-[600px] overflow-y-auto pr-2">
                   {facilityRequests.map((request: any) => (
-                    <Card key={request.id} className="border">
-                      <CardContent className="p-4">
-                        <div className="flex justify-between items-start mb-3">
-                          <div>
-                            <h4 className="font-semibold">{request.title}</h4>
-                            <p className="text-sm capitalize">
+                    <Card key={request.id} className="border w-full">
+                      <CardContent className="p-3 sm:p-4">
+                        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3 mb-3">
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-semibold text-sm sm:text-base break-words">{request.title}</h4>
+                            <p className="text-xs sm:text-sm capitalize text-gray-600">
                               {request.request_type} Request
                             </p>
                             {request.facilities && (
-                              <p className="text-sm">
+                              <p className="text-xs sm:text-sm text-gray-600 break-words">
                                 Facility: {request.facilities.facility_name}
                               </p>
                             )}
                           </div>
-                          <div className="text-right">
-                            <Badge variant={getStatusColor(request.status)}>
+                          <div className="text-left sm:text-right flex-shrink-0">
+                            <Badge variant={getStatusColor(request.status)} className="text-xs">
                               {request.status}
                             </Badge>
-                            <p className="text-xs mt-1">
+                            <p className="text-[10px] sm:text-xs text-gray-600 mt-1">
                               {new Date(request.submitted_at).toLocaleDateString()}
                             </p>
                           </div>
                         </div>
                         
-                        <p className="text-sm mb-3">{request.description}</p>
+                        <p className="text-xs sm:text-sm mb-3 break-words">{request.description}</p>
                         
                         {request.response && (
                           <div className="bg-blue-50 p-3 rounded mb-3">
@@ -476,14 +476,14 @@ const HostelFacility: React.FC<HostelFacilityProps> = ({ studentData }) => {
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader>
+          <Card className="w-full">
+            <CardHeader className="p-4 sm:p-5 md:p-6">
               <CardTitle>Campus Facilities</CardTitle>
               <p className="text-sm text-gray-600">
                 Available facilities at your college campus
               </p>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-4 sm:p-5 md:p-6">
               {facilities.length === 0 ? (
                 <div className="text-center py-8">
                   <Building className="h-12 w-12 mx-auto mb-4 text-gray-400" />
@@ -547,7 +547,7 @@ const HostelFacility: React.FC<HostelFacilityProps> = ({ studentData }) => {
   );
 };
 
-// Hostel Application Dialog Component
+// Enhanced Hostel Application Dialog Component
 const HostelApplicationDialog: React.FC<{
   onApply: (roomId: string, preferredRoomType: string, comments: string) => void;
   rooms: any[];
@@ -587,37 +587,37 @@ const HostelApplicationDialog: React.FC<{
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button 
-          disabled={isDisabled} 
-          className="w-full mt-4"
+        <Button
+          disabled={isDisabled}
+          className="w-full mt-4 text-xs sm:text-sm"
           variant={hasBlockApplication ? "outline" : "default"}
         >
-          <Plus className="h-4 w-4 mr-2" />
+          <Plus className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-2" />
           {getButtonText()}
         </Button>
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent className="w-[95vw] max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{getDialogTitle()}</DialogTitle>
-          <DialogDescription>
-            {hasAllocation ? 
+          <DialogTitle className="text-base sm:text-lg break-words">{getDialogTitle()}</DialogTitle>
+          <DialogDescription className="text-xs sm:text-sm">
+            {hasAllocation ?
               `Submit an application for room change in ${blockName}.` :
-              `Submit your application for hostel accommodation in ${blockName}. You can apply to multiple hostels to increase your chances.`
+              `Submit your application for hostel accommodation in ${blockName}. You can apply to multiple hostels.`
             }
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
           <div>
-            <label className="text-sm font-medium">Preferred Room in {blockName} (Optional)</label>
+            <label className="text-xs sm:text-sm font-medium">Preferred Room in {blockName} (Optional)</label>
             <Select value={selectedRoom} onValueChange={setSelectedRoom}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select a specific room or leave blank" />
+              <SelectTrigger className="text-xs sm:text-sm">
+                <SelectValue placeholder="Select a room or leave blank" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="no-preference">No preference - Any room in {blockName}</SelectItem>
+                <SelectItem value="no-preference" className="text-xs sm:text-sm">No preference - Any room</SelectItem>
                 {rooms.map((room) => (
-                  <SelectItem key={room.id} value={room.id}>
-                    Room {room.room_number} ({room.room_type}) - {room.capacity - room.current_occupancy} spots available
+                  <SelectItem key={room.id} value={room.id} className="text-xs sm:text-sm">
+                    Room {room.room_number} ({room.room_type}) - {room.capacity - room.current_occupancy} spots
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -625,35 +625,36 @@ const HostelApplicationDialog: React.FC<{
           </div>
 
           <div>
-            <label className="text-sm font-medium">Preferred Room Type</label>
+            <label className="text-xs sm:text-sm font-medium">Preferred Room Type</label>
             <Select value={preferredRoomType} onValueChange={setPreferredRoomType}>
-              <SelectTrigger>
+              <SelectTrigger className="text-xs sm:text-sm">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="single">Single Room</SelectItem>
-                <SelectItem value="shared">Shared Room</SelectItem>
-                <SelectItem value="suite">Suite</SelectItem>
+                <SelectItem value="single" className="text-xs sm:text-sm">Single Room</SelectItem>
+                <SelectItem value="shared" className="text-xs sm:text-sm">Shared Room</SelectItem>
+                <SelectItem value="suite" className="text-xs sm:text-sm">Suite</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           <div>
-            <label className="text-sm font-medium">Additional Comments</label>
+            <label className="text-xs sm:text-sm font-medium">Additional Comments</label>
             <Textarea
               placeholder={`Any special requirements or preferences for ${blockName}...`}
               value={comments}
               onChange={(e) => setComments(e.target.value)}
               rows={3}
+              className="text-xs sm:text-sm"
             />
           </div>
 
-          <div className="text-sm text-gray-600 bg-blue-50 p-3 rounded">
-            <p><strong>💡 Pro Tip:</strong> Applying to multiple hostels increases your chances of getting accommodation. Each application is reviewed independently!</p>
+          <div className="text-xs sm:text-sm text-gray-600 bg-blue-50 p-3 rounded">
+            <p><strong>💡 Pro Tip:</strong> Applying to multiple hostels increases your chances!</p>
           </div>
 
-          <Button onClick={handleSubmit} className="w-full">
-            Submit Application to {blockName}
+          <Button onClick={handleSubmit} className="w-full text-xs sm:text-sm">
+            Submit Application
           </Button>
         </div>
       </DialogContent>
@@ -661,7 +662,7 @@ const HostelApplicationDialog: React.FC<{
   );
 };
 
-// Facility Request Dialog Component
+// Facility Request Dialog Component (unchanged)
 const FacilityRequestDialog: React.FC<{
   onSubmit: (facilityId: string, requestType: string, title: string, description: string, priority: string) => void;
   facilities: any[];
@@ -688,29 +689,29 @@ const FacilityRequestDialog: React.FC<{
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button>
-          <Plus className="h-4 w-4 mr-2" />
+        <Button className="text-xs sm:text-sm">
+          <Plus className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-2" />
           New Request
         </Button>
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent className="w-[95vw] max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Submit Facility Request</DialogTitle>
-          <DialogDescription>
+          <DialogTitle className="text-base sm:text-lg">Submit Facility Request</DialogTitle>
+          <DialogDescription className="text-xs sm:text-sm">
             Submit a request for facility maintenance, booking, or other issues.
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
           <div>
-            <label className="text-sm font-medium">Facility (Optional)</label>
+            <label className="text-xs sm:text-sm font-medium">Facility (Optional)</label>
             <Select value={facilityId} onValueChange={setFacilityId}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select facility or leave blank for general request" />
+              <SelectTrigger className="text-xs sm:text-sm">
+                <SelectValue placeholder="Select facility or leave blank" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="general">General Request</SelectItem>
+                <SelectItem value="general" className="text-xs sm:text-sm">General Request</SelectItem>
                 {facilities.map((facility) => (
-                  <SelectItem key={facility.id} value={facility.id}>
+                  <SelectItem key={facility.id} value={facility.id} className="text-xs sm:text-sm">
                     {facility.facility_name} ({facility.facility_type})
                   </SelectItem>
                 ))}
@@ -719,58 +720,60 @@ const FacilityRequestDialog: React.FC<{
           </div>
 
           <div>
-            <label className="text-sm font-medium">Request Type</label>
+            <label className="text-xs sm:text-sm font-medium">Request Type</label>
             <Select value={requestType} onValueChange={setRequestType}>
-              <SelectTrigger>
+              <SelectTrigger className="text-xs sm:text-sm">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="maintenance">Maintenance</SelectItem>
-                <SelectItem value="booking">Room/Facility Booking</SelectItem>
-                <SelectItem value="complaint">Complaint</SelectItem>
-                <SelectItem value="suggestion">Suggestion</SelectItem>
+                <SelectItem value="maintenance" className="text-xs sm:text-sm">Maintenance</SelectItem>
+                <SelectItem value="booking" className="text-xs sm:text-sm">Room/Facility Booking</SelectItem>
+                <SelectItem value="complaint" className="text-xs sm:text-sm">Complaint</SelectItem>
+                <SelectItem value="suggestion" className="text-xs sm:text-sm">Suggestion</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           <div>
-            <label className="text-sm font-medium">Title</label>
+            <label className="text-xs sm:text-sm font-medium">Title</label>
             <Input
               placeholder="Brief title for your request..."
               value={title}
               onChange={(e) => setTitle(e.target.value)}
+              className="text-xs sm:text-sm"
             />
           </div>
 
           <div>
-            <label className="text-sm font-medium">Description</label>
+            <label className="text-xs sm:text-sm font-medium">Description</label>
             <Textarea
               placeholder="Detailed description of your request..."
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={4}
+              className="text-xs sm:text-sm"
             />
           </div>
 
           <div>
-            <label className="text-sm font-medium">Priority</label>
+            <label className="text-xs sm:text-sm font-medium">Priority</label>
             <Select value={priority} onValueChange={setPriority}>
-              <SelectTrigger>
+              <SelectTrigger className="text-xs sm:text-sm">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="low">Low</SelectItem>
-                <SelectItem value="normal">Normal</SelectItem>
-                <SelectItem value="high">High</SelectItem>
-                <SelectItem value="urgent">Urgent</SelectItem>
+                <SelectItem value="low" className="text-xs sm:text-sm">Low</SelectItem>
+                <SelectItem value="normal" className="text-xs sm:text-sm">Normal</SelectItem>
+                <SelectItem value="high" className="text-xs sm:text-sm">High</SelectItem>
+                <SelectItem value="urgent" className="text-xs sm:text-sm">Urgent</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
-          <Button 
-            onClick={handleSubmit} 
+          <Button
+            onClick={handleSubmit}
             disabled={!title.trim() || !description.trim()}
-            className="w-full"
+            className="w-full text-xs sm:text-sm"
           >
             Submit Request
           </Button>

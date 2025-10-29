@@ -2,10 +2,31 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from "@/components/ui/use-toast";
 import {
-  BookOpen, Calendar, MessageSquare, CreditCard, Building, HelpCircle,
-  GraduationCap, Clock, FileText, Bell, Settings, User, Sparkle,
-  LogOut, Mail, AlertCircle, CheckCircle, Info, X, Award,
-  TrendingUp, UserCircle, Bot, Users
+  BookOpen,
+  Calendar,
+  MessageSquare,
+  CreditCard,
+  Building,
+  HelpCircle,
+  GraduationCap,
+  Clock,
+  FileText,
+  Bell,
+  Menu,  Users,
+  Sun,
+  Settings,
+  User,
+  Sparkle,
+  LogOut,
+  Mail,
+  AlertCircle,
+  CheckCircle,
+  Info,
+  X,
+  Award,
+  TrendingUp,
+  UserCircle,
+  Bot
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import SidebarNavigation from '@/components/layout/SidebarNavigation';
@@ -13,6 +34,7 @@ import StudentDashboard from '@/components/student/StudentDashboard';
 import ScheduleTimetable from '@/components/student/ScheduleTimetable';
 import AttendanceOverview from '@/components/student/AttendanceOverview';
 import CoursesLearningSnapshot from '@/components/student/CoursesLearningSnapshot';
+import CalendarAttendance from '@/components/student/Events';
 import CommunicationCenter from '@/components/student/CommunicationCenter';
 import PaymentsFees from '@/components/student/PaymentsFeesIntegrated';
 import HostelFacility from '@/components/student/HostelFacility';
@@ -58,8 +80,9 @@ const Student = () => {
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [selectedChannelId, setSelectedChannelId] = useState<string | null>(null);
-  const [hasClubAccess, setHasClubAccess] = useState(false); // NEW: State for club access
+  const [hasClubAccess, setHasClubAccess] = useState(false);
   const navigate = useNavigate();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const notificationRef = useRef<HTMLDivElement>(null);
   const userMenuRef = useRef<HTMLDivElement>(null);
@@ -71,10 +94,12 @@ const Student = () => {
     const checkMobile = () => {
       const mobile = window.innerWidth < 768;
       setIsMobile(mobile);
-      if (mobile) {
-        setSidebarCollapsed(true);
+      // Close mobile menu when switching to desktop
+      if (!mobile) {
+        setMobileMenuOpen(false);
       }
     };
+
     checkMobile();
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
@@ -82,14 +107,15 @@ const Student = () => {
 
   // Handle clicks outside dropdowns
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (notificationRef.current && !notificationRef.current.contains(event.target as Node)) {
+    const handleClickOutside = (event) => {
+      if (notificationRef.current && !notificationRef.current.contains(event.target)) {
         setShowNotifications(false);
       }
-      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target)) {
         setShowUserMenu(false);
       }
     };
+
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
@@ -305,7 +331,16 @@ const Student = () => {
     });
   };
 
-  const unreadCount = notifications.filter(n => !n.is_read).length;
+  // ADD THIS: Handle sidebar toggle
+  const handleSidebarToggle = () => {
+    if (isMobile) {
+      setMobileMenuOpen(!mobileMenuOpen);
+    } else {
+      setSidebarCollapsed(!sidebarCollapsed);
+    }
+  };
+
+  const unreadCount = notifications.filter(n => !n.read).length;
 
   if (loading) {
     return (
@@ -319,7 +354,6 @@ const Student = () => {
     return null;
   }
 
-  // NEW: Build sidebar items dynamically based on club access
   const sidebarItems = [
     { id: 'dashboard', label: 'Dashboard', icon: GraduationCap },
     { id: 'schedule', label: 'Schedule', icon: Clock },
@@ -339,10 +373,16 @@ const Student = () => {
     { id: 'support', label: 'Support', icon: HelpCircle },
   ];
 
+  const isFullWidthView = () => {
+    // Pages that handle their own padding and spacing internally
+    const fullWidthPages = ['dashboard', 'courses'];
+    return fullWidthPages.includes(activeView);
+  };
+
   const renderContent = () => {
     switch (activeView) {
       case 'dashboard':
-        return <StudentDashboard studentData={studentData} onNavigate={setActiveView}/>;
+        return <StudentDashboard studentData={studentData} onNavigate={setActiveView} />;
       case 'schedule':
         return <ScheduleTimetable studentData={studentData} />;
       case 'attendance':
@@ -378,39 +418,48 @@ const Student = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="relative z-[100] bg-background/95 backdrop-blur-sm border-b border-white/10 sticky top-0">
-        <div className="container px-4 mx-auto">
+    <div className="min-h-screen bg-background overflow-x-hidden">
+      {/* Background Grid */}
+      <div className="fixed inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:40px_40px] pointer-events-none"></div>
+
+      {/* Header */}
+      <div className="fixed w-full z-[100] bg-background/95 backdrop-blur-sm border-b border-white/10">
+        <div className="container mx-auto px-3 sm:px-4">
           <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-6">
+            {/* Left Section */}
+            <div className="flex items-center space-x-3 sm:space-x-6">
+              {/* UPDATED: Sidebar Toggle */}
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-                className="h-9 w-9 rounded-lg hover:bg-white/10 transition-colors"
+                onClick={handleSidebarToggle}
+                className="h-9 w-9 rounded-lg hover:bg-white/10 transition-all duration-200 ease-in-out"
               >
                 <span className="sr-only">Toggle sidebar</span>
-                <div className="w-4 h-4 flex flex-col space-y-1">
-                  <div className="w-full h-0.5 bg-foreground"></div>
-                  <div className="w-full h-0.5 bg-foreground"></div>
-                  <div className="w-full h-0.5 bg-foreground"></div>
-                </div>
+                <Menu className="h-7 w-7" />
               </Button>
-              <h1 className="text-2xl font-bold text-foreground">ColCord</h1>
-              <div className="hidden sm:flex items-center space-x-2">
-                <div className="h-6 w-px bg-white/20"></div>
-                <div className="flex items-center space-x-2">
-                  <div className="h-2 w-2 bg-role-student rounded-full animate-pulse-indicator"></div>
-                  <span className="text-lg font-medium text-foreground">Student Portal</span>
+
+              {/* Logo + Portal Name */}
+              <div className="flex items-center space-x-2">
+                <h1 className="text-xl sm:text-2xl font-bold text-foreground">ColCord</h1>
+                <div className="hidden sm:flex items-center space-x-2">
+                  <div className="h-6 w-px bg-white/20"></div>
+                  <div className="flex items-center space-x-2">
+                    <div className="h-2 w-2 bg-role-student rounded-full animate-pulse-indicator"></div>
+                    <span className="text-sm sm:text-lg font-medium text-foreground">Student Portal</span>
+                  </div>
                 </div>
               </div>
             </div>
-            <div className="flex items-center space-x-3">
-              {!isMobile && (
-                <span className="text-sm text-muted-foreground">
-                  Welcome, {studentData.first_name} {studentData.last_name}
-                </span>
-              )}
+
+            {/* Right Section */}
+            <div className="flex items-center space-x-2 sm:space-x-3">
+              {/* Greeting (Hidden on Mobile) */}
+              <span className="hidden lg:block text-sm text-muted-foreground truncate max-w-[350px]">
+                Welcome, {studentData.first_name} {studentData.last_name}
+              </span>
+
+              {/* Notifications */}
               <div className="relative" ref={notificationRef}>
                 <Button
                   variant="ghost"
@@ -425,38 +474,39 @@ const Student = () => {
                     </div>
                   )}
                 </Button>
+
+                {/* Notifications Dropdown */}
                 {showNotifications && (
-                  <div className="fixed right-4 top-20 w-80 sm:w-96 bg-background/95 backdrop-blur-xl border border-white/20 rounded-xl shadow-2xl z-[9999]">
-                    <div className="p-4 border-b border-white/10">
-                      <div className="flex items-center justify-between">
-                        <h3 className="text-lg font-semibold text-foreground">Notifications</h3>
-                        <div className="flex items-center space-x-2">
-                          {notifications.length > 0 && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={clearAllNotifications}
-                              className="text-xs text-muted-foreground hover:text-foreground"
-                            >
-                              Clear All
-                            </Button>
-                          )}
+                  <div className="fixed right-3 sm:right-4 top-20 w-72 sm:w-96 bg-background/95 backdrop-blur-xl border border-white/20 rounded-xl shadow-2xl z-[9999]">
+                    <div className="p-4 border-b border-white/10 flex items-center justify-between">
+                      <h3 className="text-base sm:text-lg font-semibold text-foreground">Notifications</h3>
+                      <div className="flex items-center space-x-2">
+                        {notifications.length > 0 && (
                           <Button
                             variant="ghost"
-                            size="icon"
-                            onClick={() => setShowNotifications(false)}
-                            className="h-6 w-6"
+                            size="sm"
+                            onClick={clearAllNotifications}
+                            className="text-xs text-muted-foreground hover:text-foreground"
                           >
-                            <X className="h-4 w-4" />
+                            Clear All
                           </Button>
-                        </div>
+                        )}
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => setShowNotifications(false)}
+                          className="h-6 w-6"
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
                       </div>
                     </div>
-                    <div className="max-h-96 overflow-y-auto">
+
+                    <div className="max-h-80 sm:max-h-96 overflow-y-auto">
                       {notifications.length === 0 ? (
                         <div className="p-6 text-center">
-                          <Bell className="h-12 w-12 text-muted-foreground mx-auto mb-3 opacity-50" />
-                          <p className="text-muted-foreground">No notifications</p>
+                          <Bell className="h-10 sm:h-12 w-10 sm:w-12 text-muted-foreground mx-auto mb-3 opacity-50" />
+                          <p className="text-sm text-muted-foreground">No notifications</p>
                         </div>
                       ) : (
                         notifications.map((notification) => (
@@ -477,10 +527,10 @@ const Student = () => {
                                     {notification.title}
                                   </p>
                                   {!notification.is_read && (
-                                    <div className="h-2 w-2 bg-blue-500 rounded-full flex-shrink-0 ml-2"></div>
+                                    <div className="h-2 w-2 bg-blue-500 rounded-full ml-2"></div>
                                   )}
                                 </div>
-                                <p className="text-sm text-muted-foreground mt-1">
+                                <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
                                   {notification.content}
                                 </p>
                                 <p className="text-xs text-muted-foreground mt-2">
@@ -505,12 +555,14 @@ const Student = () => {
                 >
                   <User className="h-5 w-5 text-foreground" />
                 </Button>
+
+                {/* User Menu Dropdown */}
                 {showUserMenu && (
-                  <div className="fixed right-4 top-20 w-64 bg-background/95 backdrop-blur-xl border border-white/20 rounded-xl shadow-2xl z-[9999]">
+                  <div className="fixed right-3 sm:right-4 top-20 w-60 sm:w-64 bg-background/95 backdrop-blur-xl border border-white/20 rounded-xl shadow-2xl z-[9999]">
                     <div className="p-4 border-b border-white/10">
                       <div className="flex items-center space-x-3">
-                        <div className="h-12 w-12 bg-role-student/20 rounded-full flex items-center justify-center">
-                          <UserCircle className="h-8 w-8 text-role-student" />
+                        <div className="h-10 sm:h-12 w-10 sm:w-12 bg-role-student/20 rounded-full flex items-center justify-center">
+                          <UserCircle className="h-6 sm:h-8 w-6 sm:w-8 text-role-student" />
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium text-foreground truncate">
@@ -519,65 +571,45 @@ const Student = () => {
                           <p className="text-xs text-muted-foreground truncate">
                             {studentData.email}
                           </p>
-                          <p className="text-xs text-role-student font-medium">
-                            Student
-                          </p>
+                          <p className="text-xs text-role-student font-medium">Student</p>
                         </div>
                       </div>
                     </div>
-                    <div className="p-2">
-                      <Button
-                        variant="ghost"
-                        onClick={() => { setShowUserMenu(false); setActiveView('courses'); }}
-                        className="w-full justify-start text-sm text-muted-foreground hover:text-foreground hover:bg-white/5 rounded-lg"
-                      >
-                        <BookOpen className="h-4 w-4 mr-3" /> My Courses
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        onClick={() => { setShowUserMenu(false); setActiveView('gradebook'); }}
-                        className="w-full justify-start text-sm text-muted-foreground hover:text-foreground hover:bg-white/5 rounded-lg"
-                      >
-                        <TrendingUp className="h-4 w-4 mr-3" /> My Grades
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        onClick={() => { setShowUserMenu(false); setActiveView('attendance'); }}
-                        className="w-full justify-start text-sm text-muted-foreground hover:text-foreground hover:bg-white/5 rounded-lg"
-                      >
-                        <Calendar className="h-4 w-4 mr-3" /> My Attendance
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        onClick={() => { setShowUserMenu(false); setActiveView('schedule'); }}
-                        className="w-full justify-start text-sm text-muted-foreground hover:text-foreground hover:bg-white/5 rounded-lg"
-                      >
-                        <Clock className="h-4 w-4 mr-3" /> My Schedule
-                      </Button>
-                      {/* NEW: Conditionally show club menu item */}
-                      {hasClubAccess && (
+
+                    <div className="p-2 space-y-1">
+                      {[
+                        { icon: BookOpen, label: "My Courses", view: "courses" },
+                        { icon: TrendingUp, label: "My Grades", view: "gradebook" },
+                        { icon: Calendar, label: "My Attendance", view: "attendance" },
+                        { icon: Clock, label: "My Schedule", view: "schedule" },
+                        { icon: Settings, label: "Settings & Support", view: "support" },
+                      ].map(({ icon: Icon, label, view }) => (
                         <Button
+                          key={view}
                           variant="ghost"
-                          onClick={() => { setShowUserMenu(false); setActiveView('clubs'); }}
+                          onClick={() => {
+                            setShowUserMenu(false);
+                            setActiveView(view);
+                          }}
                           className="w-full justify-start text-sm text-muted-foreground hover:text-foreground hover:bg-white/5 rounded-lg"
                         >
-                          <Users className="h-4 w-4 mr-3" /> My Clubs
+                          <Icon className="h-4 w-4 mr-3" />
+                          {label}
                         </Button>
-                      )}
-                      <Button
-                        variant="ghost"
-                        onClick={() => { setShowUserMenu(false); setActiveView('support'); }}
-                        className="w-full justify-start text-sm text-muted-foreground hover:text-foreground hover:bg-white/5 rounded-lg"
-                      >
-                        <Settings className="h-4 w-4 mr-3" /> Settings & Support
-                      </Button>
+                      ))}
+
                       <div className="h-px bg-white/10 my-2"></div>
+
                       <Button
                         variant="ghost"
-                        onClick={() => { setShowUserMenu(false); handleLogout(); }}
+                        onClick={() => {
+                          setShowUserMenu(false);
+                          handleLogout();
+                        }}
                         className="w-full justify-start text-sm text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg"
                       >
-                        <LogOut className="h-4 w-4 mr-3" /> Logout
+                        <LogOut className="h-4 w-4 mr-3" />
+                        Logout
                       </Button>
                     </div>
                   </div>
@@ -588,15 +620,21 @@ const Student = () => {
         </div>
       </div>
 
-      <div className="relative z-10 flex min-h-[calc(100vh-4rem)]">
+      {/* Main Layout */}
+      <div className="relative z-10 flex mt-[64px] min-h-[calc(100vh-4rem)]">
+        {/* UPDATED: Sidebar */}
         <SidebarNavigation
           items={sidebarItems}
           activeItem={activeView}
           onItemClick={setActiveView}
           userType="student"
-          collapsed={sidebarCollapsed || isMobile}
+          collapsed={sidebarCollapsed}
+          mobileOpen={mobileMenuOpen}
+          onMobileClose={() => setMobileMenuOpen(false)}
         />
-        <div className={`flex-1 p-3 sm:p-6 ${isMobile ? 'ml-0' : ''}`}>
+
+        {/* Main Content */}
+        <div className={`flex-1 w-full min-w-0 transition-all duration-300 ease-in-out ${isFullWidthView() ? '' : 'p-3 sm:p-6'}`}>
           {renderContent()}
         </div>
       </div>

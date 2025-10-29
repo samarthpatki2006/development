@@ -25,7 +25,6 @@ const Index = () => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         setSession(session);
-        
         if (session?.user) {
           // User is authenticated, they'll be redirected by NavigationWrapper
           // based on their profile data

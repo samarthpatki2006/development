@@ -80,7 +80,7 @@ const TeacherPerformance = ({ teacherData }: TeacherPerformanceProps) => {
     try {
       setLoading(true);
       await Promise.all([
-        fetchStudents(),
+        fetchStudents()
       ]);
     } catch (error) {
       console.error('Error fetching performance data:', error);
@@ -268,6 +268,7 @@ const TeacherPerformance = ({ teacherData }: TeacherPerformanceProps) => {
 
   const shareProgressWithParents = async (studentId: string) => {
     try {
+      // In a real implementation, this would create a notification or report for parents
       toast({
         title: 'Success',
         description: 'Progress shared with parents successfully'

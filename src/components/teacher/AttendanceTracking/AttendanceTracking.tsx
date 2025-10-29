@@ -244,16 +244,16 @@ const AttendanceTracking: React.FC<AttendanceTrackingProps> = ({ teacherData }) 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Attendance Tracking</h1>
-          <p className="text-muted-foreground mt-1">
+          <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Attendance Tracking</h1>
+          <p className="text-sm sm:text-base text-muted-foreground mt-1">
             Efficiently mark and track student attendance with interactive tools
           </p>
         </div>
         <div className="flex items-center space-x-2">
-          <Calendar className="h-5 w-5 text-muted-foreground" />
-          <span className="text-sm text-muted-foreground">
+          <Calendar className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground flex-shrink-0" />
+          <span className="text-xs sm:text-sm text-muted-foreground">
             {new Date().toLocaleDateString('en-US', { 
               weekday: 'long', 
               year: 'numeric', 
@@ -267,20 +267,20 @@ const AttendanceTracking: React.FC<AttendanceTrackingProps> = ({ teacherData }) 
       {/* Course Selection */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <Users className="h-5 w-5" />
+          <CardTitle className="flex items-center space-x-2 text-base sm:text-lg">
+            <Users className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
             <span>Select Class</span>
           </CardTitle>
         </CardHeader>
         <CardContent>
           <Select value={selectedCourse} onValueChange={handleCourseChange}>
-            <SelectTrigger className="w-full max-w-md">
+            <SelectTrigger className="w-full max-w-md [&>span]:truncate">
               <SelectValue placeholder="Choose a class to mark attendance" />
             </SelectTrigger>
             <SelectContent>
               {courses.map((course) => (
                 <SelectItem key={course.id} value={course.id}>
-                  {course.code} - {course.name}
+                  <span className="truncate">{course.code} - {course.name}</span>
                 </SelectItem>
               ))}
             </SelectContent>
@@ -303,16 +303,16 @@ const AttendanceTracking: React.FC<AttendanceTrackingProps> = ({ teacherData }) 
           {/* Enhanced Controls Panel */}
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center justify-between">
+              <CardTitle className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                 <div className="flex items-center space-x-2">
-                  <CalendarDays className="h-5 w-5" />
-                  <span>Attendance Controls</span>
+                  <CalendarDays className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
+                  <span className="text-base sm:text-lg">Attendance Controls</span>
                 </div>
-                <div className="flex items-center space-x-2">
-                  <Badge variant="outline">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge variant="outline" className="text-xs">
                     {filteredStudents.length} students
                   </Badge>
-                  <Badge variant="outline">
+                  <Badge variant="outline" className="text-xs">
                     {selectedDate.toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' })}
                   </Badge>
                 </div>
@@ -322,26 +322,28 @@ const AttendanceTracking: React.FC<AttendanceTrackingProps> = ({ teacherData }) 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 {/* Date Selection */}
                 <div className="space-y-2">
-                  <Label htmlFor="date-select">Class Date</Label>
+                  <Label htmlFor="date-select" className="text-xs sm:text-sm">Class Date</Label>
                   <Popover>
                     <PopoverTrigger asChild>
                       <Button
                         variant="outline"
                         className={cn(
-                          "w-full justify-start text-left font-normal",
+                          "w-full justify-start text-left font-normal text-xs sm:text-sm",
                           !selectedDate && "text-muted-foreground"
                         )}
                       >
-                        <CalendarDays className="mr-2 h-4 w-4" />
-                        {selectedDate ? selectedDate.toLocaleDateString('en-US', { 
-                          weekday: 'long', 
-                          year: 'numeric', 
-                          month: 'long', 
-                          day: 'numeric' 
-                        }) : <span>Pick a date</span>}
+                        <CalendarDays className="mr-2 h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
+                        <span className="truncate">
+                          {selectedDate ? selectedDate.toLocaleDateString('en-US', { 
+                            weekday: 'long', 
+                            year: 'numeric', 
+                            month: 'long', 
+                            day: 'numeric' 
+                          }) : <span>Pick a date</span>}
+                        </span>
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0">
+                    <PopoverContent className="w-auto p-0" align="start">
                       <CalendarIcon
                         mode="single"
                         selected={selectedDate}
@@ -354,7 +356,7 @@ const AttendanceTracking: React.FC<AttendanceTrackingProps> = ({ teacherData }) 
 
                 {/* Search Students */}
                 <div className="space-y-2">
-                  <Label htmlFor="search">Search Students</Label>
+                  <Label htmlFor="search" className="text-xs sm:text-sm">Search Students</Label>
                   <div className="relative">
                     <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
@@ -362,17 +364,17 @@ const AttendanceTracking: React.FC<AttendanceTrackingProps> = ({ teacherData }) 
                       placeholder="Name or roll number..."
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
-                      className="pl-8"
+                      className="pl-8 text-xs sm:text-sm"
                     />
                   </div>
                 </div>
 
                 {/* Filter by Status */}
                 <div className="space-y-2">
-                  <Label>Filter by Status</Label>
+                  <Label className="text-xs sm:text-sm">Filter by Status</Label>
                   <Select value={filterStatus} onValueChange={(value: any) => setFilterStatus(value)}>
-                    <SelectTrigger>
-                      <Filter className="mr-2 h-4 w-4" />
+                    <SelectTrigger className="text-xs sm:text-sm">
+                      <Filter className="mr-2 h-4 w-4 flex-shrink-0" />
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -386,9 +388,9 @@ const AttendanceTracking: React.FC<AttendanceTrackingProps> = ({ teacherData }) 
 
                 {/* View Mode */}
                 <div className="space-y-2">
-                  <Label>View Mode</Label>
+                  <Label className="text-xs sm:text-sm">View Mode</Label>
                   <Select value={viewMode} onValueChange={(value: any) => setViewMode(value)}>
-                    <SelectTrigger>
+                    <SelectTrigger className="text-xs sm:text-sm">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -405,26 +407,32 @@ const AttendanceTracking: React.FC<AttendanceTrackingProps> = ({ teacherData }) 
                 <Button 
                   variant="outline" 
                   size="sm"
-                  className="flex-1 sm:flex-none"
+                  className="flex-1 sm:flex-none text-xs sm:text-sm px-2 sm:px-4"
                 >
-                  <Download className="h-4 w-4 mr-2" />
-                  Export Attendance
+                  <Download className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2 flex-shrink-0" />
+                  <span className="hidden lg:inline">Export Attendance</span>
+                  <span className="hidden sm:inline lg:hidden">Export</span>
+                  <span className="sm:hidden">Export</span>
                 </Button>
                 <Button 
                   variant="outline" 
                   size="sm"
-                  className="flex-1 sm:flex-none"
+                  className="flex-1 sm:flex-none text-xs sm:text-sm px-2 sm:px-4"
                 >
-                  <Upload className="h-4 w-4 mr-2" />
-                  Import Data
+                  <Upload className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2 flex-shrink-0" />
+                  <span className="hidden lg:inline">Import Data</span>
+                  <span className="hidden sm:inline lg:hidden">Import</span>
+                  <span className="sm:hidden">Import</span>
                 </Button>
                 <Button 
                   variant="outline" 
                   size="sm"
-                  className="flex-1 sm:flex-none"
+                  className="flex-1 sm:flex-none text-xs sm:text-sm px-2 sm:px-4"
                 >
-                  <BarChart3 className="h-4 w-4 mr-2" />
-                  Generate Report
+                  <BarChart3 className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2 flex-shrink-0" />
+                  <span className="hidden lg:inline">Generate Report</span>
+                  <span className="hidden sm:inline lg:hidden">Report</span>
+                  <span className="sm:hidden">Report</span>
                 </Button>
                 <Button 
                   variant="outline" 
@@ -437,10 +445,12 @@ const AttendanceTracking: React.FC<AttendanceTrackingProps> = ({ teacherData }) 
                       }
                     });
                   }}
-                  className="flex-1 sm:flex-none"
+                  className="flex-1 sm:flex-none text-xs sm:text-sm px-2 sm:px-4"
                 >
-                  <Clock className="h-4 w-4 mr-2" />
-                  Mark All Present
+                  <Clock className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2 flex-shrink-0" />
+                  <span className="hidden lg:inline">Mark All Present</span>
+                  <span className="hidden sm:inline lg:hidden">All Present</span>
+                  <span className="sm:hidden">Present</span>
                 </Button>
               </div>
             </CardContent>
@@ -449,19 +459,19 @@ const AttendanceTracking: React.FC<AttendanceTrackingProps> = ({ teacherData }) 
           {/* Enhanced Tabs View */}
           <Tabs value={viewMode} onValueChange={(value: any) => setViewMode(value)} className="w-full">
             <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="list">List View</TabsTrigger>
-              <TabsTrigger value="grid">Grid View</TabsTrigger>
-              <TabsTrigger value="analytics">Analytics</TabsTrigger>
+              <TabsTrigger value="list" className="text-xs sm:text-sm">List View</TabsTrigger>
+              <TabsTrigger value="grid" className="text-xs sm:text-sm">Grid View</TabsTrigger>
+              <TabsTrigger value="analytics" className="text-xs sm:text-sm">Analytics</TabsTrigger>
             </TabsList>
 
             <TabsContent value="list" className="space-y-6">
               {/* Loading State */}
               {loading && (
                 <Card>
-                  <CardContent className="text-center py-12">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4" />
-                    <p className="text-muted-foreground">Loading students for selected course...</p>
-                    <p className="text-sm text-muted-foreground mt-2">
+                  <CardContent className="text-center py-8 sm:py-12">
+                    <div className="animate-spin rounded-full h-10 w-10 sm:h-12 sm:w-12 border-b-2 border-primary mx-auto mb-4" />
+                    <p className="text-sm sm:text-base text-muted-foreground">Loading students for selected course...</p>
+                    <p className="text-xs sm:text-sm text-muted-foreground mt-2">
                       If no students are enrolled, demo data will be loaded automatically.
                     </p>
                   </CardContent>
@@ -488,10 +498,10 @@ const AttendanceTracking: React.FC<AttendanceTrackingProps> = ({ teacherData }) 
               {/* No Results from Search/Filter */}
               {filteredStudents.length === 0 && students.length > 0 && (
                 <Card>
-                  <CardContent className="text-center py-12">
-                    <Search className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                    <p className="text-lg font-medium text-foreground">No students found</p>
-                    <p className="text-muted-foreground">
+                  <CardContent className="text-center py-8 sm:py-12">
+                    <Search className="h-10 w-10 sm:h-12 sm:w-12 text-muted-foreground mx-auto mb-4" />
+                    <p className="text-base sm:text-lg font-medium text-foreground">No students found</p>
+                    <p className="text-sm sm:text-base text-muted-foreground">
                       Try adjusting your search term or filter criteria
                     </p>
                     <Button 
@@ -500,7 +510,7 @@ const AttendanceTracking: React.FC<AttendanceTrackingProps> = ({ teacherData }) 
                         setSearchTerm('');
                         setFilterStatus('all');
                       }}
-                      className="mt-4"
+                      className="mt-4 text-xs sm:text-sm"
                     >
                       Clear Filters
                     </Button>
@@ -530,14 +540,14 @@ const AttendanceTracking: React.FC<AttendanceTrackingProps> = ({ teacherData }) 
               )}
             </TabsContent>
 
-            <TabsContent value="grid" className="space-y-6">
+            <TabsContent value="grid" className="space-y-6 max-h-[500px] overflow-auto">
               {/* Grid View - Coming Soon */}
               <Card>
                 <CardHeader>
-                  <CardTitle>Grid View</CardTitle>
+                  <CardTitle className="text-base sm:text-lg">Grid View</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                  <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-3 sm:gap-4">
                     {filteredStudents.map((student, index) => (
                       <Card 
                         key={student.id}
@@ -549,15 +559,15 @@ const AttendanceTracking: React.FC<AttendanceTrackingProps> = ({ teacherData }) 
                           student.attendance_status === 'pending' 
                         )}
                       >
-                        <CardContent className="p-4 text-center">
-                          <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-2">
-                            <span className="text-lg font-semibold text-primary">
+                        <CardContent className="p-3 sm:p-4 text-center">
+                          <div className="w-10 h-10 sm:w-12 sm:h-12 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-2">
+                            <span className="text-base sm:text-lg font-semibold text-primary">
                               {student.first_name[0]}{student.last_name[0]}
                             </span>
                           </div>
-                          <p className="font-medium text-sm">{student.first_name}</p>
-                          <p className="font-medium text-sm">{student.last_name}</p>
-                          <p className="text-xs text-muted-foreground">{student.roll_number}</p>
+                          <p className="font-medium text-xs sm:text-sm truncate">{student.first_name}</p>
+                          <p className="font-medium text-xs sm:text-sm truncate">{student.last_name}</p>
+                          <p className="text-[10px] sm:text-xs text-muted-foreground truncate">{student.roll_number}</p>
                           <div className="flex justify-center space-x-1 mt-2">
                             <Button
                               size="sm"
@@ -586,26 +596,26 @@ const AttendanceTracking: React.FC<AttendanceTrackingProps> = ({ teacherData }) 
 
             <TabsContent value="analytics" className="space-y-6">
               {/* Analytics View */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
                 <Card>
                   <CardHeader>
-                    <CardTitle className="text-lg">Today's Summary</CardTitle>
+                    <CardTitle className="text-base sm:text-lg">Today's Summary</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="space-y-4">
-                      <div className="flex justify-between">
+                    <div className="space-y-3 sm:space-y-4">
+                      <div className="flex justify-between text-sm sm:text-base">
                         <span>Present:</span>
                         <span className="font-semibold text-green-600">
                           {filteredStudents.filter(s => s.attendance_status === 'present').length}
                         </span>
                       </div>
-                      <div className="flex justify-between">
+                      <div className="flex justify-between text-sm sm:text-base">
                         <span>Absent:</span>
                         <span className="font-semibold text-red-600">
                           {filteredStudents.filter(s => s.attendance_status === 'absent').length}
                         </span>
                       </div>
-                      <div className="flex justify-between">
+                      <div className="flex justify-between text-sm sm:text-base">
                         <span>Pending:</span>
                         <span className="font-semibold text-yellow-600">
                           {filteredStudents.filter(s => s.attendance_status === 'pending').length}
@@ -617,35 +627,35 @@ const AttendanceTracking: React.FC<AttendanceTrackingProps> = ({ teacherData }) 
 
                 <Card>
                   <CardHeader>
-                    <CardTitle className="text-lg">Attendance Rate</CardTitle>
+                    <CardTitle className="text-base sm:text-lg">Attendance Rate</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="text-center">
-                      <div className="text-3xl font-bold text-primary">
+                      <div className="text-2xl sm:text-3xl font-bold text-primary">
                         {filteredStudents.length > 0 
                           ? Math.round((filteredStudents.filter(s => s.attendance_status === 'present').length / filteredStudents.length) * 100)
                           : 0}%
                       </div>
-                      <p className="text-muted-foreground">Overall Rate</p>
+                      <p className="text-sm sm:text-base text-muted-foreground">Overall Rate</p>
                     </div>
                   </CardContent>
                 </Card>
 
                 <Card>
                   <CardHeader>
-                    <CardTitle className="text-lg">Quick Stats</CardTitle>
+                    <CardTitle className="text-base sm:text-lg">Quick Stats</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-2">
-                      <div className="flex justify-between text-sm">
+                      <div className="flex justify-between text-xs sm:text-sm">
                         <span>Total Students:</span>
                         <span className="font-semibold">{filteredStudents.length}</span>
                       </div>
-                      <div className="flex justify-between text-sm">
+                      <div className="flex justify-between text-xs sm:text-sm">
                         <span>Class Date:</span>
                         <span className="font-semibold">{selectedDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
                       </div>
-                      <div className="flex justify-between text-sm">
+                      <div className="flex justify-between text-xs sm:text-sm">
                         <span>Status:</span>
                         <span className="font-semibold text-green-600">
                           {isRollCallActive ? 'Active' : 'Inactive'}

@@ -526,7 +526,7 @@ const CommunicationHub = ({ studentData, initialChannelId }) => {
     return (
       <div className="h-screen flex items-center justify-center bg-background overflow-hidden">
         <div className="text-center">
-          <div className="w-16 h-16 border-4 border-white/20 border-t-white rounded-full animate-spin mx-auto mb-4"></div>
+          <div className="w-6 h-6 sm:w-10 sm:h-10 md:w-16 md:h-16 border-4 border-white/20 border-t-white rounded-full animate-spin mx-auto mb-4"></div>
           <p className="text-foreground/70">Loading messages...</p>
         </div>
       </div>
@@ -534,49 +534,78 @@ const CommunicationHub = ({ studentData, initialChannelId }) => {
   }
 
   return (
-    <div className="h-screen flex flex-col bg-background overflow-hidden">
-      {/* Header - Fixed */}
-      <div className="bg-sidebar-background border-b border-border px-4 md:px-6 py-3 md:py-4 flex-shrink-0">
+    <div className="h-screen flex flex-col bg-background">
+      {/* Header - Hide on mobile when chat is selected */}
+      <div className={`bg-sidebar-background border-b border-border px-4 sm:px-6 py-3 sm:py-4 ${
+        selectedChannel ? 'hidden lg:block' : 'block'
+      }`}>
         <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            {selectedChannel && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="md:hidden -ml-2"
-                onClick={() => {
-                  setShowMobileSidebar(true);
-                  setSelectedChannel(null);
-                }}
-              >
-                <ArrowLeft className="h-5 w-5" />
-              </Button>
-            )}
-            <div>
-              <h1 className="text-xl md:text-2xl font-bold text-foreground">Messages</h1>
-              <p className="text-xs md:text-sm text-muted-foreground hidden sm:block">
-                Stay connected with your campus community
-              </p>
-            </div>
+          <div>
+            <h1 className="text-xl sm:text-2xl font-bold text-foreground">Messages</h1>
+            <p className="text-xs sm:text-sm text-muted-foreground hidden sm:block">Stay connected with your campus community</p>
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="md:hidden"
-            onClick={() => setShowMobileSidebar(!showMobileSidebar)}
-          >
-            <Menu className="h-5 w-5" />
-          </Button>
+          <div className="flex items-center space-x-2">
+            <Dialog open={showNewChatDialog} onOpenChange={setShowNewChatDialog}>
+              <DialogTrigger asChild>
+                <Button size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90 text-xs sm:text-sm">
+                  <MessageSquare className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                  <span className="hidden sm:inline">New Chat</span>
+                  <span className="sm:hidden">New</span>
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-md bg-popover border-border">
+                <DialogHeader>
+                  <DialogTitle className="text-foreground">Start a New Conversation</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <Input
+                    placeholder="Search contacts..."
+                    value={contactSearchQuery}
+                    onChange={(e) => setContactSearchQuery(e.target.value)}
+                    className="w-full bg-input border-border text-foreground"
+                  />
+                  <div className="max-h-80 overflow-y-auto space-y-2">
+                    {filteredContacts.length === 0 ? (
+                      <p className="text-center text-muted-foreground py-8">No contacts found</p>
+                    ) : (
+                      filteredContacts.map(contact => (
+                        <div
+                          key={contact.id}
+                          className="flex items-center justify-between p-3 hover:bg-accent rounded-sm cursor-pointer transition-colors"
+                          onClick={() => createDirectChannel(contact.id)}
+                        >
+                          <div className="flex items-center space-x-3">
+                            <div className="w-10 h-10 bg-primary/10 border border-border rounded-sm flex items-center justify-center text-foreground font-semibold">
+                              {getInitials(contact.first_name, contact.last_name)}
+                            </div>
+                            <div>
+                              <p className="font-medium text-foreground">
+                                {contact.first_name} {contact.last_name}
+                              </p>
+                              <p className="text-xs text-muted-foreground capitalize">{contact.user_type}</p>
+                            </div>
+                          </div>
+                          <Button size="sm" variant="ghost">
+                            <MessageSquare className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
+          </div>
         </div>
       </div>
 
-      <div className="flex-1 flex overflow-hidden min-h-0">
-        {/* Sidebar - Fixed height with internal scroll */}
-        <div className={`${
-          showMobileSidebar ? 'flex' : 'hidden'
-        } md:flex w-full md:w-80 bg-sidebar-background border-r border-sidebar-border flex-col absolute md:relative z-10 h-full overflow-hidden`}>
-          {/* Search - Fixed */}
-          <div className="p-3 md:p-4 border-b border-sidebar-border flex-shrink-0">
+      <div className="flex-1 flex overflow-hidden">
+        {/* Sidebar - Show only when no chat selected on mobile/tablet */}
+        <div className={`w-full lg:w-80 bg-sidebar-background border-r border-sidebar-border flex flex-col ${
+          selectedChannel ? 'hidden lg:flex' : 'flex'
+        }`}>
+          {/* Search */}
+          <div className="p-3 sm:p-4 border-b border-sidebar-border">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
@@ -588,14 +617,14 @@ const CommunicationHub = ({ studentData, initialChannelId }) => {
             </div>
           </div>
 
-          {/* Tabs - Internal scroll only */}
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden min-h-0">
-            <TabsList className="grid w-full grid-cols-2 mx-3 mt-2 bg-muted flex-shrink-0">
-              <TabsTrigger value="chats" className="data-[state=active]:bg-accent text-sm">Chats</TabsTrigger>
-              <TabsTrigger value="contacts" className="data-[state=active]:bg-accent text-sm">Contacts</TabsTrigger>
+          {/* Tabs */}
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
+            <TabsList className="grid w-full grid-cols-2 mx-3 mt-2 bg-muted">
+              <TabsTrigger value="chats" className="data-[state=active]:bg-accent text-xs sm:text-sm">Chats</TabsTrigger>
+              <TabsTrigger value="contacts" className="data-[state=active]:bg-accent text-xs sm:text-sm">Contacts</TabsTrigger>
             </TabsList>
 
-            <TabsContent value="chats" className="flex-1 overflow-y-auto mt-2 m-0 min-h-0">
+            <TabsContent value="chats" className="flex-1 overflow-y-auto mt-2 m-0">
               <div className="space-y-1 p-2">
                 {filteredChannels.length === 0 ? (
                   <div className="text-center py-8">
@@ -613,9 +642,6 @@ const CommunicationHub = ({ studentData, initialChannelId }) => {
                 ) : (
                   filteredChannels.map(channel => {
                     const isGroup = channel.channel_type === 'group' || channel.channel_type === 'course';
-                    const lastRead = lastReadTimestamps[channel.id];
-                    const hasUnread = lastRead ? new Date(channel.lastMessageTime) > new Date(lastRead) : false;
-                    const unreadCount = hasUnread ? 1 : 0;
                     
                     return (
                       <div
@@ -629,7 +655,7 @@ const CommunicationHub = ({ studentData, initialChannelId }) => {
                       >
                         <div className="flex items-start space-x-3">
                           <div className="relative flex-shrink-0">
-                            <div className={`w-10 md:w-12 h-10 md:h-12 rounded-sm flex items-center justify-center text-foreground font-semibold border border-border text-sm md:text-base ${
+                            <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-sm flex items-center justify-center text-foreground font-semibold border border-border ${
                               isGroup 
                                 ? 'bg-primary/10' 
                                 : 'bg-primary/5'
@@ -637,39 +663,29 @@ const CommunicationHub = ({ studentData, initialChannelId }) => {
                               {channel.channel_name.substring(0, 2).toUpperCase()}
                             </div>
                             {isGroup && (
-                              <div className="absolute -bottom-1 -right-1 w-4 md:w-5 h-4 md:h-5 bg-sidebar-background border-2 border-sidebar-border rounded-sm flex items-center justify-center">
-                                <Users className="h-2 md:h-3 w-2 md:w-3 text-muted-foreground" />
+                              <div className="absolute -bottom-1 -right-1 w-4 h-4 sm:w-5 sm:h-5 bg-sidebar-background border-2 border-sidebar-border rounded-sm flex items-center justify-center">
+                                <Users className="h-2 w-2 sm:h-3 sm:w-3 text-muted-foreground" />
                               </div>
                             )}
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center justify-between mb-1">
-                              <p className={`text-sm md:text-base truncate ${
-                                hasUnread ? 'font-bold text-foreground' : 'font-semibold text-foreground'
-                              }`}>
-                                {channel.channel_name}
-                              </p>
-                              <div className="flex items-center space-x-2">
-                                {channel.lastMessageTime && (
-                                  <span className="text-xs text-muted-foreground whitespace-nowrap">
-                                    {formatTimestamp(channel.lastMessageTime)}
-                                  </span>
-                                )}
-                              </div>
+                              <p className="font-semibold text-sm sm:text-base text-foreground truncate">{channel.channel_name}</p>
+                              {channel.lastMessageTime && (
+                                <span className="text-xs text-muted-foreground flex-shrink-0 ml-2">
+                                  {formatTimestamp(channel.lastMessageTime)}
+                                </span>
+                              )}
                             </div>
                             <div className="flex items-center justify-between">
-                              <p className={`text-xs md:text-sm truncate ${
-                                hasUnread ? 'font-medium text-foreground' : 'text-muted-foreground'
-                              }`}>
+                              <p className="text-xs sm:text-sm text-muted-foreground truncate">
                                 {channel.lastMessageSender && isGroup
                                   ? `${channel.lastMessageSender.first_name}: ${channel.lastMessage}`
                                   : channel.lastMessage
                                 }
                               </p>
-                              {hasUnread && (
-                                <Badge className="ml-2 bg-primary text-primary-foreground h-5 min-w-[20px] flex items-center justify-center px-1.5 text-xs flex-shrink-0">
-                                  {unreadCount}
-                                </Badge>
+                              {channel.unreadCount > 0 && (
+                                <Badge className="ml-2 bg-primary text-primary-foreground text-xs flex-shrink-0">{channel.unreadCount}</Badge>
                               )}
                             </div>
                             {isGroup && (
@@ -684,21 +700,10 @@ const CommunicationHub = ({ studentData, initialChannelId }) => {
               </div>
             </TabsContent>
 
-            <TabsContent value="contacts" className="flex-1 flex flex-col overflow-hidden min-h-0 mt-2 m-0">
-              <div className="p-3 border-b border-sidebar-border flex-shrink-0">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Search contacts..."
-                    value={contactSearchQuery}
-                    onChange={(e) => setContactSearchQuery(e.target.value)}
-                    className="pl-10 bg-input border-border text-foreground text-sm"
-                  />
-                </div>
-              </div>
-              <div className="flex-1 overflow-y-auto space-y-1 p-2 min-h-0">
+            <TabsContent value="contacts" className="flex-1 overflow-y-auto mt-2 m-0">
+              <div className="space-y-1 p-2">
                 {filteredContacts.length === 0 ? (
-                  <p className="text-center text-muted-foreground py-8 text-sm">No contacts found</p>
+                  <p className="text-center text-muted-foreground py-8">No contacts found</p>
                 ) : (
                   filteredContacts.map(contact => (
                     <div
@@ -707,16 +712,16 @@ const CommunicationHub = ({ studentData, initialChannelId }) => {
                       onClick={() => createDirectChannel(contact.id)}
                     >
                       <div className="flex items-center space-x-3">
-                        <div className="w-10 h-10 bg-primary/10 border border-border rounded-sm flex items-center justify-center text-foreground font-semibold text-sm">
+                        <div className="w-10 h-10 bg-primary/10 border border-border rounded-sm flex items-center justify-center text-foreground font-semibold">
                           {getInitials(contact.first_name, contact.last_name)}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="font-medium text-foreground text-sm truncate">
+                          <p className="font-medium text-sm sm:text-base text-foreground truncate">
                             {contact.first_name} {contact.last_name}
                           </p>
                           <p className="text-xs text-muted-foreground capitalize">{contact.user_type}</p>
                         </div>
-                        <Button size="sm" variant="ghost" className="flex-shrink-0">
+                        <Button size="sm" variant="ghost">
                           <MessageSquare className="h-4 w-4" />
                         </Button>
                       </div>
@@ -728,17 +733,27 @@ const CommunicationHub = ({ studentData, initialChannelId }) => {
           </Tabs>
         </div>
 
-        {/* Chat Area - Fixed height with internal scroll */}
+        {/* Chat Area - Show only when chat selected on mobile/tablet */}
         {selectedChannel ? (
-          <div className={`${
-            showMobileSidebar ? 'hidden' : 'flex'
-          } md:flex flex-1 flex-col bg-background overflow-hidden min-h-0`}>
+          <div className={`w-full lg:flex-1 flex flex-col bg-background fixed lg:relative top-16 lg:top-0 inset-x-0 bottom-0 lg:inset-auto z-50 lg:z-10 ${
+            selectedChannel ? 'flex' : 'hidden lg:flex'
+          }`}>
             {/* Chat Header - Fixed */}
-            <div className="bg-sidebar-background border-b border-border px-4 md:px-6 py-3 md:py-4 flex-shrink-0">
+            <div className="bg-sidebar-background border-b border-border px-3 sm:px-6 py-3 sm:py-4 flex-shrink-0 relative z-10">
               <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3 md:space-x-4 min-w-0 flex-1">
+                <div className="flex items-center space-x-2 sm:space-x-4 flex-1 min-w-0">
+                  {/* Back button - mobile/tablet only */}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleChannelSelect(null)}
+                    className="lg:hidden flex-shrink-0 p-2"
+                  >
+                    <ArrowLeft className="h-5 w-5" />
+                  </Button>
+                  
                   <div className="relative flex-shrink-0">
-                    <div className={`w-10 md:w-12 h-10 md:h-12 rounded-sm flex items-center justify-center text-foreground font-semibold border border-border text-sm md:text-base ${
+                    <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-sm flex items-center justify-center text-foreground font-semibold border border-border ${
                       selectedChannel.channel_type === 'group' || selectedChannel.channel_type === 'course'
                         ? 'bg-primary/10' 
                         : 'bg-primary/5'
@@ -746,11 +761,9 @@ const CommunicationHub = ({ studentData, initialChannelId }) => {
                       {selectedChannel.channel_name.substring(0, 2).toUpperCase()}
                     </div>
                   </div>
-                  <div className="min-w-0 flex-1">
-                    <h2 className="font-semibold text-foreground text-sm md:text-base truncate">
-                      {selectedChannel.channel_name}
-                    </h2>
-                    <p className="text-xs md:text-sm text-muted-foreground capitalize truncate">
+                  <div className="flex-1 min-w-0">
+                    <h2 className="font-semibold text-sm sm:text-base text-foreground truncate">{selectedChannel.channel_name}</h2>
+                    <p className="text-xs sm:text-sm text-muted-foreground capitalize truncate">
                       {selectedChannel.channel_type === 'group' || selectedChannel.channel_type === 'course'
                         ? `${selectedChannel.memberCount} members`
                         : selectedChannel.channel_type.replace('_', ' ')
@@ -788,7 +801,7 @@ const CommunicationHub = ({ studentData, initialChannelId }) => {
                       >
                         <div className={`flex items-end space-x-2 max-w-[85%] md:max-w-md ${isMe ? 'flex-row-reverse space-x-reverse' : ''}`}>
                           {!isMe && showAvatar && (
-                            <div className="w-7 h-7 md:w-8 md:h-8 bg-primary/10 border border-border rounded-sm flex items-center justify-center text-foreground text-xs font-semibold flex-shrink-0">
+                            <div className="w-6 h-6 sm:w-8 sm:h-8 bg-primary/10 border border-border rounded-sm flex items-center justify-center text-foreground text-[10px] sm:text-xs font-semibold flex-shrink-0 mb-1">
                               {getInitials(message.sender.first_name, message.sender.last_name)}
                             </div>
                           )}
@@ -853,18 +866,17 @@ const CommunicationHub = ({ studentData, initialChannelId }) => {
                         handleSendMessage();
                       }
                     }}
-                    className="resize-none bg-input border-border text-foreground text-sm md:text-base"
-                    style={{ height: '40px', maxHeight: '120px', overflow: 'auto' }}
+                    className="resize-none pr-10 bg-input border-border text-foreground min-h-[40px] max-h-[120px] text-sm"
                     rows={1}
                   />
                 </div>
                 <Button
                   onClick={handleSendMessage}
                   disabled={!newMessage.trim()}
-                  className="flex-shrink-0 bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 h-10 w-10 md:h-auto md:w-auto md:px-4"
+                  className="flex-shrink-0 bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 h-9 w-9 sm:h-10 sm:w-10 p-0"
                   size="sm"
                 >
-                  <Send className="h-4 w-4 md:h-5 md:w-5" />
+                  <Send className="h-4 w-4 sm:h-5 sm:w-5" />
                 </Button>
               </div>
             </div>
@@ -874,10 +886,10 @@ const CommunicationHub = ({ studentData, initialChannelId }) => {
             showMobileSidebar ? 'hidden' : 'flex'
           } md:flex flex-1 items-center justify-center bg-background overflow-hidden`}>
             <div className="text-center px-4">
-              <div className="w-20 md:w-24 h-20 md:h-24 bg-primary/10 border border-border rounded-sm flex items-center justify-center mx-auto mb-4">
-                <MessageSquare className="h-10 md:h-12 w-10 md:w-12 text-foreground" />
+              <div className="w-20 sm:w-24 h-20 sm:h-24 bg-primary/10 border border-border rounded-sm flex items-center justify-center mx-auto mb-4">
+                <MessageSquare className="h-10 sm:h-12 w-10 sm:w-12 text-foreground" />
               </div>
-              <h3 className="text-lg md:text-xl font-semibold text-foreground mb-2">Select a conversation</h3>
+              <h3 className="text-lg sm:text-xl font-semibold text-foreground mb-2">Select a conversation</h3>
               <p className="text-sm md:text-base text-muted-foreground mb-6">Choose from your existing chats or start a new one</p>
               <Button onClick={() => setShowNewChatDialog(true)} className="bg-primary text-primary-foreground hover:bg-primary/90" size="sm">
                 <MessageSquare className="h-4 w-4 mr-2" />

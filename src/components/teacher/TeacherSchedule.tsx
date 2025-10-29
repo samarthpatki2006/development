@@ -1019,17 +1019,17 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
       )}
 
       <Tabs defaultValue="schedule" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="schedule">Schedule</TabsTrigger>
-          <TabsTrigger value="analytics">Course Analytics</TabsTrigger>
+        <TabsList className="w-full sm:w-auto">
+          <TabsTrigger value="schedule" className="flex-1 sm:flex-initial">Schedule</TabsTrigger>
+          <TabsTrigger value="analytics" className="flex-1 sm:flex-initial">Course Analytics</TabsTrigger>
         </TabsList>
 
         <TabsContent value="schedule" className="space-y-6">
-          <div className="flex justify-between items-center">
-            <h2 className="text-2xl font-bold">My Schedule</h2>
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <h2 className="text-xl sm:text-2xl font-bold">My Schedule</h2>
             <Dialog open={isScheduleDialogOpen} onOpenChange={setIsScheduleDialogOpen}>
               <DialogTrigger asChild>
-                <Button className="flex items-center gap-2">
+                <Button className="flex items-center gap-2 w-full sm:w-auto">
                   <Plus className="h-4 w-4" />
                   Schedule Class
                 </Button>
@@ -1070,7 +1070,7 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
                     </select>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium mb-2">Start Time *</label>
                       <Input
@@ -1098,7 +1098,7 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
                     />
                   </div>
 
-                  <div className="flex gap-3 pt-4">
+                  <div className="flex flex-col sm:flex-row gap-3 pt-4">
                     <Button 
                       onClick={createSchedule} 
                       className="flex-1"
@@ -1122,7 +1122,7 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
           <Dialog open={isQRDialogOpen} onOpenChange={setIsQRDialogOpen}>
             <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
-                <DialogTitle>Attendance Session - {selectedClass?.courses?.course_name}</DialogTitle>
+                <DialogTitle className="text-base sm:text-lg">Attendance Session - {selectedClass?.courses?.course_name}</DialogTitle>
               </DialogHeader>
               <div className="space-y-6">
                 {!canGenerateQR ? (
@@ -1145,12 +1145,12 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
                   </Alert>
                 )}
 
-                <div className="flex flex-col items-center gap-4 p-6 bg-muted/50 rounded-lg">
+                <div className="flex flex-col items-center gap-4 p-4 sm:p-6 bg-muted/50 rounded-lg">
                   <div className="p-4 rounded-lg shadow-md">
-                    {qrCode && <img src={qrCode} alt="Attendance QR Code" className="w-[300px] h-[300px]" />}
+                    {qrCode && <img src={qrCode} alt="Attendance QR Code" className="w-[200px] h-[200px] sm:w-[300px] sm:h-[300px]" />}
                   </div>
                   <div className="text-center space-y-2">
-                    <p className="text-sm font-medium">
+                    <p className="text-xs sm:text-sm font-medium">
                       Session Code: <span className="font-mono text-primary text-2xl font-bold tracking-wider">{sessionId}</span>
                     </p>
                     <p className="text-xs text-muted-foreground">
@@ -1168,9 +1168,9 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
                 </div>
 
                 <div>
-                  <h3 className="font-semibold mb-3 flex items-center gap-2">
-                    <Users className="h-5 w-5" />
-                    Live Attendance ({attendanceRecords.filter(r => r.status !== 'waiting').length} / {attendanceRecords.length})
+                  <h3 className="font-semibold mb-3 flex items-center gap-2 text-sm sm:text-base">
+                    <Users className="h-4 w-4 sm:h-5 sm:w-5" />
+                    Live Attendance ({attendanceRecords.filter(r => r.status === 'present' || r.status === 'late').length} / {attendanceRecords.length})
                   </h3>
                   <div className="max-h-96 overflow-y-auto space-y-2">
                     {attendanceRecords.length === 0 ? (
@@ -1189,10 +1189,10 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
                             }`}
                           >
                             <div className="flex-1">
-                              <p className="font-medium">
+                              <p className="font-medium text-sm sm:text-base">
                                 {record.user_profiles?.first_name} {record.user_profiles?.last_name}
                               </p>
-                              <p className="text-sm text-muted-foreground">
+                              <p className="text-xs sm:text-sm text-muted-foreground">
                                 ID: {record.user_profiles?.user_code}
                               </p>
                               {record.device_info?.distance && (
@@ -1205,11 +1205,11 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
                                 </p>
                               )}
                             </div>
-                            <div className="text-right space-y-2">
+                            <div className="text-right space-y-1 flex items-center gap-2 sm:gap-3">
                               {isMarked ? (
                                 <>
                                   <div>
-                                    <p className="text-sm font-medium">
+                                    <p className="text-xs sm:text-sm font-medium">
                                       {new Date(record.marked_at).toLocaleTimeString()}
                                     </p>
                                     <div className="flex items-center gap-2">
@@ -1266,16 +1266,16 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
 
           <Card>
             <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle className="flex items-center gap-2">
-                  <Calendar className="h-5 w-5" />
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                  <Calendar className="h-4 w-4 sm:h-5 sm:w-5" />
                   Weekly Schedule Timeline
                 </CardTitle>
                 <div className="flex items-center space-x-2">
                   <Button variant="outline" size="sm" onClick={() => navigateWeek('prev')}>
                     <ChevronLeft className="h-4 w-4" />
                   </Button>
-                  <span className="text-sm font-medium min-w-[140px] text-center">
+                  <span className="text-xs sm:text-sm font-medium min-w-[100px] sm:min-w-[140px] text-center">
                     {currentWeek.toLocaleDateString('en-US', { 
                       month: 'long', 
                       day: 'numeric', 
@@ -1376,8 +1376,8 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
 
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Calendar className="h-5 w-5" />
+              <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                <Calendar className="h-4 w-4 sm:h-5 sm:w-5" />
                 Today's Classes ({new Date().toLocaleDateString()})
               </CardTitle>
             </CardHeader>
@@ -1389,22 +1389,22 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
                   {todayClasses.map((classItem) => {
                     const isActive = isClassActive(classItem);
                     return (
-                      <Card key={classItem.id} className={`p-4 ${
+                      <Card key={classItem.id} className={`p-3 sm:p-4 ${
                         classItem.is_extra_class ? 'border-l-4 border-l-blue-500' : ''
                       } ${isActive ? 'ring-2 ring-primary' : ''}`}>
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-4 flex-1">
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0">
+                          <div className="flex items-center gap-3 sm:gap-4 flex-1 w-full">
                             <div className="text-center">
-                              <div className="text-lg font-bold text-primary">
+                              <div className="text-base sm:text-lg font-bold text-primary">
                                 {formatTime(classItem.start_time)}
                               </div>
-                              <div className="text-sm text-muted-foreground">
+                              <div className="text-xs sm:text-sm text-muted-foreground">
                                 {formatTime(classItem.end_time)}
                               </div>
                             </div>
-                            <div className="flex-1">
+                            <div className="flex-1 min-w-0">
                               <div className="flex items-center space-x-2 flex-wrap">
-                                <h3 className="font-semibold text-lg">{classItem.courses?.course_name}</h3>
+                                <h3 className="font-semibold text-base sm:text-lg">{classItem.courses?.course_name}</h3>
                                 {classItem.is_extra_class && (
                                   <Badge variant="secondary" className="text-xs capitalize flex items-center">
                                     <Star className="h-3 w-3 mr-1" />
@@ -1418,17 +1418,17 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
                                   </Badge>
                                 )}
                               </div>
-                              <p className="text-sm text-muted-foreground">
+                              <p className="text-xs sm:text-sm text-muted-foreground">
                                 {classItem.courses?.course_code}
                               </p>
-                              <div className="flex items-center gap-4 text-sm text-muted-foreground mt-1">
+                              <div className="flex items-center gap-3 sm:gap-4 text-xs sm:text-sm text-muted-foreground mt-1">
                                 <div className="flex items-center gap-1">
-                                  <MapPin className="h-4 w-4" />
+                                  <MapPin className="h-3 w-3 sm:h-4 sm:w-4" />
                                   {classItem.room_location || 'Room TBD'}
                                 </div>
                                 {!classItem.is_extra_class && (
                                   <div className="flex items-center gap-1">
-                                    <Users className="h-4 w-4" />
+                                    <Users className="h-3 w-3 sm:h-4 sm:w-4" />
                                     {classItem.courses?.enrollments?.[0]?.count || 0} students
                                   </div>
                                 )}
@@ -1456,13 +1456,13 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
         <TabsContent value="analytics" className="space-y-6">
           <Card>
             <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle className="flex items-center gap-2">
-                  <TrendingUp className="h-5 w-5" />
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                  <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5" />
                   Course Attendance Analytics
                 </CardTitle>
                 <select
-                  className="p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary bg-background"
+                  className="w-full sm:w-auto p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary bg-background"
                   value={selectedCourseAnalytics}
                   onChange={(e) => setSelectedCourseAnalytics(e.target.value)}
                 >
@@ -1483,23 +1483,23 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
               ) : (
                 <div className="space-y-3">
                   {courseAnalytics.map((student, index) => (
-                    <div key={index} className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50">
-                      <div className="flex-1">
-                        <p className="font-medium">
+                    <div key={index} className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 sm:p-4 border rounded-lg hover:bg-muted/50 gap-3 sm:gap-0">
+                      <div className="flex-1 w-full">
+                        <p className="font-medium text-sm sm:text-base">
                           {student.user_profiles?.first_name} {student.user_profiles?.last_name}
                         </p>
-                        <p className="text-sm text-muted-foreground">
+                        <p className="text-xs sm:text-sm text-muted-foreground">
                           ID: {student.user_profiles?.user_code}
                         </p>
-                        <div className="flex items-center gap-4 mt-2 text-xs">
+                        <div className="flex items-center gap-3 sm:gap-4 mt-2 text-xs">
                           <span className="text-green-600">Present: {student.present}</span>
                           <span className="text-yellow-600">Late: {student.late} (0.5x)</span>
                           <span className="text-red-600">Absent: {student.absent}</span>
                           <span className="text-muted-foreground">Total: {student.total}</span>
                         </div>
                       </div>
-                      <div className="text-right space-y-2">
-                        <div className={`text-2xl font-bold ${getAttendanceColor(student.percentage)}`}>
+                      <div className="text-right space-y-2 flex sm:flex-col items-center sm:items-end gap-3 sm:gap-2 w-full sm:w-auto justify-between sm:justify-start">
+                        <div className={`text-xl sm:text-2xl font-bold ${getAttendanceColor(student.percentage)}`}>
                           {student.percentage}%
                         </div>
                         <Badge variant={

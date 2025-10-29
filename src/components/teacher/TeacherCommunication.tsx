@@ -20,7 +20,8 @@ import {
   AlertTriangle,
   ArrowLeft,
   Menu,
-  CheckCheck
+  CheckCheck,
+  Reply
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
@@ -35,6 +36,7 @@ const TeacherCommunication = ({ teacherData }: TeacherCommunicationProps) => {
   const [selectedCourse, setSelectedCourse] = useState<string>("");
   const [announcements, setAnnouncements] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [students, setStudents] = useState<any[]>([]);
 
   // Communication Hub states
   const [selectedChannel, setSelectedChannel] = useState(null);
@@ -60,11 +62,19 @@ const TeacherCommunication = ({ teacherData }: TeacherCommunicationProps) => {
     course_id: ''
   });
 
+  const [composeMessage, setComposeMessage] = useState({
+    recipient_id: '',
+    course_id: '',
+    subject: '',
+    content: ''
+  });
+
   useEffect(() => {
     fetchCourses();
     if (teacherData?.user_id) {
       fetchChannels();
       fetchContacts();
+      fetchStudents();
       loadLastReadTimestamps();
       setupRealtimeSubscriptions();
     }
@@ -130,6 +140,23 @@ const TeacherCommunication = ({ teacherData }: TeacherCommunicationProps) => {
       console.error('Error fetching courses:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchStudents = async () => {
+    try {
+      const { data } = await supabase
+        .from('enrollments')
+        .select(`
+          student_id,
+          user_profiles!enrollments_student_id_fkey(first_name, last_name),
+          courses(course_name)
+        `)
+        .eq('college_id', teacherData.college_id);
+
+      setStudents(data || []);
+    } catch (error) {
+      console.error('Error fetching students:', error);
     }
   };
 
@@ -227,6 +254,62 @@ const TeacherCommunication = ({ teacherData }: TeacherCommunicationProps) => {
         description: 'Failed to delete announcement',
         variant: 'destructive'
       });
+    }
+  };
+
+  const sendMessage = async () => {
+    if (!composeMessage.recipient_id || !composeMessage.subject || !composeMessage.content) {
+      toast({
+        title: 'Error',
+        description: 'Please fill in all required fields',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('messages')
+        .insert({
+          sender_id: teacherData.user_id,
+          recipient_id: composeMessage.recipient_id,
+          course_id: composeMessage.course_id || null,
+          subject: composeMessage.subject,
+          content: composeMessage.content,
+          message_type: 'direct'
+        });
+
+      if (error) throw error;
+
+      toast({
+        title: 'Success',
+        description: 'Message sent successfully'
+      });
+
+      setComposeMessage({
+        recipient_id: '',
+        course_id: '',
+        subject: '',
+        content: ''
+      });
+    } catch (error) {
+      console.error('Error sending message:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to send message',
+        variant: 'destructive'
+      });
+    }
+  };
+
+  const markAsRead = async (messageId: string) => {
+    try {
+      await supabase
+        .from('messages')
+        .update({ is_read: true })
+        .eq('id', messageId);
+    } catch (error) {
+      console.error('Error marking message as read:', error);
     }
   };
 
@@ -588,489 +671,417 @@ const TeacherCommunication = ({ teacherData }: TeacherCommunicationProps) => {
 
   return (
     <div className="space-y-6">
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="messages">Messages</TabsTrigger>
-          <TabsTrigger value="announcements">Course Announcements</TabsTrigger>
+      <div className="mb-4">
+        <Select value={selectedCourse} onValueChange={setSelectedCourse}>
+          <SelectTrigger className="w-full sm:w-[300px]">
+            <SelectValue placeholder="Select a course" />
+          </SelectTrigger>
+          <SelectContent>
+            {courses.map((course) => (
+              <SelectItem key={course.id} value={course.id}>
+                {course.course_name} ({course.course_code})
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <Tabs defaultValue="messages" className="w-full">
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="messages" className="text-xs sm:text-sm">Messages</TabsTrigger>
+          <TabsTrigger value="announcements" className="text-xs sm:text-sm">Announcements</TabsTrigger>
+          <TabsTrigger value="compose" className="text-xs sm:text-sm">Compose</TabsTrigger>
         </TabsList>
 
         {/* Messages Tab - Communication Hub */}
-        <TabsContent value="messages" className="mt-6">
-          <div className="h-[calc(100vh-200px)] flex flex-col bg-background border rounded-lg overflow-hidden">
-            <div className="flex-1 flex overflow-hidden min-h-0">
-              {/* Sidebar */}
-              <div className={`${
-                showMobileSidebar ? 'flex' : 'hidden'
-              } md:flex w-full md:w-80 bg-sidebar-background border-r border-sidebar-border flex-col absolute md:relative z-10 h-full overflow-hidden`}>
-                <div className="p-4 border-b border-sidebar-border flex-shrink-0">
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      placeholder="Search messages..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      className="pl-10"
-                    />
-                  </div>
-                </div>
-
-                <Tabs defaultValue="chats" className="flex-1 flex flex-col overflow-hidden min-h-0">
-                  <TabsList className="grid w-full grid-cols-2 mx-3 mt-2 flex-shrink-0">
-                    <TabsTrigger value="chats">Chats</TabsTrigger>
-                    <TabsTrigger value="contacts">Contacts</TabsTrigger>
-                  </TabsList>
-
-                  <TabsContent value="chats" className="flex-1 overflow-y-auto mt-2 m-0 min-h-0">
-                    <div className="space-y-1 p-2">
-                      {filteredChannels.length === 0 ? (
-                        <div className="text-center py-8">
-                          <MessageSquare className="h-12 w-12 text-muted-foreground mx-auto mb-2" />
-                          <p className="text-muted-foreground text-sm">No conversations yet</p>
-                        </div>
-                      ) : (
-                        filteredChannels.map(channel => {
-                          const isGroup = channel.channel_type === 'group' || channel.channel_type === 'course';
-                          const lastRead = lastReadTimestamps[channel.id];
-                          const hasUnread = lastRead ? new Date(channel.lastMessageTime) > new Date(lastRead) : false;
-                          
-                          return (
-                            <div
-                              key={channel.id}
-                              onClick={() => handleChannelSelect(channel)}
-                              className={`p-3 rounded-lg cursor-pointer transition-all ${
-                                selectedChannel?.id === channel.id
-                                  ? 'bg-accent'
-                                  : 'hover:bg-accent/50'
-                              }`}
-                            >
-                              <div className="flex items-start space-x-3">
-                                <div className="w-12 h-12 rounded-lg flex items-center justify-center text-foreground font-semibold bg-primary/10">
-                                  {channel.channel_name.substring(0, 2).toUpperCase()}
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <div className="flex items-center justify-between mb-1">
-                                    <p className={`text-sm truncate ${hasUnread ? 'font-bold' : 'font-semibold'}`}>
-                                      {channel.channel_name}
-                                    </p>
-                                    <span className="text-xs text-muted-foreground">
-                                      {formatTimestamp(channel.lastMessageTime)}
-                                    </span>
-                                  </div>
-                                  <p className={`text-sm truncate ${hasUnread ? 'font-medium' : 'text-muted-foreground'}`}>
-                                    {channel.lastMessage}
-                                  </p>
-                                </div>
-                              </div>
-                            </div>
-                          );
-                        })
-                      )}
-                    </div>
-                  </TabsContent>
-
-                  <TabsContent value="contacts" className="flex-1 overflow-y-auto mt-2 m-0 min-h-0">
-                    <div className="p-3 border-b border-sidebar-border">
-                      <Input
-                        placeholder="Search contacts..."
-                        value={contactSearchQuery}
-                        onChange={(e) => setContactSearchQuery(e.target.value)}
-                      />
-                    </div>
-                    <div className="space-y-1 p-2">
-                      {filteredContacts.map(contact => (
-                        <div
-                          key={contact.id}
-                          className="p-3 hover:bg-accent/50 rounded-lg cursor-pointer"
-                          onClick={() => createDirectChannel(contact.id)}
-                        >
-                          <div className="flex items-center space-x-3">
-                            <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center font-semibold">
-                              {getInitials(contact.first_name, contact.last_name)}
-                            </div>
-                            <div>
-                              <p className="font-medium text-sm">
-                                {contact.first_name} {contact.last_name}
-                              </p>
-                              <p className="text-xs text-muted-foreground capitalize">{contact.user_type}</p>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </TabsContent>
-                </Tabs>
-              </div>
-
-              {/* Chat Area */}
-              {selectedChannel ? (
-                <div className={`${showMobileSidebar ? 'hidden' : 'flex'} md:flex flex-1 flex-col overflow-hidden min-h-0`}>
-                  <div className="bg-sidebar-background border-b p-4 flex-shrink-0">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-3">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="md:hidden"
-                          onClick={() => {
-                            setShowMobileSidebar(true);
-                            setSelectedChannel(null);
-                          }}
-                        >
-                          <ArrowLeft className="h-5 w-5" />
-                        </Button>
-                        <div className="w-10 h-10 rounded-lg flex items-center justify-center font-semibold bg-primary/10">
-                          {selectedChannel.channel_name.substring(0, 2).toUpperCase()}
-                        </div>
-                        <div>
-                          <h2 className="font-semibold">{selectedChannel.channel_name}</h2>
-                          <p className="text-sm text-muted-foreground">{selectedChannel.memberCount} members</p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div ref={messagesContainerRef} className="flex-1 overflow-y-auto p-6 space-y-4 min-h-0">
-                    {messages.length === 0 ? (
-                      <div className="flex items-center justify-center h-full">
-                        <div className="text-center">
-                          <MessageSquare className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-                          <p className="text-foreground/70">No messages yet</p>
-                        </div>
-                      </div>
-                    ) : (
-                      <>
-                        {messages.map((message) => {
-                          const isMe = message.sender_id === teacherData.user_id;
-                          
-                          return (
-                            <div key={message.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
-                              <div className={`flex items-end space-x-2 max-w-md ${isMe ? 'flex-row-reverse space-x-reverse' : ''}`}>
-                                {!isMe && (
-                                  <div className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center text-xs font-semibold">
-                                    {getInitials(message.sender.first_name, message.sender.last_name)}
-                                  </div>
-                                )}
-                                <div>
-                                  <div className={`px-4 py-2 ${
-                                    isMe ? 'bg-primary text-primary-foreground rounded-lg rounded-br-none' : 'bg-card border rounded-lg rounded-bl-none'
-                                  }`}>
-                                    <p className="text-sm">{message.message_text}</p>
-                                  </div>
-                                  <p className="text-xs text-muted-foreground mt-1">
-                                    {formatMessageTime(message.created_at)}
-                                  </p>
-                                </div>
-                              </div>
-                            </div>
-                          );
-                        })}
-                        <div ref={messagesEndRef} />
-                      </>
-                    )}
-                  </div>
-
-                  {getTypingText() && (
-                    <div className="px-6 py-2 bg-sidebar-background/50">
-                      <p className="text-sm text-muted-foreground italic">{getTypingText()}</p>
-                    </div>
-                  )}
-
-                  <div className="bg-sidebar-background border-t p-4">
-                    <div className="flex items-end space-x-2">
-                      <Textarea
-                        ref={textareaRef}
-                        placeholder="Type a message..."
-                        value={newMessage}
-                        onChange={(e) => {
-                          setNewMessage(e.target.value);
-                          handleTyping();
-                        }}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter' && !e.shiftKey) {
-                            e.preventDefault();
-                            handleSendMessage();
-                          }
-                        }}
-                        className="resize-none"
-                        rows={1}
-                      />
-                      <Button onClick={handleSendMessage} disabled={!newMessage.trim()}>
-                        <Send className="h-5 w-5" />
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div className={`${showMobileSidebar ? 'hidden' : 'flex'} md:flex flex-1 items-center justify-center`}>
-                  <div className="text-center">
-                    <MessageSquare className="h-24 w-24 text-muted-foreground mx-auto mb-4" />
-                    <h3 className="text-xl font-semibold mb-2">Select a conversation</h3>
-                    <p className="text-muted-foreground">Choose from your existing chats or start a new one</p>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </TabsContent>
-
-        {/* Announcements Tab */}
-        <TabsContent value="announcements" className="space-y-4">
-          {/* Course Filter */}
+        <TabsContent value="messages" className="space-y-4 mt-4">
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Megaphone className="h-5 w-5" />
-                Course Announcements
+              <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                <MessageSquare className="h-4 w-4 sm:h-5 sm:w-5" />
+                Communication Hub
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex flex-wrap gap-3 items-center">
-                <div className="flex-1 min-w-[250px]">
-                  <Label htmlFor="announcement-course">Select Course</Label>
-                  <Select value={selectedCourse} onValueChange={setSelectedCourse}>
-                    <SelectTrigger id="announcement-course">
-                      <SelectValue placeholder="Choose a course" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {courses?.map((course) => (
-                        <SelectItem key={course.id} value={course.id}>
-                          {course.course_code} - {course.course_name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {selectedCourse && (
-                  <Dialog>
-                    <DialogTrigger asChild>
-                      <Button className="flex items-center gap-2 mt-6">
-                        <Plus className="h-4 w-4" />
-                        New Announcement
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent className="max-w-2xl">
-                      <DialogHeader>
-                        <DialogTitle>Create Course Announcement</DialogTitle>
-                      </DialogHeader>
-                      <div className="space-y-4">
-                        <div className="p-3 bg-muted rounded-lg">
-                          <p className="text-sm text-muted-foreground">
-                            This announcement will be visible to all students enrolled in:{' '}
-                            <span className="font-semibold text-foreground">
-                              {courses.find(c => c.id === selectedCourse)?.course_name}
-                            </span>
-                          </p>
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label htmlFor="announcement-title">Title</Label>
-                          <Input
-                            id="announcement-title"
-                            placeholder="Announcement title"
-                            value={newAnnouncement.title}
-                            onChange={(e) => setNewAnnouncement({...newAnnouncement, title: e.target.value})}
-                          />
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label htmlFor="announcement-content">Content</Label>
-                          <Textarea
-                            id="announcement-content"
-                            placeholder="Announcement content"
-                            rows={6}
-                            value={newAnnouncement.content}
-                            onChange={(e) => setNewAnnouncement({...newAnnouncement, content: e.target.value})}
-                          />
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-4">
-                          <div className="space-y-2">
-                            <Label htmlFor="announcement-type">Type</Label>
-                            <Select
-                              value={newAnnouncement.announcement_type}
-                              onValueChange={(value) => setNewAnnouncement({...newAnnouncement, announcement_type: value})}
-                            >
-                              <SelectTrigger id="announcement-type">
-                                <SelectValue placeholder="Announcement type" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="academic">Academic</SelectItem>
-                                <SelectItem value="assignment">Assignment</SelectItem>
-                                <SelectItem value="exam">Exam</SelectItem>
-                                <SelectItem value="general">General</SelectItem>
-                                <SelectItem value="event">Event</SelectItem>
-                              </SelectContent>
-                            </Select>
+            <CardContent>
+              <div className="flex flex-col md:flex-row gap-4 h-[600px]">
+                {selectedChannel ? (
+                  <div className={`${showMobileSidebar ? 'hidden' : 'flex'} md:flex flex-1 flex-col overflow-hidden min-h-0`}>
+                    <div className="bg-sidebar-background border-b p-4 flex-shrink-0">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-3">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="md:hidden"
+                            onClick={() => {
+                              setShowMobileSidebar(true);
+                              setSelectedChannel(null);
+                            }}
+                          >
+                            <ArrowLeft className="h-5 w-5" />
+                          </Button>
+                          <div className="w-10 h-10 rounded-lg flex items-center justify-center font-semibold bg-primary/10">
+                            {selectedChannel.channel_name.substring(0, 2).toUpperCase()}
                           </div>
-
-                          <div className="space-y-2">
-                            <Label htmlFor="announcement-priority">Priority</Label>
-                            <Select
-                              value={newAnnouncement.priority}
-                              onValueChange={(value) => setNewAnnouncement({...newAnnouncement, priority: value})}
-                            >
-                              <SelectTrigger id="announcement-priority">
-                                <SelectValue placeholder="Priority" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="low">Low</SelectItem>
-                                <SelectItem value="normal">Normal</SelectItem>
-                                <SelectItem value="high">High</SelectItem>
-                                <SelectItem value="urgent">Urgent</SelectItem>
-                              </SelectContent>
-                            </Select>
+                          <div>
+                            <h2 className="font-semibold">{selectedChannel.channel_name}</h2>
+                            <p className="text-sm text-muted-foreground">{selectedChannel.memberCount} members</p>
                           </div>
                         </div>
+                      </div>
+                    </div>
 
-                        <Button 
-                          onClick={createAnnouncement} 
-                          className="w-full"
-                          disabled={!newAnnouncement.title || !newAnnouncement.content}
-                        >
-                          <Megaphone className="h-4 w-4 mr-2" />
-                          Create Announcement
+                    <div ref={messagesContainerRef} className="flex-1 overflow-y-auto p-6 space-y-4 min-h-0">
+                      {messages.length === 0 ? (
+                        <div className="flex items-center justify-center h-full">
+                          <div className="text-center">
+                            <MessageSquare className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+                            <p className="text-foreground/70">No messages yet</p>
+                          </div>
+                        </div>
+                      ) : (
+                        <>
+                          {messages.map((message) => {
+                            const isMe = message.sender_id === teacherData.user_id;
+                            
+                            return (
+                              <div key={message.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
+                                <div className={`flex items-end space-x-2 max-w-md ${isMe ? 'flex-row-reverse space-x-reverse' : ''}`}>
+                                  {!isMe && (
+                                    <div className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center text-xs font-semibold">
+                                      {getInitials(message.sender.first_name, message.sender.last_name)}
+                                    </div>
+                                  )}
+                                  <div>
+                                    <div className={`px-4 py-2 ${
+                                      isMe ? 'bg-primary text-primary-foreground rounded-lg rounded-br-none' : 'bg-card border rounded-lg rounded-bl-none'
+                                    }`}>
+                                      <p className="text-sm">{message.message_text}</p>
+                                    </div>
+                                    <p className="text-xs text-muted-foreground mt-1">
+                                      {formatMessageTime(message.created_at)}
+                                    </p>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                          <div ref={messagesEndRef} />
+                        </>
+                      )}
+                    </div>
+
+                    {getTypingText() && (
+                      <div className="px-6 py-2 bg-sidebar-background/50">
+                        <p className="text-sm text-muted-foreground italic">{getTypingText()}</p>
+                      </div>
+                    )}
+
+                    <div className="bg-sidebar-background border-t p-4">
+                      <div className="flex items-end space-x-2">
+                        <Textarea
+                          ref={textareaRef}
+                          placeholder="Type a message..."
+                          value={newMessage}
+                          onChange={(e) => {
+                            setNewMessage(e.target.value);
+                            handleTyping();
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' && !e.shiftKey) {
+                              e.preventDefault();
+                              handleSendMessage();
+                            }
+                          }}
+                          className="resize-none"
+                          rows={1}
+                        />
+                        <Button onClick={handleSendMessage} disabled={!newMessage.trim()}>
+                          <Send className="h-5 w-5" />
                         </Button>
                       </div>
-                    </DialogContent>
-                  </Dialog>
+                    </div>
+                  </div>
+                ) : (
+                  <div className={`${showMobileSidebar ? 'hidden' : 'flex'} md:flex flex-1 items-center justify-center`}>
+                    <div className="text-center">
+                      <MessageSquare className="h-24 w-24 text-muted-foreground mx-auto mb-4" />
+                      <h3 className="text-xl font-semibold mb-2">Select a conversation</h3>
+                      <p className="text-muted-foreground">Choose from your existing chats or start a new one</p>
+                    </div>
+                  </div>
                 )}
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
 
-          {/* Announcements List */}
-          {selectedCourse && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center justify-between">
-                  <span>Course Announcements</span>
-                  <Badge variant="secondary">{announcements.length} total</Badge>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {announcements.length === 0 ? (
-                  <div className="text-center py-12">
-                    <Megaphone className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-                    <p className="text-muted-foreground text-lg mb-2">No announcements yet</p>
-                    <p className="text-sm text-muted-foreground mb-4">
-                      Create your first announcement for this course
-                    </p>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {announcements.map((announcement) => (
-                      <Card key={announcement.id} className="overflow-hidden">
-                        <CardContent className="p-4">
-                          <div className="flex items-start justify-between gap-4">
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2 mb-2 flex-wrap">
-                                <Badge 
-                                  variant={
-                                    announcement.priority === 'urgent' ? 'destructive' : 
-                                    announcement.priority === 'high' ? 'default' : 
-                                    'outline'
-                                  }
-                                  className="text-xs"
-                                >
-                                  {announcement.priority}
+        {/* Announcements Tab */}
+        <TabsContent value="announcements" className="space-y-4 mt-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <Megaphone className="h-4 w-4 sm:h-5 sm:w-5" />
+                  <span className="text-base sm:text-lg">Course Announcements</span>
+                </div>
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button className="flex items-center gap-2 w-full sm:w-auto text-xs sm:text-sm" disabled={!selectedCourse}>
+                      <Plus className="h-3 w-3 sm:h-4 sm:w-4" />
+                      New Announcement
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="w-[95vw] sm:w-full max-w-lg max-h-[90vh] overflow-y-auto">
+                    <DialogHeader>
+                      <DialogTitle className="text-base sm:text-lg">Create Announcement</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                      <Input
+                        placeholder="Announcement title"
+                        value={newAnnouncement.title}
+                        onChange={(e) => setNewAnnouncement({...newAnnouncement, title: e.target.value})}
+                        className="text-sm"
+                      />
+                      <Textarea
+                        placeholder="Announcement content"
+                        value={newAnnouncement.content}
+                        onChange={(e) => setNewAnnouncement({...newAnnouncement, content: e.target.value})}
+                        className="text-sm"
+                      />
+                      <Select
+                        value={newAnnouncement.announcement_type}
+                        onValueChange={(value) => setNewAnnouncement({...newAnnouncement, announcement_type: value})}
+                      >
+                        <SelectTrigger className="text-sm">
+                          <SelectValue placeholder="Announcement type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="academic">Academic</SelectItem>
+                          <SelectItem value="general">General</SelectItem>
+                          <SelectItem value="emergency">Emergency</SelectItem>
+                          <SelectItem value="event">Event</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <Select
+                        value={newAnnouncement.priority}
+                        onValueChange={(value) => setNewAnnouncement({...newAnnouncement, priority: value})}
+                      >
+                        <SelectTrigger className="text-sm">
+                          <SelectValue placeholder="Priority" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="low">Low</SelectItem>
+                          <SelectItem value="normal">Normal</SelectItem>
+                          <SelectItem value="high">High</SelectItem>
+                          <SelectItem value="urgent">Urgent</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <Button onClick={createAnnouncement} className="w-full text-sm">
+                        Create Announcement
+                      </Button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {!selectedCourse ? (
+                <div className="text-center py-12">
+                  <Megaphone className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold mb-2">Select a Course</h3>
+                  <p className="text-muted-foreground">
+                    Choose a course from the dropdown above to view and manage announcements
+                  </p>
+                </div>
+              ) : announcements.length === 0 ? (
+                <div className="text-center py-12">
+                  <Megaphone className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+                  <p className="text-muted-foreground text-lg mb-2">No announcements yet</p>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Create your first announcement for this course
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {announcements.map((announcement) => (
+                    <Card key={announcement.id} className="overflow-hidden">
+                      <CardContent className="p-4">
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-2 flex-wrap">
+                              <Badge 
+                                variant={
+                                  announcement.priority === 'urgent' ? 'destructive' : 
+                                  announcement.priority === 'high' ? 'default' : 
+                                  'outline'
+                                }
+                                className="text-xs"
+                              >
+                                {announcement.priority}
+                              </Badge>
+                              <Badge variant="secondary" className="text-xs">
+                                {announcement.announcement_type}
+                              </Badge>
+                              {announcement.is_active ? (
+                                <Badge variant="default" className="text-xs bg-green-500">
+                                  <Eye className="h-3 w-3 mr-1" />
+                                  Active
                                 </Badge>
-                                <Badge variant="secondary" className="text-xs">
-                                  {announcement.announcement_type}
+                              ) : (
+                                <Badge variant="outline" className="text-xs">
+                                  Inactive
                                 </Badge>
-                                {announcement.is_active ? (
-                                  <Badge variant="default" className="text-xs bg-green-500">
-                                    <Eye className="h-3 w-3 mr-1" />
-                                    Active
-                                  </Badge>
-                                ) : (
-                                  <Badge variant="outline" className="text-xs">
-                                    Inactive
-                                  </Badge>
-                                )}
-                              </div>
-                              
-                              <h3 className="font-semibold text-lg mb-2">{announcement.title}</h3>
-                              <p className="text-sm text-muted-foreground mb-3 whitespace-pre-wrap">
-                                {announcement.content}
-                              </p>
-                              
-                              <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                                <span>
-                                  Created: {new Date(announcement.created_at).toLocaleDateString()} at{' '}
-                                  {new Date(announcement.created_at).toLocaleTimeString()}
-                                </span>
-                                {announcement.courses && (
-                                  <span className="flex items-center gap-1">
-                                    <Users className="h-3 w-3" />
-                                    {announcement.courses.course_code}
-                                  </span>
-                                )}
-                              </div>
+                              )}
                             </div>
                             
-                            <div className="flex flex-col gap-2">
-                              <Dialog>
-                                <DialogTrigger asChild>
-                                  <Button size="sm" variant="destructive">
-                                    <Trash2 className="h-4 w-4" />
-                                  </Button>
-                                </DialogTrigger>
-                                <DialogContent>
-                                  <DialogHeader>
-                                    <DialogTitle>Delete Announcement</DialogTitle>
-                                  </DialogHeader>
-                                  <div className="space-y-4">
-                                    <div className="p-4 bg-destructive/10 border border-destructive/20 rounded-lg">
-                                      <div className="flex items-start gap-3">
-                                        <AlertTriangle className="h-5 w-5 text-destructive mt-0.5" />
-                                        <div>
-                                          <p className="font-medium text-sm mb-1">Are you sure?</p>
-                                          <p className="text-sm text-muted-foreground">
-                                            This will permanently delete the announcement "{announcement.title}". 
-                                            Students will no longer be able to see it.
-                                          </p>
-                                        </div>
-                                      </div>
-                                    </div>
-                                    
-                                    <div className="flex gap-3 justify-end">
-                                      <DialogTrigger asChild>
-                                        <Button variant="outline">Cancel</Button>
-                                      </DialogTrigger>
-                                      <Button 
-                                        variant="destructive" 
-                                        onClick={() => deleteAnnouncement(announcement.id)}
-                                      >
-                                        <Trash2 className="h-4 w-4 mr-2" />
-                                        Delete Announcement
-                                      </Button>
-                                    </div>
-                                  </div>
-                                </DialogContent>
-                              </Dialog>
+                            <h3 className="font-semibold text-lg mb-2">{announcement.title}</h3>
+                            <p className="text-sm text-muted-foreground mb-3 whitespace-pre-wrap">
+                              {announcement.content}
+                            </p>
+                            
+                            <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                              <span>
+                                Created: {new Date(announcement.created_at).toLocaleDateString()} at{' '}
+                                {new Date(announcement.created_at).toLocaleTimeString()}
+                              </span>
+                              {announcement.courses && (
+                                <span className="flex items-center gap-1">
+                                  <Users className="h-3 w-3" />
+                                  {announcement.courses.course_code}
+                                </span>
+                              )}
                             </div>
                           </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          )}
+                          
+                          <div className="flex flex-col gap-2">
+                            <Dialog>
+                              <DialogTrigger asChild>
+                                <Button size="sm" variant="destructive">
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </DialogTrigger>
+                              <DialogContent>
+                                <DialogHeader>
+                                  <DialogTitle>Delete Announcement</DialogTitle>
+                                </DialogHeader>
+                                <div className="space-y-4">
+                                  <div className="p-4 bg-destructive/10 border border-destructive/20 rounded-lg">
+                                    <div className="flex items-start gap-3">
+                                      <AlertTriangle className="h-5 w-5 text-destructive mt-0.5" />
+                                      <div>
+                                        <p className="font-medium text-sm mb-1">Are you sure?</p>
+                                        <p className="text-sm text-muted-foreground">
+                                          This will permanently delete the announcement "{announcement.title}". 
+                                          Students will no longer be able to see it.
+                                        </p>
+                                      </div>
+                                    </div>
+                                  </div>
+                                  
+                                  <div className="flex gap-3 justify-end">
+                                    <DialogTrigger asChild>
+                                      <Button variant="outline">Cancel</Button>
+                                    </DialogTrigger>
+                                    <Button 
+                                      variant="destructive" 
+                                      onClick={() => deleteAnnouncement(announcement.id)}
+                                    >
+                                      <Trash2 className="h-4 w-4 mr-2" />
+                                      Delete Announcement
+                                    </Button>
+                                  </div>
+                                </div>
+                              </DialogContent>
+                            </Dialog>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
 
-          {!selectedCourse && (
-            <Card>
-              <CardContent className="p-12 text-center">
-                <Megaphone className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-                <h3 className="text-lg font-semibold mb-2">Select a Course</h3>
-                <p className="text-muted-foreground">
-                  Choose a course from the dropdown above to view and manage announcements
-                </p>
-              </CardContent>
-            </Card>
-          )}
+        {/* Compose Tab */}
+        <TabsContent value="compose" className="space-y-4 mt-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                <Send className="h-4 w-4 sm:h-5 sm:w-5" />
+                Compose Message
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="recipient">Recipient *</Label>
+                <Select
+                  value={composeMessage.recipient_id}
+                  onValueChange={(value) => setComposeMessage({...composeMessage, recipient_id: value})}
+                >
+                  <SelectTrigger className="text-sm" id="recipient">
+                    <SelectValue placeholder="Select recipient" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {students.map((student) => (
+                      <SelectItem key={student.student_id} value={student.student_id}>
+                        {student.user_profiles?.first_name} {student.user_profiles?.last_name} - {student.courses?.course_name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="course">Course (optional)</Label>
+                <Select
+                  value={composeMessage.course_id}
+                  onValueChange={(value) => setComposeMessage({...composeMessage, course_id: value})}
+                >
+                  <SelectTrigger className="text-sm" id="course">
+                    <SelectValue placeholder="Select course (optional)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {courses.map((course) => (
+                      <SelectItem key={course.id} value={course.id}>
+                        {course.course_name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="subject">Subject *</Label>
+                <Input
+                  id="subject"
+                  placeholder="Subject"
+                  value={composeMessage.subject}
+                  onChange={(e) => setComposeMessage({...composeMessage, subject: e.target.value})}
+                  className="text-sm"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="content">Message *</Label>
+                <Textarea
+                  id="content"
+                  placeholder="Message content"
+                  rows={6}
+                  value={composeMessage.content}
+                  onChange={(e) => setComposeMessage({...composeMessage, content: e.target.value})}
+                  className="text-sm"
+                />
+              </div>
+
+              <Button onClick={sendMessage} className="w-full text-sm">
+                <Send className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
+                Send Message
+              </Button>
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
     </div>

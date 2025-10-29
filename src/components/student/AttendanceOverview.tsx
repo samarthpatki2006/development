@@ -637,14 +637,14 @@ const AttendanceOverview: React.FC<AttendanceOverviewProps> = ({ studentData }) 
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h2 className="text-2xl font-bold">Attendance Overview</h2>
-          <p className="text-muted-foreground">Track your class attendance and statistics</p>
+    <div className="space-y-4 sm:space-y-6 px-3 sm:px-4 md:px-6 w-full max-w-full">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4">
+        <div className="w-full sm:w-auto">
+          <h2 className="text-xl sm:text-2xl md:text-3xl font-bold">Attendance Overview</h2>
+          <p className="text-xs sm:text-sm text-muted-foreground mt-1">Track your class attendance and statistics</p>
         </div>
         <Select value={selectedCourse} onValueChange={setSelectedCourse}>
-          <SelectTrigger className="w-48">
+          <SelectTrigger className="w-full sm:w-48 h-9 sm:h-10">
             <SelectValue placeholder="Select course" />
           </SelectTrigger>
           <SelectContent>
@@ -658,52 +658,54 @@ const AttendanceOverview: React.FC<AttendanceOverviewProps> = ({ studentData }) 
         </Select>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-        <Card>
-          <CardContent className="p-6">
+
+
+      <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3 md:gap-4 w-full max-w-full">
+        <Card className="xs:col-span-2 sm:col-span-3 lg:col-span-1">
+          <CardContent className="p-3 sm:p-4 md:p-6">
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Effective Attendance</p>
-                <p className="text-2xl font-bold">{overallStats.effectiveAttendance}%</p>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs sm:text-sm font-medium text-muted-foreground truncate">Effective Attendance</p>
+                <p className="text-xl sm:text-2xl md:text-3xl font-bold mt-1">{overallStats.effectiveAttendance}%</p>
                 <p className="text-xs text-muted-foreground mt-1">Late = 0.5x points</p>
               </div>
             </div>
-            <Progress value={overallStats.effectiveAttendance} className="mt-3" />
+            <Progress value={overallStats.effectiveAttendance} className="mt-2 sm:mt-3 h-2" />
           </CardContent>
         </Card>
 
-        <Card>
-          <CardContent className="p-6">
+        <Card className="w-full">
+          <CardContent className="p-3 sm:p-4 md:p-6">
             <div className="text-center">
-              <p className="text-sm font-medium text-muted-foreground">Total Classes</p>
-              <p className="text-2xl font-bold">{overallStats.totalClasses}</p>
+              <p className="text-xs sm:text-sm font-medium text-muted-foreground">Total Classes</p>
+              <p className="text-xl sm:text-2xl md:text-3xl font-bold mt-1">{overallStats.totalClasses}</p>
             </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardContent className="p-6">
+        <Card className="w-full">
+          <CardContent className="p-3 sm:p-4 md:p-6">
             <div className="text-center">
-              <p className="text-sm font-medium text-muted-foreground">Present</p>
-              <p className="text-2xl font-bold text-green-600">{overallStats.attendedClasses}</p>
+              <p className="text-xs sm:text-sm font-medium text-muted-foreground">Present</p>
+              <p className="text-xl sm:text-2xl md:text-3xl font-bold text-green-600 mt-1">{overallStats.attendedClasses}</p>
             </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardContent className="p-6">
+        <Card className="w-full">
+          <CardContent className="p-3 sm:p-4 md:p-6">
             <div className="text-center">
-              <p className="text-sm font-medium text-muted-foreground">Late (0.5x)</p>
-              <p className="text-2xl font-bold text-yellow-600">{overallStats.lateClasses}</p>
+              <p className="text-xs sm:text-sm font-medium text-muted-foreground">Late (0.5x)</p>
+              <p className="text-xl sm:text-2xl md:text-3xl font-bold text-yellow-600 mt-1">{overallStats.lateClasses}</p>
             </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardContent className="p-6">
+        <Card className="w-full">
+          <CardContent className="p-3 sm:p-4 md:p-6">
             <div className="text-center">
-              <p className="text-sm font-medium text-muted-foreground">Absent</p>
-              <p className="text-2xl font-bold text-red-600">
+              <p className="text-xs sm:text-sm font-medium text-muted-foreground">Absent</p>
+              <p className="text-xl sm:text-2xl md:text-3xl font-bold text-red-600 mt-1">
                 {overallStats.totalClasses - overallStats.attendedClasses - overallStats.lateClasses}
               </p>
             </div>
@@ -978,25 +980,27 @@ const AttendanceOverview: React.FC<AttendanceOverviewProps> = ({ studentData }) 
           </Card>
         </TabsContent>
 
-        <TabsContent value="history" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Recent Attendance</CardTitle>
+        <TabsContent value="history" className="w-full space-y-3 sm:space-y-4">
+          <Card className="w-full">
+            <CardHeader className="p-4 sm:p-6">
+              <CardTitle className="text-base sm:text-lg md:text-xl">Recent Attendance</CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
+            <CardContent className="p-4 sm:p-6">
+              <div className="space-y-2 sm:space-y-3">
                 {attendanceData.length === 0 ? (
-                  <p className="text-center text-muted-foreground py-8">No attendance records found</p>
+                  <p className="text-center text-muted-foreground py-8 text-sm sm:text-base">No attendance records found</p>
                 ) : (
                   attendanceData.slice(0, 20).map((record, index) => (
-                    <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
-                      <div className="flex items-center space-x-3">
-                        {getAttendanceIcon(record.status)}
-                        <div>
-                          <p className="font-medium">{record.courses?.course_name}</p>
-                          <p className="text-sm text-muted-foreground">
+                    <div key={index} className="flex items-start sm:items-center justify-between p-3 border rounded-lg gap-2">
+                      <div className="flex items-start space-x-2 sm:space-x-3 flex-1 min-w-0">
+                        <div className="flex-shrink-0 mt-0.5">
+                          {getAttendanceIcon(record.status)}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="font-medium text-xs sm:text-sm md:text-base truncate">{record.courses?.course_name}</p>
+                          <p className="text-xs sm:text-sm text-muted-foreground">
                             {new Date(record.class_date).toLocaleDateString('en-US', {
-                              weekday: 'long',
+                              weekday: 'short',
                               year: 'numeric',
                               month: 'short',
                               day: 'numeric'
@@ -1007,7 +1011,7 @@ const AttendanceOverview: React.FC<AttendanceOverviewProps> = ({ studentData }) 
                           )}
                         </div>
                       </div>
-                      <Badge className={getAttendanceStatusColor(record.status)}>
+                      <Badge className={`${getAttendanceStatusColor(record.status)} flex-shrink-0 text-xs`}>
                         {record.status.charAt(0).toUpperCase() + record.status.slice(1)}
                       </Badge>
                     </div>

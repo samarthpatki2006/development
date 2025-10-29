@@ -263,10 +263,10 @@ const AuditLogs = ({ userProfile, adminRoles }: AuditLogsProps) => {
   if (isLoading && auditLogs.length === 0) {
     return (
       <Card>
-        <CardContent className="p-6">
+        <CardContent className="p-4 sm:p-6">
           <div className="text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-            <p className="mt-2 text-gray-600">Loading audit logs...</p>
+            <p className="mt-2 text-gray-600 text-sm sm:text-base">Loading audit logs...</p>
           </div>
         </CardContent>
       </Card>
@@ -274,16 +274,16 @@ const AuditLogs = ({ userProfile, adminRoles }: AuditLogsProps) => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <Card>
-        <CardHeader>
-          <div className="flex justify-between items-start">
-            <div>
-              <CardTitle className="flex items-center space-x-2">
-                <Activity className="w-5 h-5" />
+        <CardHeader className="p-4 sm:p-6">
+          <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4">
+            <div className="space-y-1.5">
+              <CardTitle className="flex items-center space-x-2 text-lg sm:text-xl">
+                <Activity className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
                 <span>Audit Logs</span>
               </CardTitle>
-              <CardDescription>
+              <CardDescription className='text-xs sm:text-sm mt-2'>
                 Comprehensive tracking of all administrative actions and system changes.
                 {isSuperAdmin() ? ' Full access to all logs.' : ' Access limited to relevant logs.'}
               </CardDescription>
@@ -300,7 +300,7 @@ const AuditLogs = ({ userProfile, adminRoles }: AuditLogsProps) => {
             </div>
           </div>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="p-4 sm:p-6 sm:pt-0 space-y-4">
           {/* Search and Filters */}
           <div className="space-y-4">
             <div className="flex flex-col lg:flex-row gap-4">

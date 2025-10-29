@@ -385,10 +385,10 @@ const RoleManagement = ({ userProfile, adminRoles }: RoleManagementProps) => {
   if (isLoading) {
     return (
       <Card>
-        <CardContent className="p-6">
+        <CardContent className="p-4 sm:p-6">
           <div className="text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-            <p className="mt-2 text-gray-600">Loading tag assignments...</p>
+            <p className="mt-2 text-gray-600 text-sm sm:text-base">Loading role assignments...</p>
           </div>
         </CardContent>
       </Card>
@@ -396,38 +396,38 @@ const RoleManagement = ({ userProfile, adminRoles }: RoleManagementProps) => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <Card>
-        <CardHeader>
-          <div className="flex justify-between items-start">
-            <div>
-              <CardTitle className="flex items-center space-x-2">
-                <Shield className="w-5 h-5" />
-                <span>Role & Tag Management</span>
+        <CardHeader className="p-4 sm:p-6">
+          <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4">
+            <div className="space-y-1.5">
+              <CardTitle className="flex items-center space-x-2 text-lg sm:text-xl">
+                <Shield className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
+                <span>Role Management</span>
               </CardTitle>
-              <CardDescription>
-                Assign and manage tags to control user access and permissions across your college.
+              <CardDescription className="text-xs sm:text-sm mt-2">
+                Assign and manage admin roles for your college. Only Super Admins can manage roles.
               </CardDescription>
             </div>
             <Dialog open={isAssignDialogOpen} onOpenChange={setIsAssignDialogOpen}>
               <DialogTrigger asChild>
-                <Button>
+                <Button className="w-full sm:w-60">
                   <Plus className="w-4 h-4 mr-2" />
                   Assign Tag
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-2xl">
+              <DialogContent className="w-[95vw] max-w-md mx-auto">
                 <DialogHeader>
-                  <DialogTitle>Assign Tag to User</DialogTitle>
-                  <DialogDescription>
+                  <DialogTitle className="text-lg sm:text-xl">Assign Tag to User</DialogTitle>
+                  <DialogDescription className="text-xs sm:text-sm">
                     Select a user and tag to grant specific roles or permissions.
                   </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4 py-4">
                   <div className="space-y-2">
-                    <Label>Select User</Label>
+                    <Label className="text-sm">Select User</Label>
                     <Select value={selectedUser} onValueChange={setSelectedUser}>
-                      <SelectTrigger>
+                      <SelectTrigger className="text-sm">
                         <SelectValue placeholder="Choose a user" />
                       </SelectTrigger>
                       <SelectContent>
@@ -500,7 +500,7 @@ const RoleManagement = ({ userProfile, adminRoles }: RoleManagementProps) => {
             </Dialog>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-4 sm:p-6 sm:pt-0">
           {/* Filter */}
           <div className="mb-4 flex items-center space-x-2">
             <Label>Filter by Category:</Label>
@@ -628,16 +628,16 @@ const RoleManagement = ({ userProfile, adminRoles }: RoleManagementProps) => {
 
       {/* Available Tags Info */}
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <Tag className="w-5 h-5" />
+        <CardHeader className="p-4 sm:p-6">
+          <CardTitle className="flex items-center space-x-2 text-lg sm:text-xl">
+            <Users className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
             <span>Available Tags</span>
           </CardTitle>
           <CardDescription>
             Overview of all available tags and their purposes
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-4 sm:p-6 sm:pt-0">
           <Tabs defaultValue="admin_role">
             <TabsList className="grid grid-cols-5 w-full">
               <TabsTrigger value="admin_role">Admin</TabsTrigger>
@@ -649,7 +649,7 @@ const RoleManagement = ({ userProfile, adminRoles }: RoleManagementProps) => {
             
             {['admin_role', 'faculty_role', 'student_role', 'club', 'committee'].map((category) => (
               <TabsContent key={category} value={category} className="mt-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                   {availableTags
                     .filter(tag => tag.tag_category === category)
                     .map((tag) => (

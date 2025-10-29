@@ -122,7 +122,7 @@ const AlumniEvents = ({ user }: AlumniEventsProps) => {
 
   const filteredEvents = events.filter(event => {
     const matchesSearch = event.event_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         event.description?.toLowerCase().includes(searchTerm.toLowerCase());
+      event.description?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesFilter = filterType === 'all' || event.event_type === filterType;
     return matchesSearch && matchesFilter;
   });
@@ -136,22 +136,22 @@ const AlumniEvents = ({ user }: AlumniEventsProps) => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Alumni Events</CardTitle>
-          <div className="flex flex-col sm:flex-row gap-4">
+          <CardTitle className="text-xl sm:text-2xl">Alumni Events</CardTitle>
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
             <div className="relative flex-1">
               <Search className="h-4 w-4 absolute left-3 top-3 text-gray-400" />
               <Input
                 placeholder="Search events..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-9"
+                className="pl-9 text-sm sm:text-base"
               />
             </div>
             <Select value={filterType} onValueChange={setFilterType}>
-              <SelectTrigger className="w-full sm:w-48">
+              <SelectTrigger className="w-full sm:w-48 text-sm sm:text-base">
                 <SelectValue placeholder="Filter by type" />
               </SelectTrigger>
               <SelectContent>
@@ -166,64 +166,71 @@ const AlumniEvents = ({ user }: AlumniEventsProps) => {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-6">
+          <div className="grid gap-4 sm:gap-6 max-h-[320px] sm:max-h-[450] md:max-h-[600px] overflow-auto">
             {filteredEvents.length > 0 ? (
               filteredEvents.map((event) => (
-                <Card key={event.id} className="border-l-4 border-l-blue-500">
-                  <CardContent className="p-6">
-                    <div className="flex justify-between items-start">
+                <Card key={event.id} className="border-l-4 border-l-blue-500 bg-black-50">
+                  <CardContent className="p-4 sm:p-6">
+                    <div className="flex flex-col space-y-4">
                       <div className="flex-1">
-                        <div className="flex items-center space-x-2 mb-2">
-                          <h3 className="text-lg font-semibold">{event.event_name}</h3>
-                          <Badge variant="outline">{event.event_type}</Badge>
+                        <div className="flex flex-wrap items-center gap-2 mb-3">
+                          <h3 className="text-base sm:text-lg font-semibold">{event.event_name}</h3>
+                          <Badge variant="outline" className="text-xs cursor-pointer">{event.event_type}</Badge>
                           {isRegistered(event.id) && (
-                            <Badge variant="default">Registered</Badge>
+                            <Badge variant="default" className="text-xs cursor-pointer">Registered</Badge>
                           )}
                         </div>
-                        
-                        <p className="text-gray-600 mb-4">{event.description}</p>
-                        
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-sm text-gray-500">
+
+                        <p className="text-sm sm:text-base text-gray-100 mb-4 line-clamp-3 sm:line-clamp-none">
+                          {event.description}
+                        </p>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 space-x-0 text-xs sm:text-sm text-gray-50">
                           <div className="flex items-center space-x-2">
-                            <Calendar className="h-4 w-4" />
-                            <span>{new Date(event.start_date).toLocaleDateString()}</span>
+                            <Calendar className="h-4 w-4 flex-shrink-0" />
+                            <span >{new Date(event.start_date).toLocaleDateString()}</span>
                           </div>
                           <div className="flex items-center space-x-2">
-                            <Clock className="h-4 w-4" />
+                            <Clock className="h-4 w-4 flex-shrink-0" />
                             <span>{new Date(event.start_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                           </div>
                           {event.location && (
                             <div className="flex items-center space-x-2">
-                              <MapPin className="h-4 w-4" />
-                              <span>{event.location}</span>
+                              <MapPin className="h-4 w-4 flex-shrink-0" />
+                              <span className="truncate">{event.location}</span>
                             </div>
                           )}
                           {event.max_participants && (
                             <div className="flex items-center space-x-2">
-                              <Users className="h-4 w-4" />
+                              <Users className="h-4 w-4 flex-shrink-0" />
                               <span>Max {event.max_participants} participants</span>
                             </div>
                           )}
                         </div>
                       </div>
-                      
-                      <div className="ml-4">
+
+                      <div className="w-full sm:w-auto">
                         {event.registration_required ? (
                           isRegistered(event.id) ? (
                             <Button
                               variant="outline"
                               onClick={() => handleUnregister(event.id)}
-                              className="text-red-600 border-red-600 hover:bg-red-50"
+                              className="w-full sm:w-auto text-sm sm:text-base text-red-600 border-red-600 hover:bg-red-50"
                             >
                               Unregister
                             </Button>
                           ) : (
-                            <Button onClick={() => handleRegister(event.id)}>
+                            <Button
+                              onClick={() => handleRegister(event.id)}
+                              className="w-full sm:w-auto text-sm sm:text-base"
+                            >
                               Register
                             </Button>
                           )
                         ) : (
-                          <Badge variant="secondary">No Registration Required</Badge>
+                          <Badge variant="secondary" className="text-xs w-full sm:w-auto justify-center cursor-pointer">
+                            No Registration Required
+                          </Badge>
                         )}
                       </div>
                     </div>
@@ -231,10 +238,10 @@ const AlumniEvents = ({ user }: AlumniEventsProps) => {
                 </Card>
               ))
             ) : (
-              <div className="text-center py-8">
-                <Calendar className="h-12 w-12 mx-auto text-gray-400 mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">No events found</h3>
-                <p className="text-gray-500">Try adjusting your search or filter criteria.</p>
+              <div className="text-center py-8 sm:py-12">
+                <Calendar className="h-10 w-10 sm:h-12 sm:w-12 mx-auto text-gray-400 mb-4" />
+                <h3 className="text-base sm:text-lg font-medium text-gray-900 mb-2">No events found</h3>
+                <p className="text-sm sm:text-base text-gray-500">Try adjusting your search or filter criteria.</p>
               </div>
             )}
           </div>
@@ -245,24 +252,27 @@ const AlumniEvents = ({ user }: AlumniEventsProps) => {
       {myRegistrations.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle>My Registered Events</CardTitle>
+            <CardTitle className="text-xl sm:text-2xl">My Registered Events</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
               {myRegistrations.map((registration) => {
                 const event = events.find(e => e.id === registration.event_id);
                 if (!event) return null;
-                
+
                 return (
-                  <div key={registration.id} className="flex justify-between items-center p-3 border rounded-lg">
-                    <div>
-                      <h4 className="font-medium">{event.event_name}</h4>
-                      <p className="text-sm text-gray-600">
+                  <div key={registration.id} className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 p-3 sm:p-4 border rounded-lg">
+                    <div className="flex-1">
+                      <h4 className="font-medium text-sm sm:text-base">{event.event_name}</h4>
+                      <p className="text-xs sm:text-sm text-gray-600 mt-1">
                         {new Date(event.start_date).toLocaleDateString()} at{' '}
                         {new Date(event.start_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </p>
                     </div>
-                    <Badge variant={registration.status === 'registered' ? 'default' : 'secondary'}>
+                    <Badge
+                      variant={registration.status === 'registered' ? 'default' : 'secondary'}
+                      className="text-xs self-start sm:self-center"
+                    >
                       {registration.status}
                     </Badge>
                   </div>

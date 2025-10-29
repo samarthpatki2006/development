@@ -207,7 +207,7 @@ const AttendanceTracking = ({ user }: AttendanceTrackingProps) => {
   const stats = getAttendanceStats();
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-fade-in-up px-3 sm:px-4 md:px-6 overflow-x-hidden w-full">
       {/* Child Selection */}
       <Card>
         <CardHeader>
@@ -234,36 +234,36 @@ const AttendanceTracking = ({ user }: AttendanceTrackingProps) => {
           {/* Attendance Summary */}
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <CalendarIcon className="h-5 w-5" />
+              <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                <CalendarIcon className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
                 <span>Attendance Summary - {selectedChildName}</span>
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
-                <div className="text-center">
-                  <div className="text-3xl font-bold text-blue-600">{stats.attendancePercentage}%</div>
-                  <p className="text-sm text-gray-600">Overall Attendance</p>
+              <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mb-4 sm:mb-6">
+                <div className="text-center p-3 sm:p-4 bg-gray-900/50 border border-blue-500/20 rounded-lg">
+                  <div className="text-xl sm:text-2xl md:text-3xl font-bold text-blue-400">{stats.attendancePercentage}%</div>
+                  <p className="text-xs sm:text-sm text-gray-400 mt-1">Overall Attendance</p>
                 </div>
-                <div className="text-center">
-                  <div className="text-3xl font-bold text-green-600">{stats.presentClasses}</div>
-                  <p className="text-sm text-gray-600">Classes Attended</p>
+                <div className="text-center p-3 sm:p-4 bg-gray-900/50 border border-green-500/20 rounded-lg">
+                  <div className="text-xl sm:text-2xl md:text-3xl font-bold text-green-400">{stats.presentClasses}</div>
+                  <p className="text-xs sm:text-sm text-gray-400 mt-1">Classes Attended</p>
                 </div>
-                <div className="text-center">
-                  <div className="text-3xl font-bold text-red-600">{stats.totalClasses - stats.presentClasses}</div>
-                  <p className="text-sm text-gray-600">Classes Missed</p>
+                <div className="text-center p-3 sm:p-4 bg-gray-900/50 border border-red-500/20 rounded-lg">
+                  <div className="text-xl sm:text-2xl md:text-3xl font-bold text-red-400">{stats.totalClasses - stats.presentClasses}</div>
+                  <p className="text-xs sm:text-sm text-gray-400 mt-1">Classes Missed</p>
                 </div>
-                <div className="text-center">
-                  <div className="text-3xl font-bold text-purple-600">{stats.totalClasses}</div>
-                  <p className="text-sm text-gray-600">Total Classes</p>
+                <div className="text-center p-3 sm:p-4 bg-gray-900/50 border border-purple-500/20 rounded-lg">
+                  <div className="text-xl sm:text-2xl md:text-3xl font-bold text-purple-400">{stats.totalClasses}</div>
+                  <p className="text-xs sm:text-sm text-gray-400 mt-1">Total Classes</p>
                 </div>
               </div>
 
               {/* Course Filter */}
-              <div className="flex items-center space-x-4">
-                <Label>Filter by Course:</Label>
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                <Label className="text-sm">Filter by Course:</Label>
                 <Select value={selectedCourse} onValueChange={setSelectedCourse}>
-                  <SelectTrigger className="w-48">
+                  <SelectTrigger className="w-full sm:w-48">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -282,8 +282,8 @@ const AttendanceTracking = ({ user }: AttendanceTrackingProps) => {
           {/* Attendance Records */}
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <Clock className="h-5 w-5" />
+              <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                <Clock className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
                 <span>Attendance Records</span>
               </CardTitle>
             </CardHeader>
@@ -293,14 +293,14 @@ const AttendanceTracking = ({ user }: AttendanceTrackingProps) => {
                   .filter(record => selectedCourse === 'all' || record.course_id === selectedCourse)
                   .slice(0, 20)
                   .map((record) => (
-                    <div key={record.id} className="flex justify-between items-center p-3 border rounded-lg">
+                    <div key={record.id} className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 p-3 sm:p-4 bg-black-900/30 border border-gray-600/40 rounded-lg">
                       <div>
-                        <h4 className="font-medium">{record.courses.course_name}</h4>
-                        <p className="text-sm text-gray-600">
+                        <h4 className="font-medium text-sm sm:text-base">{record.courses.course_name}</h4>
+                        <p className="text-xs sm:text-sm text-gray-400 mt-1">
                           {new Date(record.class_date).toLocaleDateString()}
                         </p>
                       </div>
-                      <Badge className={getStatusColor(record.status)}>
+                      <Badge className={`${getStatusColor(record.status)} w-fit`}>
                         {record.status.charAt(0).toUpperCase() + record.status.slice(1)}
                       </Badge>
                     </div>
@@ -312,29 +312,32 @@ const AttendanceTracking = ({ user }: AttendanceTrackingProps) => {
           {/* Submit Absence Request */}
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <AlertCircle className="h-5 w-5" />
+              <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                <AlertCircle className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
                 <span>Submit Absence Request</span>
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <Label>Select Date</Label>
-                <Calendar
-                  mode="single"
-                  selected={selectedDate}
-                  onSelect={setSelectedDate}
-                  className="rounded-md border"
-                />
+                <Label className="text-sm">Select Date</Label>
+                <div className="mt-1">
+                  <Calendar
+                    mode="single"
+                    selected={selectedDate}
+                    onSelect={setSelectedDate}
+                    className="rounded-md border border-gray-600/40 bg-black-900/30 w-full"
+                  />
+                </div>
               </div>
               <div>
-                <Label htmlFor="reason">Reason for Absence</Label>
+                <Label htmlFor="reason" className="text-sm">Reason for Absence</Label>
                 <Textarea
                   id="reason"
                   placeholder="Please provide a reason for the absence..."
                   value={absenceReason}
                   onChange={(e) => setAbsenceReason(e.target.value)}
-                  className="mt-1"
+                  className="mt-1 text-sm"
+                  rows={4}
                 />
               </div>
               <Button onClick={submitAbsenceRequest} className="w-full">
@@ -346,39 +349,39 @@ const AttendanceTracking = ({ user }: AttendanceTrackingProps) => {
           {/* Absence Requests History */}
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <CheckCircle className="h-5 w-5" />
+              <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                <CheckCircle className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
                 <span>Absence Requests History</span>
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
                 {absenceRequests.map((request) => (
-                  <div key={request.id} className="border rounded-lg p-4">
-                    <div className="flex justify-between items-start mb-2">
-                      <div>
-                        <h4 className="font-medium">{request.courses.course_name}</h4>
-                        <p className="text-sm text-gray-600">
+                  <div key={request.id} className="bg-black-900/30 border border-gray-600/40 rounded-lg p-3 sm:p-4">
+                    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2 mb-3">
+                      <div className="flex-1">
+                        <h4 className="font-medium text-sm sm:text-base">{request.courses.course_name}</h4>
+                        <p className="text-xs sm:text-sm text-black-400 mt-1">
                           Date: {new Date(request.absence_date).toLocaleDateString()}
                         </p>
                       </div>
-                      <Badge className={getRequestStatusColor(request.status)}>
+                      <Badge className={`${getRequestStatusColor(request.status)} w-fit`}>
                         {request.status.charAt(0).toUpperCase() + request.status.slice(1)}
                       </Badge>
                     </div>
-                    <div className="space-y-2">
-                      <div>
-                        <strong>Reason:</strong>
-                        <p className="text-sm text-gray-700">{request.reason}</p>
+                    <div className="space-y-3">
+                      <div className="p-2 sm:p-3 bg-black-800/50 border border-gray-600/30 rounded">
+                        <strong className="text-xs sm:text-sm">Reason:</strong>
+                        <p className="text-xs sm:text-sm text-black-300 mt-1">{request.reason}</p>
                       </div>
                       {request.review_comments && (
-                        <div>
-                          <strong>Review Comments:</strong>
-                          <p className="text-sm text-gray-700">{request.review_comments}</p>
+                        <div className="p-2 sm:p-3 bg-black-800/50 border border-gray-600/30 rounded">
+                          <strong className="text-xs sm:text-sm">Review Comments:</strong>
+                          <p className="text-xs sm:text-sm text-black-300 mt-1">{request.review_comments}</p>
                         </div>
                       )}
                       {request.user_profiles && (
-                        <p className="text-xs text-gray-500">
+                        <p className="text-xs text-black-500 pt-2 border-t border-gray-600/40">
                           Reviewed by: {request.user_profiles.first_name} {request.user_profiles.last_name}
                         </p>
                       )}

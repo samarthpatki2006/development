@@ -135,39 +135,45 @@ const Marketplace = ({ onViewProduct, onSellClick, onMyListingsClick }) => {
 
   return (
     <>
+      {/* Hero Section */}
       <div className="bg-black text-white border-b border-white/15">
-        <div className="container mx-auto px-6 py-20">
+        <div className="container mx-auto px-6 py-4">
           <div className="max-w-4xl">
-            <h1 className="text-5xl md:text-6xl font-semibold mb-4 tracking-tight">
+            {/* Title */}
+            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-semibold mb-4 tracking-tight">
               Student Marketplace
             </h1>
-            <p className="text-xl mb-10 leading-relaxed text-white/70">
+
+            {/* Subtitle */}
+            <p className="text-base sm:text-lg md:text-xl mb-8 sm:mb-10 leading-relaxed text-white/70">
               Buy and sell used items with fellow students in your community
             </p>
-            
+
+            {/* Search Bar */}
             <div className="relative mb-8">
-              <Search className="absolute left-5 top-1/2 -translate-y-1/2 h-5 w-5 text-black" />
+              <Search className="absolute left-4 sm:left-5 top-1/2 -translate-y-1/2 h-5 w-5 text-black" />
               <input
                 type="text"
                 placeholder="Search for textbooks, electronics, furniture..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-14 pr-6 py-5 rounded-sm bg-white/8 border border-white/15 text-black focus:outline-none focus:ring-2 focus:ring-white/40 focus:border-transparent transition-all duration-300"
+                className="w-full pl-12 sm:pl-14 pr-4 sm:pr-6 py-4 sm:py-5 rounded-md bg-white/10 border border-white/15 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-white/40 focus:border-transparent transition-all duration-300 text-sm sm:text-base"
               />
             </div>
 
-            <div className="flex gap-4">
+            {/* Action Buttons */}
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
               <button
                 onClick={onSellClick}
-                className="px-8 py-4 rounded-sm font-semibold bg-white text-black hover:bg-white/90 transition-all duration-300 flex items-center gap-2"
+                className="w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 rounded-md font-semibold bg-white text-black hover:bg-white/90 transition-all duration-300 flex items-center justify-center gap-2"
               >
                 <Plus className="h-5 w-5" />
                 List an Item
               </button>
-              
+
               <button
                 onClick={onMyListingsClick}
-                className="px-8 py-4 rounded-sm font-semibold bg-white/12 text-white hover:bg-white/20 transition-all duration-300 flex items-center gap-2 border border-white/15"
+                className="w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 rounded-md font-semibold bg-white/10 text-white hover:bg-white/20 transition-all duration-300 flex items-center justify-center gap-2 border border-white/15"
               >
                 <Package className="h-5 w-5" />
                 My Listings
@@ -177,19 +183,19 @@ const Marketplace = ({ onViewProduct, onSellClick, onMyListingsClick }) => {
         </div>
       </div>
 
-      <div className="container mx-auto px-6 py-12">
-        <div className="mb-10 flex gap-3 overflow-x-auto pb-4 scrollbar-hide">
+      <div className="container mx-auto px-4 sm:px-6 py-4">
+        {/* Category Scroll */}
+        <div className="mb-8 sm:mb-10 flex gap-3 overflow-x-auto pb-4 scrollbar-hide">
           {categories.map((category) => {
             const isSelected = selectedCategory === category.value;
             return (
               <button
                 key={category.value}
                 onClick={() => setSelectedCategory(category.value)}
-                className={`px-6 py-3 rounded-sm font-medium transition-all duration-300 whitespace-nowrap border ${
-                  isSelected
+                className={`px-5 sm:px-6 py-2.5 sm:py-3 rounded-md font-medium transition-all duration-300 whitespace-nowrap border text-sm sm:text-base ${isSelected
                     ? "bg-white text-black border-white"
-                    : "bg-white/8 text-white/70 border-white/15 hover:bg-white/12 hover:border-white/20"
-                }`}
+                    : "bg-white/10 text-white/70 border-white/15 hover:bg-white/15 hover:border-white/25"
+                  }`}
               >
                 {category.label}
               </button>
@@ -197,20 +203,29 @@ const Marketplace = ({ onViewProduct, onSellClick, onMyListingsClick }) => {
           })}
         </div>
 
+        {/* Loading */}
         {loading ? (
           <div className="flex items-center justify-center py-20">
-            <Loader2 className="h-12 w-12 animate-spin text-white" />
+            <Loader2 className="h-10 sm:h-12 w-10 sm:w-12 animate-spin text-white" />
           </div>
         ) : filteredProducts.length === 0 ? (
-          <div className="text-center py-20 rounded-sm bg-white/8 border border-white/15">
-            <Package className="h-20 w-20 text-white/40 mx-auto mb-4" />
-            <p className="text-2xl font-semibold mb-2 text-white">No items found</p>
-            <p className="text-white/60">Try adjusting your search or be the first to list something!</p>
+          <div className="text-center py-16 sm:py-20 rounded-md bg-white/10 border border-white/15 px-4">
+            <Package className="h-16 sm:h-20 w-16 sm:w-20 text-white/40 mx-auto mb-4" />
+            <p className="text-xl sm:text-2xl font-semibold mb-2 text-white">
+              No items found
+            </p>
+            <p className="text-white/60 text-sm sm:text-base">
+              Try adjusting your search or be the first to list something!
+            </p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 sm:gap-6">
             {filteredProducts.map((product) => (
-              <ProductCard key={product.id} product={product} onClick={() => onViewProduct(product)} />
+              <ProductCard
+                key={product.id}
+                product={product}
+                onClick={() => onViewProduct(product)}
+              />
             ))}
           </div>
         )}
@@ -222,7 +237,6 @@ const Marketplace = ({ onViewProduct, onSellClick, onMyListingsClick }) => {
 const ProductCard = ({ product, onClick }) => {
   const categoryStyle = categoryStyles[product.category] || categoryStyles.other;
   const firstImage = product.images && product.images.length > 0 ? product.images[0] : null;
-  
   return (
     <div
       onClick={onClick}
@@ -230,10 +244,10 @@ const ProductCard = ({ product, onClick }) => {
     >
       <div className="aspect-square bg-white/5 overflow-hidden relative">
         {firstImage ? (
-          <img 
-            src={firstImage} 
-            alt={product.title} 
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" 
+          <img
+            src={firstImage}
+            alt={product.title}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
           />
         ) : (
           <div className="flex items-center justify-center h-full">
@@ -358,8 +372,8 @@ const ProductDetail = ({ product, onBack, onNavigateToChat }) => {
 
   return (
     <div className="container mx-auto px-6 py-10">
-      <button 
-        onClick={onBack} 
+      <button
+        onClick={onBack}
         className="flex items-center gap-2 text-white/70 hover:text-white mb-8 font-medium transition-colors duration-300"
       >
         <ArrowLeft className="h-5 w-5" />
@@ -384,7 +398,6 @@ const ProductDetail = ({ product, onBack, onNavigateToChat }) => {
             <h1 className="text-4xl font-bold mb-5 leading-tight text-white">
               {product.title}
             </h1>
-            
             <div className="flex items-center gap-3 mb-6">
               <span className={`px-4 py-2 rounded-sm text-sm font-semibold border ${categoryStyle}`}>
                 {product.category}
@@ -405,7 +418,6 @@ const ProductDetail = ({ product, onBack, onNavigateToChat }) => {
 
           <div className="bg-white/8 rounded-sm p-8 border border-white/15">
             <h2 className="text-2xl font-bold mb-6 text-white">Seller Information</h2>
-            
             <div className="space-y-5">
               <div className="flex items-center gap-4">
                 <div className="bg-white/8 rounded-full p-3">
@@ -533,7 +545,6 @@ const SellItem = ({ onBack }) => {
     setLoading(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      
       if (!user) {
         alert("Please sign in to sell items");
         setLoading(false);
@@ -565,7 +576,6 @@ const SellItem = ({ onBack }) => {
       });
 
       if (error) throw error;
-      
       alert("Item listed successfully!");
       onBack();
     } catch (error) {

@@ -1,24 +1,27 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { 
-  Settings, 
-  Users, 
-  BookOpen, 
-  Calendar, 
-  DollarSign, 
-  FileText, 
-  Shield, 
-  Activity, 
-  Building, 
-  Bell, 
+import { Badge } from '@/components/ui/badge';
+import {
+  Settings,
+  Users,
+  BookOpen,
+  Calendar,
+  DollarSign,
+  FileText,
+  Shield,
+  Activity,
+  Building,
+  Bell,
+  Menu,
   User,
   LogOut,
   Mail,
   AlertCircle,
   CheckCircle,
   Info,
-  X
+  X,
+  UserCircle
 } from 'lucide-react';
 import SidebarNavigation from '@/components/layout/SidebarNavigation';
 import AdminDashboard from '../components/admin/AdminDashboard';
@@ -57,6 +60,7 @@ const Admin = () => {
   const [showNotifications, setShowNotifications] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   
   const notificationRef = useRef(null);
   const userMenuRef = useRef(null);
@@ -108,9 +112,11 @@ const Admin = () => {
   // Check for mobile view
   useEffect(() => {
     const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768);
-      if (window.innerWidth < 768) {
-        setSidebarCollapsed(true);
+      const mobile = window.innerWidth < 768;
+      setIsMobile(mobile);
+      // Close mobile menu when switching to desktop
+      if (!mobile) {
+        setMobileMenuOpen(false);
       }
     };
 
@@ -118,6 +124,14 @@ const Admin = () => {
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
+
+  const handleSidebarToggle = () => {
+    if (isMobile) {
+      setMobileMenuOpen(!mobileMenuOpen);
+    } else {
+      setSidebarCollapsed(!sidebarCollapsed);
+    }
+  };
 
   // Handle clicks outside dropdowns
   useEffect(() => {
@@ -325,6 +339,7 @@ const Admin = () => {
             return;
           }
 
+          // Set session data
           const userData = {
             user_id: profile.id,
             user_type: profile.user_type,
@@ -489,6 +504,16 @@ const Admin = () => {
     setShowNotifications(false);
   };
 
+  const clearAllNotifications = () => {
+    setShowNotifications(false);
+    // TODO: Implement actual clear functionality when notifications are dynamic
+  };
+
+  const markNotificationAsRead = (notificationId: number) => {
+    console.log('Marking notification as read:', notificationId);
+    // TODO: Implement mark as read functionality
+  };
+
   const getNotificationIcon = (type) => {
     switch (type) {
       case 'success':
@@ -638,175 +663,159 @@ const Admin = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background overflow-x-hidden">
       {/* Background Grid */}
       <div className="fixed inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:40px_40px] pointer-events-none"></div>
-      
+
       {/* Header */}
-      <div className="relative z-[100] bg-background/95 backdrop-blur-sm border-b border-white/10">
-        <div className="container px-4 mx-auto">
+      <div className="fixed w-full z-[100] bg-background/95 backdrop-blur-sm border-b border-white/10">
+        <div className="container mx-auto px-3 sm:px-4">
           <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-6">
+            {/* Left Section */}
+            <div className="flex items-center space-x-3 sm:space-x-6">
+              {/* Sidebar Toggle */}
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-                className="h-9 w-9 rounded-lg hover:bg-white/10 transition-colors"
+                onClick={handleSidebarToggle}
+                className="h-9 w-9 rounded-lg hover:bg-white/10 transition-all duration-200 ease-in-out"
               >
                 <span className="sr-only">Toggle sidebar</span>
-                <div className="w-4 h-4 flex flex-col space-y-1">
-                  <div className="w-full h-0.5 bg-foreground"></div>
-                  <div className="w-full h-0.5 bg-foreground"></div>
-                  <div className="w-full h-0.5 bg-foreground"></div>
-                </div>
+                <Menu className="h-7 w-7" />
               </Button>
-              <h1 className="text-2xl font-bold text-foreground">ColCord</h1>
-              {!isMobile && (
-                <>
+
+              {/* Logo + Portal Name */}
+              <div className="flex items-center space-x-2">
+                <h1 className="text-xl sm:text-2xl font-bold text-foreground">ColCord</h1>
+                <div className="hidden sm:flex items-center space-x-2">
                   <div className="h-6 w-px bg-white/20"></div>
                   <div className="flex items-center space-x-2">
                     <div className="h-2 w-2 bg-role-admin rounded-full animate-pulse-indicator"></div>
-                    <span className="text-lg font-medium text-foreground">Admin Portal</span>
+                    <span className="text-sm sm:text-lg font-medium text-foreground">Admin Portal</span>
                   </div>
-                  {adminRoles.length > 0 && (
-                    <div className="flex items-center space-x-2">
-                      <div className="h-6 w-px bg-white/20"></div>
-                      <div className="flex flex-wrap gap-2">
-                        {adminRoles.slice(0, 2).map((role, index) => (
-                          <span 
-                            key={index}
-                            className="px-2 py-1 bg-blue-500/20 text-blue-400 text-xs rounded-md font-medium"
-                          >
-                            {role.display_name || role.role_type}
-                          </span>
-                        ))}
-                        {adminRoles.length > 2 && (
-                          <span className="px-2 py-1 bg-blue-500/20 text-blue-400 text-xs rounded-md font-medium">
-                            +{adminRoles.length - 2}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </>
-              )}
+                </div>
+              </div>
             </div>
-            <div className="flex items-center space-x-3">
-              {!isMobile && (
-                <span className="text-sm text-muted-foreground">
-                  Welcome, {sessionData.first_name} {sessionData.last_name}
-                </span>
-              )}
-              
+
+            <div className="flex items-center space-x-2 sm:space-x-3">
               {/* Notifications Dropdown */}
               <div className="relative" ref={notificationRef}>
-                <Button 
-                  variant="ghost" 
+                <Button
+                  variant="ghost"
                   size="icon"
                   onClick={toggleNotifications}
-                  className="h-9 w-9 rounded-lg hover:bg-white/10 transition-colors relative"
+                  className="h-9 w-9 rounded-lg hover:bg-white/10 transition-all relative will-change-transform"
                 >
-                  <Bell className="h-5 w-5 text-foreground" />
+                  <Bell className="h-9 w-9 text-foreground" />
                   {unreadCount > 0 && (
-                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center min-w-[20px]">
-                      {unreadCount}
-                    </span>
+                    <div className="absolute -top-1 -right-1 h-5 w-5 bg-red-500 rounded-full flex items-center justify-center">
+                      <span className="text-xs text-white font-medium">{unreadCount}</span>
+                    </div>
                   )}
                 </Button>
 
-                {/* Notifications Panel */}
+                {/* Notifications Dropdown */}
                 {showNotifications && (
-                  <div className="absolute right-0 mt-2 w-80 max-w-[90vw] bg-background/95 backdrop-blur-md border border-white/20 rounded-xl shadow-2xl z-[9999]">
-                    <div className="p-4 border-b border-white/10">
-                      <div className="flex items-center justify-between">
-                        <h3 className="text-lg font-semibold text-foreground">Notifications</h3>
+                  <div className="fixed right-3 sm:right-4 top-20 w-72 sm:w-96 bg-background/95 backdrop-blur-xl border border-white/20 rounded-xl shadow-2xl z-[9999]">
+                    <div className="p-4 border-b border-white/10 flex items-center justify-between">
+                      <h3 className="text-base sm:text-lg font-semibold text-foreground">Notifications</h3>
+                      <div className="flex items-center space-x-2">
+                        {notifications.length > 0 && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={clearAllNotifications}
+                            className="text-xs text-muted-foreground hover:text-foreground"
+                          >
+                            Clear All
+                          </Button>
+                        )}
                         <Button
                           variant="ghost"
                           size="icon"
                           onClick={() => setShowNotifications(false)}
-                          className="h-6 w-6 rounded-lg hover:bg-white/10"
+                          className="h-6 w-6"
                         >
                           <X className="h-4 w-4" />
                         </Button>
                       </div>
-                      {unreadCount > 0 && (
-                        <p className="text-sm text-muted-foreground mt-1">
-                          {unreadCount} unread notification{unreadCount > 1 ? 's' : ''}
-                        </p>
-                      )}
                     </div>
-                    <div className="max-h-80 overflow-y-auto">
-                      {notifications.map((notification) => (
-                        <div
-                          key={notification.id}
-                          className={`p-4 border-b border-white/5 hover:bg-white/5 transition-colors ${
-                            !notification.read ? 'bg-white/5' : ''
-                          }`}
-                        >
-                          <div className="flex items-start space-x-3">
-                            {getNotificationIcon(notification.type)}
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center justify-between">
-                                <p className="text-sm font-medium text-foreground truncate">
-                                  {notification.title}
-                                </p>
-                                {!notification.read && (
-                                  <div className="h-2 w-2 bg-blue-500 rounded-full ml-2 flex-shrink-0"></div>
-                                )}
+
+                    <div className="max-h-80 sm:max-h-96 overflow-y-auto">
+                      {notifications.length === 0 ? (
+                        <div className="p-6 text-center">
+                          <Bell className="h-10 sm:h-12 w-10 sm:w-12 text-muted-foreground mx-auto mb-3 opacity-50" />
+                          <p className="text-sm text-muted-foreground">No notifications</p>
+                        </div>
+                      ) : (
+                        notifications.map((notification) => (
+                          <div
+                            key={notification.id}
+                            className={`p-4 border-b border-white/10 cursor-pointer hover:bg-white/5 transition-colors ${!notification.read ? 'bg-white/5' : ''
+                              }`}
+                            onClick={() => markNotificationAsRead(notification.id)}
+                          >
+                            <div className="flex items-start space-x-3">
+                              <div className="flex-shrink-0 mt-1">
+                                {getNotificationIcon(notification.type)}
                               </div>
-                              <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
-                                {notification.message}
-                              </p>
-                              <p className="text-xs text-muted-foreground mt-2">
-                                {notification.time}
-                              </p>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center justify-between">
+                                  <p className="text-sm font-medium text-foreground truncate">
+                                    {notification.title}
+                                  </p>
+                                  {!notification.read && (
+                                    <div className="h-2 w-2 bg-blue-500 rounded-full ml-2"></div>
+                                  )}
+                                </div>
+                                <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
+                                  {notification.message}
+                                </p>
+                                <p className="text-xs text-muted-foreground mt-2">
+                                  {notification.time}
+                                </p>
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      ))}
-                    </div>
-                    <div className="p-4 border-t border-white/10">
-                      <Button variant="ghost" className="w-full text-sm text-muted-foreground hover:text-foreground">
-                        View All Notifications
-                      </Button>
+                        ))
+                      )}
                     </div>
                   </div>
                 )}
               </div>
-              
-              {/* User Menu Dropdown */}
+
+              {/* User Menu */}
               <div className="relative" ref={userMenuRef}>
-                <Button 
-                  variant="ghost" 
+                <Button
+                  variant="ghost"
                   size="icon"
                   onClick={toggleUserMenu}
-                  className="h-9 w-9 rounded-lg hover:bg-white/10 transition-colors"
+                  className="h-9 w-9 rounded-lg hover:bg-white/10 transition-all will-change-transform"
                 >
-                  <User className="h-5 w-5 text-foreground" />
+                  <User className="h-9 w-9 text-foreground" />
                 </Button>
 
-                {/* User Menu Panel */}
+                {/* User Menu Dropdown */}
                 {showUserMenu && (
-                  <div className="absolute right-0 mt-2 w-72 max-w-[90vw] bg-background/95 backdrop-blur-md border border-white/20 rounded-xl shadow-2xl z-[9999]">
+                  <div className="fixed right-3 sm:right-4 top-20 w-60 sm:w-64 bg-background/95 backdrop-blur-xl border border-white/20 rounded-xl shadow-2xl z-[9999]">
                     <div className="p-4 border-b border-white/10">
                       <div className="flex items-center space-x-3">
-                        <div className="h-12 w-12 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
-                          <span className="text-white font-semibold text-lg">
-                            {sessionData.first_name?.[0]}{sessionData.last_name?.[0]}
-                          </span>
+                        <div className="h-10 sm:h-12 w-10 sm:w-12 bg-red-500 rounded-full flex items-center justify-center">
+                          <UserCircle className="h-6 sm:h-8 w-6 sm:w-8 text-white" />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-base font-semibold text-foreground truncate">
+                          <p className="text-sm font-medium text-foreground truncate">
                             {sessionData.first_name} {sessionData.last_name}
                           </p>
-                          <p className="text-sm text-muted-foreground truncate">
+                          <p className="text-xs text-muted-foreground truncate">
                             {sessionData.email}
                           </p>
-                          <div className="flex items-center space-x-2 mt-1">
-                            <div className="px-2 py-1 bg-role-admin/20 text-role-admin text-xs rounded-md font-medium">
+
+                          <div className="flex items-center space-x-2 mt-2">
+                            <Badge className="bg-red-500/20 text-red-300 border-red-400/30 font-medium text-xs pointer-events-none">
                               {sessionData.user_type}
-                            </div>
-                            <span className="text-xs text-muted-foreground">
+                            </Badge>
+                            <span className=" text-red-300 border-red-400/30 text-xs font-medium">
                               {sessionData.user_code}
                             </span>
                           </div>
@@ -844,11 +853,11 @@ const Admin = () => {
                       )}
                     </div>
                     
-                    <div className="p-2">
+                    <div className="p-2 space-y-2 sm:space-y-0">
                       {availableFeatures.some(f => f.feature_key === 'system') && (
                         <Button
                           variant="ghost"
-                          className="w-full justify-start text-left hover:bg-white/10"
+                        className="w-full justify-start text-sm text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg will-change-transform"
                           onClick={() => {
                             setActiveView('system');
                             setShowUserMenu(false);
@@ -863,7 +872,7 @@ const Admin = () => {
                       
                       <Button
                         variant="ghost"
-                        className="w-full justify-start text-left hover:bg-red-500/10 text-red-400 hover:text-red-300"
+                        className="w-full justify-start text-sm text-red-400 hover:text-red-300 hover:bg-ref-500/10 rounded-lg will-change-transform"
                         onClick={handleLogout}
                       >
                         <LogOut className="h-4 w-4 mr-3" />
@@ -879,29 +888,23 @@ const Admin = () => {
       </div>
 
       {/* Main Layout */}
-      <div className="relative z-10 flex">
+      <div className="relative z-10 flex mt-[64px] min-h-[calc(100vh-4rem)]">
         {/* Sidebar */}
         <SidebarNavigation
           items={sidebarItems}
           activeItem={activeView}
           onItemClick={setActiveView}
           userType="admin"
-          collapsed={isMobile || sidebarCollapsed}
+          collapsed={sidebarCollapsed}
+          mobileOpen={mobileMenuOpen}
+          onMobileClose={() => setMobileMenuOpen(false)}
         />
 
         {/* Main Content */}
-        <div className={`flex-1 p-4 md:p-6 ${isMobile ? 'ml-0' : ''}`}>
+        <div className="flex-1 w-full min-w-0 transition-all duration-300 ease-in-out p-3 sm:p-6">
           {renderContent()}
         </div>
       </div>
-      
-      {/* Mobile overlay when sidebar is open */}
-      {isMobile && !sidebarCollapsed && (
-        <div 
-          className="fixed inset-0 bg-black/50 z-[50] md:hidden"
-          onClick={() => setSidebarCollapsed(true)}
-        />
-      )}
     </div>
   );
 };

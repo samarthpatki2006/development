@@ -7,9 +7,9 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { 
-  Award, 
-  Star, 
+import {
+  Award,
+  Star,
   Trophy,
   BookOpen,
   Users,
@@ -254,89 +254,97 @@ const TeacherRecognition = ({ teacherData }: TeacherRecognitionProps) => {
 
   return (
     <PermissionWrapper permission="review_assignments">
-      <div className="space-y-6">
+      <div className="space-y-4 sm:space-y-6 p-2 sm:p-4">
         {/* Overview Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           <Card>
-            <CardContent className="p-4 text-center">
-              <Star className="h-8 w-8 text-yellow-500 mx-auto mb-2" />
-              <p className="text-2xl font-bold">{getAverageRating()}</p>
-              <p className="text-sm text-muted-foreground">Average Rating</p>
+            <CardContent className="p-3 sm:p-4 text-center">
+              <Star className="h-6 w-6 sm:h-8 sm:w-8 text-yellow-500 mx-auto mb-2" />
+              <p className="text-xl sm:text-2xl font-bold">{getAverageRating()}</p>
+              <p className="text-xs sm:text-sm text-muted-foreground">Average Rating</p>
             </CardContent>
           </Card>
-          
+
           <Card>
-            <CardContent className="p-4 text-center">
-              <Trophy className="h-8 w-8 text-blue-500 mx-auto mb-2" />
-              <p className="text-2xl font-bold">{achievements.length}</p>
-              <p className="text-sm text-muted-foreground">Awards & Recognition</p>
+            <CardContent className="p-3 sm:p-4 text-center">
+              <Trophy className="h-6 w-6 sm:h-8 sm:w-8 text-blue-500 mx-auto mb-2" />
+              <p className="text-xl sm:text-2xl font-bold">{achievements.length}</p>
+              <p className="text-xs sm:text-sm text-muted-foreground">Awards & Recognition</p>
             </CardContent>
           </Card>
-          
+
           <Card>
-            <CardContent className="p-4 text-center">
-              <BookOpen className="h-8 w-8 text-green-500 mx-auto mb-2" />
-              <p className="text-2xl font-bold">{getTotalCredits()}</p>
-              <p className="text-sm text-muted-foreground">Development Credits</p>
+            <CardContent className="p-3 sm:p-4 text-center">
+              <BookOpen className="h-6 w-6 sm:h-8 sm:w-8 text-green-500 mx-auto mb-2" />
+              <p className="text-xl sm:text-2xl font-bold">{getTotalCredits()}</p>
+              <p className="text-xs sm:text-sm text-muted-foreground">Development Credits</p>
             </CardContent>
           </Card>
-          
+
           <Card>
-            <CardContent className="p-4 text-center">
-              <Target className="h-8 w-8 text-purple-500 mx-auto mb-2" />
-              <p className="text-2xl font-bold">{applications.length}</p>
-              <p className="text-sm text-muted-foreground">Active Applications</p>
+            <CardContent className="p-3 sm:p-4 text-center">
+              <Target className="h-6 w-6 sm:h-8 sm:w-8 text-purple-500 mx-auto mb-2" />
+              <p className="text-xl sm:text-2xl font-bold">{applications.length}</p>
+              <p className="text-xs sm:text-sm text-muted-foreground">Active Applications</p>
             </CardContent>
           </Card>
         </div>
 
         <Tabs defaultValue="feedback" className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="feedback">Feedback & Reviews</TabsTrigger>
-            <TabsTrigger value="achievements">Achievements</TabsTrigger>
-            <TabsTrigger value="development">Professional Development</TabsTrigger>
-            <TabsTrigger value="applications">Applications</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4 h-auto gap-1">
+            <TabsTrigger value="feedback" className="text-xs sm:text-sm px-2 py-2">
+              <span className="hidden sm:inline">Feedback & Reviews</span>
+              <span className="sm:hidden">Feedback</span>
+            </TabsTrigger>
+            <TabsTrigger value="achievements" className="text-xs sm:text-sm px-2 py-2">
+              Achievements
+            </TabsTrigger>
+            <TabsTrigger value="development" className="text-xs sm:text-sm px-2 py-2">
+              <span className="hidden sm:inline">Professional Development</span>
+              <span className="sm:hidden">Development</span>
+            </TabsTrigger>
+            <TabsTrigger value="applications" className="text-xs sm:text-sm px-2 py-2">
+              Applications
+            </TabsTrigger>
           </TabsList>
 
           {/* Feedback & Reviews */}
-          <TabsContent value="feedback" className="space-y-4">
+          <TabsContent value="feedback" className="space-y-4 mt-4">
             <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Star className="h-5 w-5" />
+              <CardHeader className="p-4 sm:p-6">
+                <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                  <Star className="h-4 w-4 sm:h-5 sm:w-5" />
                   Feedback & Performance Reviews
                 </CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="p-4 sm:p-6">
                 <div className="space-y-4">
                   {feedback.map((item) => (
-                    <Card key={item.id} className="p-4">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-2">
-                            <Badge variant={item.type === 'student_feedback' ? 'default' : 'secondary'}>
-                              {item.type === 'student_feedback' ? 'Student Feedback' : 'Peer Review'}
-                            </Badge>
-                            <div className="flex items-center gap-1">
-                              {[1, 2, 3, 4, 5].map((star) => (
-                                <Star 
-                                  key={star} 
-                                  className={`h-4 w-4 ${star <= item.rating ? 'text-yellow-400 fill-current' : 'text-gray-300'}`} 
-                                />
-                              ))}
-                              <span className="text-sm font-medium ml-1">{item.rating}</span>
-                            </div>
+                    <Card key={item.id} className="p-3 sm:p-4">
+                      <div className="flex flex-col gap-3">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Badge variant={item.type === 'student_feedback' ? 'default' : 'secondary'} className="text-xs">
+                            {item.type === 'student_feedback' ? 'Student Feedback' : 'Peer Review'}
+                          </Badge>
+                          <div className="flex items-center gap-1">
+                            {[1, 2, 3, 4, 5].map((star) => (
+                              <Star
+                                key={star}
+                                className={`h-3 w-3 sm:h-4 sm:w-4 ${star <= item.rating ? 'text-yellow-400 fill-current' : 'text-gray-300'}`}
+                              />
+                            ))}
+                            <span className="text-xs sm:text-sm font-medium ml-1">{item.rating}</span>
                           </div>
-                          <div className="space-y-1 text-sm">
-                            <p><span className="font-medium">Source:</span> {item.source}</p>
-                            {item.course && <p><span className="font-medium">Course:</span> {item.course}</p>}
-                            {item.reviewer && <p><span className="font-medium">Reviewer:</span> {item.reviewer}</p>}
-                            <p className="text-muted-foreground italic">"{item.feedback_text}"</p>
-                            <p className="text-xs text-muted-foreground">
-                              {new Date(item.date).toLocaleDateString()}
-                              {item.semester && ` • ${item.semester}`}
-                            </p>
-                          </div>
+                        </div>
+                        <div className="space-y-1 text-xs sm:text-sm">
+                          <p><span className="font-medium">Source:</span> {item.source}</p>
+                          {item.course && <p><span className="font-medium">Course:</span> {item.course}</p>}
+                          {item.reviewer && <p><span className="font-medium">Reviewer:</span> {item.reviewer}</p>}
+                          <p className="text-muted-foreground italic">"{item.feedback_text}"</p>
+                          <p className="text-xs text-muted-foreground">
+                            {new Date(item.date).toLocaleDateString()}
+                            {item.semester && ` • ${item.semester}`}
+                          </p>
                         </div>
                       </div>
                     </Card>
@@ -347,38 +355,36 @@ const TeacherRecognition = ({ teacherData }: TeacherRecognitionProps) => {
           </TabsContent>
 
           {/* Achievements */}
-          <TabsContent value="achievements" className="space-y-4">
+          <TabsContent value="achievements" className="space-y-4 mt-4">
             <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Award className="h-5 w-5" />
+              <CardHeader className="p-4 sm:p-6">
+                <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                  <Award className="h-4 w-4 sm:h-5 sm:w-5" />
                   Awards & Recognition
                 </CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="p-4 sm:p-6">
                 <div className="space-y-4">
                   {achievements.map((achievement) => (
-                    <Card key={achievement.id} className="p-4">
-                      <div className="flex items-start justify-between">
-                        <div className="flex items-center gap-4">
-                          <div className="p-3 bg-yellow-100 rounded-full">
-                            <Trophy className="h-6 w-6 text-yellow-600" />
+                    <Card key={achievement.id} className="p-3 sm:p-4">
+                      <div className="flex flex-col sm:flex-row items-start gap-3 sm:gap-4">
+                        <div className="p-2 sm:p-3 bg-yellow-100 rounded-full shrink-0">
+                          <Trophy className="h-5 w-5 sm:h-6 sm:w-6 text-yellow-600" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex flex-wrap items-center gap-2 mb-1">
+                            <h3 className="font-semibold text-sm sm:text-base">{achievement.title}</h3>
+                            <Badge variant="outline" className="text-xs">{achievement.level}</Badge>
                           </div>
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-1">
-                              <h3 className="font-semibold">{achievement.title}</h3>
-                              <Badge variant="outline">{achievement.level}</Badge>
-                            </div>
-                            <p className="text-sm text-muted-foreground mb-2">{achievement.description}</p>
-                            <div className="text-xs text-muted-foreground">
-                              <p><span className="font-medium">Issued by:</span> {achievement.issuer}</p>
-                              <p><span className="font-medium">Date:</span> {new Date(achievement.awarded_date).toLocaleDateString()}</p>
-                              <p><span className="font-medium">Category:</span> {achievement.category}</p>
-                            </div>
+                          <p className="text-xs sm:text-sm text-muted-foreground mb-2">{achievement.description}</p>
+                          <div className="text-xs text-muted-foreground space-y-0.5">
+                            <p><span className="font-medium">Issued by:</span> {achievement.issuer}</p>
+                            <p><span className="font-medium">Date:</span> {new Date(achievement.awarded_date).toLocaleDateString()}</p>
+                            <p><span className="font-medium">Category:</span> {achievement.category}</p>
                           </div>
                         </div>
-                        <Button size="sm" variant="outline">
-                          <Eye className="h-4 w-4 mr-1" />
+                        <Button size="sm" variant="outline" className="text-xs w-full sm:w-auto shrink-0">
+                          <Eye className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
                           View Certificate
                         </Button>
                       </div>
@@ -390,55 +396,56 @@ const TeacherRecognition = ({ teacherData }: TeacherRecognitionProps) => {
           </TabsContent>
 
           {/* Professional Development */}
-          <TabsContent value="development" className="space-y-4">
+          <TabsContent value="development" className="space-y-4 mt-4">
             <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <TrendingUp className="h-5 w-5" />
+              <CardHeader className="p-4 sm:p-6">
+                <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                  <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5" />
                   Professional Development Activities
                 </CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="p-4 sm:p-6">
                 <div className="space-y-4">
                   {professionalDev.map((dev) => (
-                    <Card key={dev.id} className="p-4">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-2">
-                            <h3 className="font-semibold">{dev.activity}</h3>
-                            <Badge variant={dev.status === 'completed' ? 'default' : 'secondary'}>
-                              {dev.status === 'completed' ? 'Completed' : 'In Progress'}
-                            </Badge>
-                            <Badge variant="outline">{dev.credits} Credits</Badge>
-                          </div>
-                          <div className="space-y-1 text-sm text-muted-foreground">
-                            <p><span className="font-medium">Provider:</span> {dev.provider}</p>
-                            <p><span className="font-medium">Type:</span> {dev.type}</p>
-                            {dev.completed_date && (
-                              <p><span className="font-medium">Completed:</span> {new Date(dev.completed_date).toLocaleDateString()}</p>
-                            )}
-                            {dev.start_date && dev.status === 'in_progress' && (
-                              <p><span className="font-medium">Started:</span> {new Date(dev.start_date).toLocaleDateString()}</p>
-                            )}
-                          </div>
-                          {dev.status === 'in_progress' && dev.progress && (
-                            <div className="mt-3">
-                              <div className="flex justify-between text-sm mb-1">
-                                <span>Progress</span>
-                                <span>{dev.progress}%</span>
-                              </div>
-                              <Progress value={dev.progress} className="h-2" />
+                    <Card key={dev.id} className="p-3 sm:p-4">
+                      <div className="flex flex-col gap-3">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <h3 className="font-semibold text-sm sm:text-base">{dev.activity}</h3>
+                          <Badge variant={dev.status === 'completed' ? 'default' : 'secondary'} className="text-xs">
+                            {dev.status === 'completed' ? 'Completed' : 'In Progress'}
+                          </Badge>
+                          <Badge variant="outline" className="text-xs">{dev.credits} Credits</Badge>
+                        </div>
+                        <div className="space-y-1 text-xs sm:text-sm text-muted-foreground">
+                          <p><span className="font-medium">Provider:</span> {dev.provider}</p>
+                          <p><span className="font-medium">Type:</span> {dev.type}</p>
+                          {dev.completed_date && (
+                            <p><span className="font-medium">Completed:</span> {new Date(dev.completed_date).toLocaleDateString()}</p>
+                          )}
+                          {dev.start_date && dev.status === 'in_progress' && (
+                            <p><span className="font-medium">Started:</span> {new Date(dev.start_date).toLocaleDateString()}</p>
+                          )}
+                        </div>
+                        {dev.status === 'in_progress' && dev.progress && (
+                          <div className="mt-2">
+                            <div className="flex justify-between text-xs sm:text-sm mb-1">
+                              <span>Progress</span>
+                              <span>{dev.progress}%</span>
                             </div>
-                          )}
-                        </div>
-                        <div className="flex gap-2">
-                          {dev.certificate_url && (
-                            <Button size="sm" variant="outline">
-                              <Gift className="h-4 w-4 mr-1" />
-                              Certificate
-                            </Button>
-                          )}
-                        </div>
+                            <Progress value={dev.progress} className="h-2" />
+                          </div>
+                        )}
+                        {dev.certificate_url && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="bg-white text-black text-xs w-full sm:w-40 border border-gray-200 hover:bg-gray-100 hover:scale-[1.08] transition-all duration-200 ease-in-out"
+                          >
+                            <Gift className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+                            Certificate
+                          </Button>
+
+                        )}
                       </div>
                     </Card>
                   ))}
@@ -448,70 +455,74 @@ const TeacherRecognition = ({ teacherData }: TeacherRecognitionProps) => {
           </TabsContent>
 
           {/* Applications */}
-          <TabsContent value="applications" className="space-y-4">
+          <TabsContent value="applications" className="space-y-4 mt-4">
             <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Target className="h-5 w-5" />
+              <CardHeader className="p-4 sm:p-6">
+                <CardTitle className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                  <div className="flex items-center gap-2 text-base sm:text-lg">
+                    <Target className="h-4 w-4 sm:h-5 sm:w-5" />
                     Award & Funding Applications
                   </div>
                   <Dialog>
                     <DialogTrigger asChild>
-                      <Button>
-                        <Plus className="h-4 w-4 mr-2" />
+                      <Button className="text-xs sm:text-sm w-full sm:w-auto">
+                        <Plus className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
                         New Application
                       </Button>
                     </DialogTrigger>
-                    <DialogContent>
+                    <DialogContent className="max-w-[95vw] sm:max-w-lg max-h-[90vh] overflow-y-auto">
                       <DialogHeader>
-                        <DialogTitle>Submit New Application</DialogTitle>
+                        <DialogTitle className="text-base sm:text-lg">Submit New Application</DialogTitle>
                       </DialogHeader>
                       <div className="space-y-4">
                         <select
-                          className="w-full p-2 border rounded bg-black"
+                          className="w-full p-2 border rounded bg-black text-sm"
                           value={newApplication.type}
-                          onChange={(e) => setNewApplication({...newApplication, type: e.target.value})}
+                          onChange={(e) => setNewApplication({ ...newApplication, type: e.target.value })}
                         >
                           <option value="award">Award Application</option>
                           <option value="funding">Research Funding</option>
                           <option value="grant">Educational Grant</option>
                         </select>
-                        
+
                         <Input
                           placeholder="Application title"
+                          className="text-sm"
                           value={newApplication.title}
-                          onChange={(e) => setNewApplication({...newApplication, title: e.target.value})}
+                          onChange={(e) => setNewApplication({ ...newApplication, title: e.target.value })}
                         />
-                        
+
                         <Input
                           placeholder="Category"
+                          className="text-sm"
                           value={newApplication.category}
-                          onChange={(e) => setNewApplication({...newApplication, category: e.target.value})}
+                          onChange={(e) => setNewApplication({ ...newApplication, category: e.target.value })}
                         />
-                        
+
                         <Textarea
                           placeholder="Description and justification"
+                          className="text-sm"
                           value={newApplication.description}
-                          onChange={(e) => setNewApplication({...newApplication, description: e.target.value})}
+                          onChange={(e) => setNewApplication({ ...newApplication, description: e.target.value })}
                           rows={4}
                         />
-                        
+
                         <Input
                           type="date"
                           placeholder="Application deadline"
+                          className="text-white text-sm"
                           value={newApplication.deadline}
-                          className='text-white'
-                          onChange={(e) => setNewApplication({...newApplication, deadline: e.target.value})}
+                          onChange={(e) => setNewApplication({ ...newApplication, deadline: e.target.value })}
                         />
-                        
+
                         <Textarea
                           placeholder="Supporting documents (list URLs or descriptions)"
+                          className="text-sm"
                           value={newApplication.supporting_documents}
-                          onChange={(e) => setNewApplication({...newApplication, supporting_documents: e.target.value})}
+                          onChange={(e) => setNewApplication({ ...newApplication, supporting_documents: e.target.value })}
                         />
-                        
-                        <Button onClick={submitApplication} className="w-full">
+
+                        <Button onClick={submitApplication} className="w-full text-sm">
                           Submit Application
                         </Button>
                       </div>
@@ -519,33 +530,35 @@ const TeacherRecognition = ({ teacherData }: TeacherRecognitionProps) => {
                   </Dialog>
                 </CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="p-4 sm:p-6">
                 <div className="space-y-4">
                   {applications.map((app) => (
-                    <Card key={app.id} className="p-4">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-2">
-                            <h3 className="font-semibold">{app.title}</h3>
-                            <Badge variant={
-                              app.status === 'submitted' ? 'secondary' :
+                    <Card key={app.id} className="p-3 sm:p-4">
+                      <div className="flex flex-col gap-3">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <h3 className="font-semibold text-sm sm:text-base">{app.title}</h3>
+                          <Badge variant={
+                            app.status === 'submitted' ? 'secondary' :
                               app.status === 'under_review' ? 'default' :
-                              app.status === 'approved' ? 'default' :
-                              'destructive'
-                            }>
-                              {app.status.replace('_', ' ')}
-                            </Badge>
-                            <Badge variant="outline">{app.category}</Badge>
-                          </div>
-                          <p className="text-sm text-muted-foreground mb-2">{app.description}</p>
-                          <div className="text-xs text-muted-foreground">
-                            <p><span className="font-medium">Submitted:</span> {new Date(app.submitted_date).toLocaleDateString()}</p>
-                            <p><span className="font-medium">Deadline:</span> {new Date(app.deadline).toLocaleDateString()}</p>
-                            {app.amount && <p><span className="font-medium">Amount:</span> {app.amount}</p>}
-                          </div>
+                                app.status === 'approved' ? 'default' :
+                                  'destructive'
+                          } className="text-xs">
+                            {app.status.replace('_', ' ')}
+                          </Badge>
+                          <Badge variant="outline" className="text-xs">{app.category}</Badge>
                         </div>
-                        <Button size="sm" variant="outline">
-                          <Eye className="h-4 w-4 mr-1" />
+                        <p className="text-xs sm:text-sm text-muted-foreground">{app.description}</p>
+                        <div className="text-xs text-muted-foreground space-y-0.5">
+                          <p><span className="font-medium">Submitted:</span> {new Date(app.submitted_date).toLocaleDateString()}</p>
+                          <p><span className="font-medium">Deadline:</span> {new Date(app.deadline).toLocaleDateString()}</p>
+                          {app.amount && <p><span className="font-medium">Amount:</span> {app.amount}</p>}
+                        </div>
+                        <Button
+                            size="sm"
+                            variant="outline"
+                            className="bg-white text-black text-xs w-full sm:w-40 border border-gray-200 hover:bg-gray-100 hover:scale-[1.08] transition-all duration-200 ease-in-out"
+                          >
+                          <Eye className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
                           View Details
                         </Button>
                       </div>

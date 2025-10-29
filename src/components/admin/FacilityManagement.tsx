@@ -467,7 +467,7 @@ const FacilityManagement = ({ userProfile }: { userProfile: UserProfile }) => {
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <div className="flex justify-between items-center">
+          <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4">
             <div>
               <CardTitle className="flex items-center space-x-2">
                 <Building className="w-5 h-5" />

@@ -181,27 +181,34 @@ const AlumniContributions = ({ user }: AlumniContributionsProps) => {
   }
 
   return (
-    <div className="space-y-6">
-      <Tabs defaultValue="donate" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="donate">Donations</TabsTrigger>
-          <TabsTrigger value="volunteer">Volunteer</TabsTrigger>
-          <TabsTrigger value="history">My Contributions</TabsTrigger>
+    <div className="space-y-4 sm:space-y-6 p-2 sm:p-4">
+      <Tabs defaultValue="donate" className="space-y-4 sm:space-y-6">
+        <TabsList className="grid w-full grid-cols-3 h-auto">
+          <TabsTrigger value="donate" className="text-xs sm:text-sm py-2 sm:py-2.5">
+            Donations
+          </TabsTrigger>
+          <TabsTrigger value="volunteer" className="text-xs sm:text-sm py-2 sm:py-2.5">
+            Volunteer
+          </TabsTrigger>
+          <TabsTrigger value="history" className="text-xs sm:text-sm py-2 sm:py-2.5">
+            <span className="hidden sm:inline">My Contributions</span>
+            <span className="sm:hidden">History</span>
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="donate">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
             {/* Donation Form */}
             <Card>
-              <CardHeader>
+              <CardHeader className="p-4 sm:p-6">
                 <CardTitle className="flex items-center space-x-2">
-                  <Heart className="h-5 w-5" />
-                  <span>Make a Donation</span>
+                  <Heart className="h-4 w-4 sm:h-5 sm:w-5" />
+                  <span className="text-base sm:text-lg md:text-xl">Make a Donation</span>
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-4 p-4 sm:p-6 pt-0 sm:pt-0">
                 <div>
-                  <label className="block text-sm font-medium mb-2">Donation Amount (₹)</label>
+                  <label className="block text-xs sm:text-sm font-medium mb-2">Donation Amount (₹)</label>
                   <Input
                     type="number"
                     placeholder="Enter amount"
@@ -209,16 +216,18 @@ const AlumniContributions = ({ user }: AlumniContributionsProps) => {
                     onChange={(e) => setDonationAmount(e.target.value)}
                     min="1"
                     step="0.01"
+                    className="text-xs sm:text-sm"
                   />
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium mb-2">Purpose (Optional)</label>
+                  <label className="block text-xs sm:text-sm font-medium mb-2">Purpose (Optional)</label>
                   <Textarea
                     placeholder="Describe the purpose of your donation..."
                     value={donationDescription}
                     onChange={(e) => setDonationDescription(e.target.value)}
                     rows={3}
+                    className="text-xs sm:text-sm"
                   />
                 </div>
 
@@ -228,12 +237,12 @@ const AlumniContributions = ({ user }: AlumniContributionsProps) => {
                     checked={isAnonymous}
                     onCheckedChange={(checked) => setIsAnonymous(checked === true)}
                   />
-                  <label htmlFor="anonymous" className="text-sm">
+                  <label htmlFor="anonymous" className="text-xs sm:text-sm cursor-pointer">
                     Make this donation anonymous
                   </label>
                 </div>
 
-                <Button onClick={handleDonation} className="w-full">
+                <Button onClick={handleDonation} className="w-full text-sm sm:text-base">
                   Donate Now
                 </Button>
               </CardContent>
@@ -241,29 +250,29 @@ const AlumniContributions = ({ user }: AlumniContributionsProps) => {
 
             {/* Quick Donation Options */}
             <Card>
-              <CardHeader>
+              <CardHeader className="p-4 sm:p-6">
                 <CardTitle className="flex items-center space-x-2">
-                  <Gift className="h-5 w-5" />
-                  <span>Quick Donation Options</span>
+                  <Gift className="h-4 w-4 sm:h-5 sm:w-5" />
+                  <span className="text-base sm:text-lg md:text-xl">Quick Donation Options</span>
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-3">
+              <CardContent className="space-y-4 p-4 sm:p-6 pt-0 sm:pt-0">
+                <div className="grid grid-cols-2 gap-2 sm:gap-3">
                   {[1000, 5000, 10000, 25000, 50000, 100000].map((amount) => (
                     <Button
                       key={amount}
                       variant="outline"
                       onClick={() => setDonationAmount(amount.toString())}
-                      className="h-12"
+                      className="h-10 sm:h-12 text-xs sm:text-sm"
                     >
-                      ₹{amount}
+                      ₹{amount.toLocaleString()}
                     </Button>
                   ))}
                 </div>
                 
-                <div className="mt-6 p-4 bg-blue-50 rounded-lg">
-                  <h4 className="font-medium text-blue-900 mb-2">Impact of Your Donation</h4>
-                  <ul className="text-sm text-blue-800 space-y-1">
+                <div className="mt-4 sm:mt-6 p-3 sm:p-4 bg-blue-50 rounded-lg">
+                  <h4 className="font-medium text-blue-900 mb-2 text-sm sm:text-base">Impact of Your Donation</h4>
+                  <ul className="text-xs sm:text-sm text-blue-800 space-y-1">
                     <li>• ₹1000 - Provides textbooks for one student</li>
                     <li>• ₹5000 - Supports laboratory equipment</li>
                     <li>• ₹30000 - Funds a scholarship for one semester</li>
@@ -277,24 +286,24 @@ const AlumniContributions = ({ user }: AlumniContributionsProps) => {
 
         <TabsContent value="volunteer">
           <Card>
-            <CardHeader>
+            <CardHeader className="p-4 sm:p-6">
               <CardTitle className="flex items-center space-x-2">
-                <Users className="h-5 w-5" />
-                <span>Volunteer Opportunities</span>
+                <Users className="h-4 w-4 sm:h-5 sm:w-5" />
+                <span className="text-base sm:text-lg md:text-xl">Volunteer Opportunities</span>
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="grid gap-4">
+            <CardContent className="p-4 sm:p-6">
+              <div className="grid gap-3 sm:gap-4">
                 {volunteerOpportunities.length > 0 ? (
                   volunteerOpportunities.map((opportunity) => (
                     <Card key={opportunity.id} className="border-l-4 border-l-orange-500">
-                      <CardContent className="p-4">
-                        <div className="flex justify-between items-start">
-                          <div className="flex-1">
-                            <h3 className="font-semibold mb-2">{opportunity.title}</h3>
-                            <p className="text-gray-600 mb-3">{opportunity.description}</p>
+                      <CardContent className="p-3 sm:p-4">
+                        <div className="flex flex-col sm:flex-row justify-between items-start gap-3 sm:gap-0">
+                          <div className="flex-1 w-full">
+                            <h3 className="font-semibold mb-2 text-sm sm:text-base">{opportunity.title}</h3>
+                            <p className="text-gray-600 mb-3 text-xs sm:text-sm">{opportunity.description}</p>
                             
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-500 mb-3">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 sm:gap-4 text-xs sm:text-sm text-gray-500 mb-3">
                               {opportunity.time_commitment && (
                                 <div>
                                   <strong>Time:</strong> {opportunity.time_commitment}
@@ -314,23 +323,23 @@ const AlumniContributions = ({ user }: AlumniContributionsProps) => {
 
                             {opportunity.requirements && (
                               <div className="mb-3">
-                                <strong className="text-sm">Requirements:</strong>
-                                <p className="text-sm text-gray-600">{opportunity.requirements}</p>
+                                <strong className="text-xs sm:text-sm">Requirements:</strong>
+                                <p className="text-xs sm:text-sm text-gray-600">{opportunity.requirements}</p>
                               </div>
                             )}
                           </div>
                           
-                          <div className="ml-4">
+                          <div className="w-full sm:w-auto sm:ml-4">
                             {isApplied(opportunity.id) ? (
-                              <Badge variant="default">Applied</Badge>
+                              <Badge variant="default" className="text-xs w-full sm:w-auto flex justify-center">Applied</Badge>
                             ) : (
                               <Dialog>
                                 <DialogTrigger asChild>
-                                  <Button>Apply</Button>
+                                  <Button className="w-full sm:w-auto text-xs sm:text-sm">Apply</Button>
                                 </DialogTrigger>
-                                <DialogContent>
+                                <DialogContent className="max-w-[95vw] sm:max-w-md mx-2">
                                   <DialogHeader>
-                                    <DialogTitle>Apply for {opportunity.title}</DialogTitle>
+                                    <DialogTitle className="text-base sm:text-lg md:text-xl">Apply for {opportunity.title}</DialogTitle>
                                   </DialogHeader>
                                   <div className="space-y-4">
                                     <Textarea
@@ -338,16 +347,18 @@ const AlumniContributions = ({ user }: AlumniContributionsProps) => {
                                       value={volunteerMotivation}
                                       onChange={(e) => setVolunteerMotivation(e.target.value)}
                                       rows={4}
+                                      className="text-xs sm:text-sm"
                                     />
                                     <Textarea
                                       placeholder="Describe your availability..."
                                       value={volunteerAvailability}
                                       onChange={(e) => setVolunteerAvailability(e.target.value)}
                                       rows={3}
+                                      className="text-xs sm:text-sm"
                                     />
                                     <Button
                                       onClick={() => handleVolunteerApplication(opportunity.id)}
-                                      className="w-full"
+                                      className="w-full text-sm sm:text-base"
                                     >
                                       Submit Application
                                     </Button>
@@ -361,10 +372,10 @@ const AlumniContributions = ({ user }: AlumniContributionsProps) => {
                     </Card>
                   ))
                 ) : (
-                  <div className="text-center py-8">
-                    <Users className="h-12 w-12 mx-auto text-gray-400 mb-4" />
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">No volunteer opportunities</h3>
-                    <p className="text-gray-500">Check back later for new opportunities.</p>
+                  <div className="text-center py-6 sm:py-8">
+                    <Users className="h-10 w-10 sm:h-12 sm:w-12 mx-auto text-gray-400 mb-4" />
+                    <h3 className="text-base sm:text-lg font-medium text-gray-900 mb-2">No volunteer opportunities</h3>
+                    <p className="text-xs sm:text-sm text-gray-500">Check back later for new opportunities.</p>
                   </div>
                 )}
               </div>
@@ -373,36 +384,36 @@ const AlumniContributions = ({ user }: AlumniContributionsProps) => {
         </TabsContent>
 
         <TabsContent value="history">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
             {/* My Donations */}
             <Card>
-              <CardHeader>
+              <CardHeader className="p-4 sm:p-6">
                 <CardTitle className="flex items-center space-x-2">
-                  <TrendingUp className="h-5 w-5" />
-                  <span>My Donations</span>
+                  <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5" />
+                  <span className="text-base sm:text-lg md:text-xl">My Donations</span>
                 </CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="p-4 sm:p-6 pt-0 sm:pt-0">
                 <div className="space-y-3">
                   {contributions.filter(c => c.contribution_type === 'donation').length > 0 ? (
                     contributions
                       .filter(c => c.contribution_type === 'donation')
                       .map((donation) => (
-                        <div key={donation.id} className="flex justify-between items-center p-3 border rounded-lg">
-                          <div>
-                            <p className="font-medium">${donation.amount?.toLocaleString()}</p>
-                            <p className="text-sm text-gray-600">{donation.description}</p>
-                            <p className="text-xs text-gray-500">
+                        <div key={donation.id} className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 sm:gap-0 p-3 border rounded-lg">
+                          <div className="w-full sm:w-auto">
+                            <p className="font-medium text-sm sm:text-base">₹{donation.amount?.toLocaleString()}</p>
+                            <p className="text-xs sm:text-sm text-gray-600">{donation.description}</p>
+                            <p className="text-[10px] sm:text-xs text-gray-500">
                               {new Date(donation.created_at).toLocaleDateString()}
                             </p>
                           </div>
-                          <Badge variant={donation.status === 'completed' ? 'default' : 'secondary'}>
+                          <Badge variant={donation.status === 'completed' ? 'default' : 'secondary'} className="text-xs self-start sm:self-center">
                             {donation.status}
                           </Badge>
                         </div>
                       ))
                   ) : (
-                    <p className="text-gray-500 text-center py-4">No donations yet</p>
+                    <p className="text-gray-500 text-center py-4 text-xs sm:text-sm">No donations yet</p>
                   )}
                 </div>
               </CardContent>
@@ -410,34 +421,34 @@ const AlumniContributions = ({ user }: AlumniContributionsProps) => {
 
             {/* My Volunteer Applications */}
             <Card>
-              <CardHeader>
+              <CardHeader className="p-4 sm:p-6">
                 <CardTitle className="flex items-center space-x-2">
-                  <Award className="h-5 w-5" />
-                  <span>My Volunteer Applications</span>
+                  <Award className="h-4 w-4 sm:h-5 sm:w-5" />
+                  <span className="text-base sm:text-lg md:text-xl">My Volunteer Applications</span>
                 </CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="p-4 sm:p-6 pt-0 sm:pt-0">
                 <div className="space-y-3">
                   {myApplications.length > 0 ? (
                     myApplications.map((application) => (
                       <div key={application.id} className="p-3 border rounded-lg">
-                        <div className="flex justify-between items-start mb-2">
-                          <h4 className="font-medium">{application.volunteer_opportunities?.title}</h4>
+                        <div className="flex flex-col sm:flex-row justify-between items-start gap-2 mb-2">
+                          <h4 className="font-medium text-sm sm:text-base">{application.volunteer_opportunities?.title}</h4>
                           <Badge variant={
                             application.status === 'approved' ? 'default' :
                             application.status === 'rejected' ? 'destructive' : 'secondary'
-                          }>
+                          } className="text-xs self-start">
                             {application.status}
                           </Badge>
                         </div>
-                        <p className="text-sm text-gray-600 mb-2">{application.motivation}</p>
-                        <p className="text-xs text-gray-500">
+                        <p className="text-xs sm:text-sm text-gray-600 mb-2">{application.motivation}</p>
+                        <p className="text-[10px] sm:text-xs text-gray-500">
                           Applied on {new Date(application.applied_at).toLocaleDateString()}
                         </p>
                       </div>
                     ))
                   ) : (
-                    <p className="text-gray-500 text-center py-4">No applications yet</p>
+                    <p className="text-gray-500 text-center py-4 text-xs sm:text-sm">No applications yet</p>
                   )}
                 </div>
               </CardContent>

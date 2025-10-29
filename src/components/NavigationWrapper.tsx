@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Session } from '@supabase/supabase-js';
@@ -21,9 +21,9 @@ const USER_ROUTE_MAP = {
 const NavigationWrapper = ({ children }: NavigationWrapperProps) => {
   const location = useLocation();
   const navigate = useNavigate();
-  const currentPath = location.pathname;
   const [session, setSession] = useState<Session | null>(null);
   const [isChecking, setIsChecking] = useState(true);
+  const isNavigatingRef = useRef(false);
 
   useEffect(() => {
     // Set up auth state listener
@@ -34,18 +34,26 @@ const NavigationWrapper = ({ children }: NavigationWrapperProps) => {
       }
     );
 
-    // Check for existing session
+    // Check for existing session on mount
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       handleAuthStateChange(session);
     });
 
     return () => subscription.unsubscribe();
-  }, [currentPath]);
+  }, []); // Empty dependency array - only run once on mount
 
   const handleAuthStateChange = async (session: Session | null) => {
+    // Prevent concurrent navigation attempts
+    if (isNavigatingRef.current) {
+      return;
+    }
+
     try {
+      isNavigatingRef.current = true;
       setIsChecking(true);
+
+      const currentPath = location.pathname;
 
       // Check for mock user data (development mode)
       const mockUserData = localStorage.getItem('colcord_user');
@@ -92,19 +100,21 @@ const NavigationWrapper = ({ children }: NavigationWrapperProps) => {
           console.error('Error fetching user profile:', profileError);
           // If we can't get the user profile, sign them out
           await supabase.auth.signOut();
-          navigate('/');
+          if (currentPath !== '/') {
+            navigate('/');
+          }
           setIsChecking(false);
           return;
         }
 
         // ==========================================
-        // NEW: Check onboarding status for first login
+        // Check onboarding status for first login
         // ==========================================
         const { data: onboarding, error: onboardingError } = await supabase
           .from('user_onboarding')
           .select('password_reset_required, first_login_completed, onboarding_completed')
           .eq('user_id', session.user.id)
-          .maybeSingle(); // Use maybeSingle() to handle cases where no record exists
+          .maybeSingle();
 
         // If user needs to reset password, redirect to first-login
         if (onboarding && onboarding.password_reset_required) {
@@ -125,7 +135,9 @@ const NavigationWrapper = ({ children }: NavigationWrapperProps) => {
         if (currentPath === '/first-login' && onboarding && !onboarding.password_reset_required) {
           const correctRoute = USER_ROUTE_MAP[profile.user_type as keyof typeof USER_ROUTE_MAP];
           console.log('Password already changed, redirecting to dashboard');
-          navigate(correctRoute);
+          if (correctRoute && currentPath !== correctRoute) {
+            navigate(correctRoute);
+          }
           setIsChecking(false);
           return;
         }
@@ -134,7 +146,9 @@ const NavigationWrapper = ({ children }: NavigationWrapperProps) => {
         if (currentPath === '/first-login' && !onboarding) {
           const correctRoute = USER_ROUTE_MAP[profile.user_type as keyof typeof USER_ROUTE_MAP];
           console.log('No onboarding record, redirecting to dashboard');
-          navigate(correctRoute);
+          if (correctRoute && currentPath !== correctRoute) {
+            navigate(correctRoute);
+          }
           setIsChecking(false);
           return;
         }
@@ -147,7 +161,9 @@ const NavigationWrapper = ({ children }: NavigationWrapperProps) => {
         if (!correctRoute) {
           console.error('Invalid user type:', profile.user_type);
           await supabase.auth.signOut();
-          navigate('/');
+          if (currentPath !== '/') {
+            navigate('/');
+          }
           setIsChecking(false);
           return;
         }
@@ -169,14 +185,20 @@ const NavigationWrapper = ({ children }: NavigationWrapperProps) => {
       if (session) {
         await supabase.auth.signOut();
       }
-      navigate('/');
+      if (location.pathname !== '/') {
+        navigate('/');
+      }
     } finally {
       setIsChecking(false);
+      // Reset navigation lock after a short delay
+      setTimeout(() => {
+        isNavigatingRef.current = false;
+      }, 100);
     }
   };
 
   // Show loading state while checking auth (except on login page)
-  if (isChecking && currentPath !== '/') {
+  if (isChecking && location.pathname !== '/') {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">

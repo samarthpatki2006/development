@@ -55,129 +55,135 @@ const NavigationWrapper = ({ children }: NavigationWrapperProps) => {
 
       const currentPath = location.pathname;
 
-      // Check for mock user data (development mode)
-      const mockUserData = localStorage.getItem('colcord_user');
-      
-      // Handle unauthenticated users
-      if (!session && !mockUserData) {
+      // FIXED: Clear any stale localStorage data if no valid session
+      if (!session) {
+        // Remove any mock/demo user data
+        localStorage.removeItem('colcord_user');
+        
+        // Redirect to login if not already there
         if (currentPath !== '/') {
+          console.log('No valid session, redirecting to login');
           navigate('/');
         }
         setIsChecking(false);
         return;
       }
 
-      // Handle mock user data (skip login functionality for development)
-      if (!session && mockUserData) {
-        try {
-          const userData = JSON.parse(mockUserData);
-          const correctRoute = USER_ROUTE_MAP[userData.user_type as keyof typeof USER_ROUTE_MAP];
-          
-          if (correctRoute && currentPath !== correctRoute && currentPath !== '/first-login') {
-            navigate(correctRoute);
-          }
-        } catch (error) {
-          console.error('Error parsing mock user data:', error);
-          localStorage.removeItem('colcord_user');
-          if (currentPath !== '/') {
-            navigate('/');
-          }
-        }
-        setIsChecking(false);
-        return;
-      }
-
-      // Handle authenticated users
+      // Handle authenticated users - verify session is still valid
       if (session) {
-        // Get user profile to determine their type and route
-        const { data: profile, error: profileError } = await supabase
-          .from('user_profiles')
-          .select('user_type, id')
-          .eq('id', session.user.id)
-          .single();
+        try {
+          // Get user profile to determine their type and route
+          const { data: profile, error: profileError } = await supabase
+            .from('user_profiles')
+            .select('user_type, id, first_name, last_name, email, college_id, user_code')
+            .eq('id', session.user.id)
+            .single();
 
-        if (profileError || !profile) {
-          console.error('Error fetching user profile:', profileError);
-          // If we can't get the user profile, sign them out
-          await supabase.auth.signOut();
-          if (currentPath !== '/') {
-            navigate('/');
+          if (profileError || !profile) {
+            console.error('Error fetching user profile:', profileError);
+            // Clear invalid session data
+            localStorage.removeItem('colcord_user');
+            await supabase.auth.signOut();
+            if (currentPath !== '/') {
+              navigate('/');
+            }
+            setIsChecking(false);
+            return;
           }
-          setIsChecking(false);
-          return;
-        }
 
-        // Check onboarding status for first login
-        const { data: onboarding, error: onboardingError } = await supabase
-          .from('user_onboarding')
-          .select('password_reset_required, first_login_completed, onboarding_completed')
-          .eq('user_id', session.user.id)
-          .maybeSingle();
+          // FIXED: Store valid user data in localStorage (sync with session)
+          const validUserData = {
+            user_id: profile.id,
+            user_type: profile.user_type,
+            first_name: profile.first_name,
+            last_name: profile.last_name,
+            college_id: profile.college_id,
+            user_code: profile.user_code,
+            email: profile.email
+          };
+          localStorage.setItem('colcord_user', JSON.stringify(validUserData));
 
-        // If user needs to reset password, redirect to first-login
-        if (onboarding && onboarding.password_reset_required) {
-          // Allow access to first-login page
-          if (currentPath === '/first-login') {
+          // Check onboarding status for first login
+          const { data: onboarding, error: onboardingError } = await supabase
+            .from('user_onboarding')
+            .select('password_reset_required, first_login_completed, onboarding_completed')
+            .eq('user_id', session.user.id)
+            .maybeSingle();
+
+          // If user needs to reset password, redirect to first-login
+          if (onboarding && onboarding.password_reset_required) {
+            // Allow access to first-login page
+            if (currentPath === '/first-login') {
+              setIsChecking(false);
+              return;
+            }
+            
+            // Redirect from any other page to first-login
+            console.log('Password reset required, redirecting to /first-login');
+            navigate('/first-login');
+            setIsChecking(false);
+            return;
+          }
+
+          // If on first-login but password already changed, redirect to dashboard
+          if (currentPath === '/first-login' && onboarding && !onboarding.password_reset_required) {
+            const correctRoute = USER_ROUTE_MAP[profile.user_type as keyof typeof USER_ROUTE_MAP];
+            console.log('Password already changed, redirecting to dashboard');
+            if (correctRoute && currentPath !== correctRoute) {
+              navigate(correctRoute);
+            }
+            setIsChecking(false);
+            return;
+          }
+
+          // If on first-login but no onboarding record (legacy user), redirect to dashboard
+          if (currentPath === '/first-login' && !onboarding) {
+            const correctRoute = USER_ROUTE_MAP[profile.user_type as keyof typeof USER_ROUTE_MAP];
+            console.log('No onboarding record, redirecting to dashboard');
+            if (correctRoute && currentPath !== correctRoute) {
+              navigate(correctRoute);
+            }
+            setIsChecking(false);
+            return;
+          }
+
+          const correctRoute = USER_ROUTE_MAP[profile.user_type as keyof typeof USER_ROUTE_MAP];
+          
+          if (!correctRoute) {
+            console.error('Invalid user type:', profile.user_type);
+            localStorage.removeItem('colcord_user');
+            await supabase.auth.signOut();
+            if (currentPath !== '/') {
+              navigate('/');
+            }
+            setIsChecking(false);
+            return;
+          }
+
+          // Redirect from login page to user's dashboard (only if password is changed)
+          if (currentPath === '/') {
+            navigate(correctRoute);
             setIsChecking(false);
             return;
           }
           
-          // Redirect from any other page to first-login
-          console.log('Password reset required, redirecting to /first-login');
-          navigate('/first-login');
-          setIsChecking(false);
-          return;
-        }
-
-        // If on first-login but password already changed, redirect to dashboard
-        if (currentPath === '/first-login' && onboarding && !onboarding.password_reset_required) {
-          const correctRoute = USER_ROUTE_MAP[profile.user_type as keyof typeof USER_ROUTE_MAP];
-          console.log('Password already changed, redirecting to dashboard');
-          if (correctRoute && currentPath !== correctRoute) {
+          // Redirect if user is on wrong route (but allow first-login)
+          if (currentPath !== correctRoute && currentPath !== '/first-login') {
             navigate(correctRoute);
           }
-          setIsChecking(false);
-          return;
-        }
-
-        // If on first-login but no onboarding record (legacy user), redirect to dashboard
-        if (currentPath === '/first-login' && !onboarding) {
-          const correctRoute = USER_ROUTE_MAP[profile.user_type as keyof typeof USER_ROUTE_MAP];
-          console.log('No onboarding record, redirecting to dashboard');
-          if (correctRoute && currentPath !== correctRoute) {
-            navigate(correctRoute);
-          }
-          setIsChecking(false);
-          return;
-        }
-        // END: First login logic
-
-        const correctRoute = USER_ROUTE_MAP[profile.user_type as keyof typeof USER_ROUTE_MAP];
-        
-        if (!correctRoute) {
-          console.error('Invalid user type:', profile.user_type);
+        } catch (error) {
+          console.error('Error validating session:', error);
+          localStorage.removeItem('colcord_user');
           await supabase.auth.signOut();
           if (currentPath !== '/') {
             navigate('/');
           }
-          setIsChecking(false);
-          return;
-        }
-
-        // Redirect from login page to user's dashboard (only if password is changed)
-        if (currentPath === '/') {
-          navigate(correctRoute);
-          setIsChecking(false);
-          return;
-        }
-        
-        // Redirect if user is on wrong route (but allow first-login)
-        if (currentPath !== correctRoute && currentPath !== '/first-login') {
-          navigate(correctRoute);
         }
       }
     } catch (error) {
       console.error('Error handling auth state change:', error);
+      // Clear any stale data
+      localStorage.removeItem('colcord_user');
       if (session) {
         await supabase.auth.signOut();
       }

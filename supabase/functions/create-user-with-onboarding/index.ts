@@ -73,6 +73,39 @@ serve(async (req) => {
       }
     })
 
+    // CRITICAL: Check if user already exists and clear their sessions
+    console.log('Checking for existing user with email:', email)
+    const { data: existingUsers } = await supabase.auth.admin.listUsers()
+    const existingUser = existingUsers?.users?.find(u => u.email === email)
+
+    if (existingUser) {
+      console.log('Existing user found:', existingUser.id, '- Clearing all sessions')
+      
+      // Sign out all sessions for this user
+      try {
+        await supabase.auth.admin.signOut(existingUser.id)
+        console.log('All sessions cleared for user:', existingUser.id)
+      } catch (signOutError) {
+        console.warn('Error signing out user (may not have active sessions):', signOutError)
+        // Continue anyway - this is not critical
+      }
+
+      // Delete the existing auth user to start fresh
+      console.log('Deleting existing auth user to recreate with new password')
+      const { error: deleteError } = await supabase.auth.admin.deleteUser(existingUser.id)
+      
+      if (deleteError) {
+        console.error('Error deleting existing user:', deleteError)
+        throw new Error(`Failed to delete existing user: ${deleteError.message}`)
+      }
+
+      // Delete associated profile and onboarding records (cascade should handle this, but be explicit)
+      await supabase.from('user_profiles').delete().eq('id', existingUser.id)
+      await supabase.from('user_onboarding').delete().eq('user_id', existingUser.id)
+      
+      console.log('Existing user data cleaned up successfully')
+    }
+
     console.log('Creating auth user for:', email)
 
     // Create auth user
@@ -154,7 +187,10 @@ serve(async (req) => {
         success: true,
         user_id: authData.user.id,
         onboarding_id: onboardingData.id,
-        message: 'User created successfully'
+        message: existingUser 
+          ? 'User recreated successfully with new temporary password' 
+          : 'User created successfully',
+        was_existing_user: !!existingUser
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

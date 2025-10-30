@@ -45,7 +45,7 @@ const CoursesLearningSnapshot: React.FC<CoursesLearningSnapshotProps> = ({ stude
         .from("grades")
         .select("*")
         .eq("student_id", user.user.id)
-        .order("updated_at", { ascending: false });
+        .order("recorded_at", { ascending: false });
 
       if (gradesError) {
         console.error('Error fetching grades:', gradesError);
@@ -424,10 +424,10 @@ const CoursesLearningSnapshot: React.FC<CoursesLearningSnapshotProps> = ({ stude
     }
 
     return (
-      <div className="space-y-4 sm:space-y-6 p-4 sm:p-6 max-w-7xl mx-auto">
+      <div className="space-y-4 sm:space-y-6">
         <Card className="card-minimal glass-effect border-primary/20">
-          <CardHeader className="border-b border-primary/20">
-            <CardTitle className="flex items-center gap-2 text-primary">
+          <CardHeader className="border-b border-primary/20 p-4 sm:p-6">
+            <CardTitle className="flex items-center gap-2 text-primary text-base sm:text-lg">
               <div className="w-8 h-8 bg-gradient-to-br from-primary/20 to-accent/20 rounded-lg flex items-center justify-center">
                 <Trophy className="w-5 h-5 text-primary" />
               </div>
@@ -435,32 +435,32 @@ const CoursesLearningSnapshot: React.FC<CoursesLearningSnapshotProps> = ({ stude
               <Award className="w-4 h-4 text-accent ml-auto" />
             </CardTitle>
           </CardHeader>
-          <CardContent className="p-6">
+          <CardContent className="p-4 sm:p-6">
             {!grades || grades.length === 0 ? (
               <div className="text-center py-8">
                 <div className="w-16 h-16 bg-gradient-to-br from-primary/20 to-accent/20 rounded-full flex items-center justify-center mx-auto mb-4">
                   <Trophy className="w-8 h-8 text-muted-foreground" />
                 </div>
-                <p className="text-muted-foreground">No course grades available yet.</p>
-                <p className="text-sm text-muted-foreground mt-2">Grades will appear here once your educator assigns them.</p>
+                <p className="text-muted-foreground text-sm sm:text-base">No course grades available yet.</p>
+                <p className="text-xs sm:text-sm text-muted-foreground mt-2">Grades will appear here once your educator assigns them.</p>
               </div>
             ) : (
               <div className="space-y-4">
                 {grades.map((grade) => (
                   <Card key={grade.id} className="glass-effect border-l-4 border-l-accent">
-                    <CardContent className="p-4">
+                    <CardContent className="p-3 sm:p-4">
                       <div className="flex justify-between items-start mb-4">
-                        <div>
-                          <h3 className="font-semibold text-lg text-foreground">{grade.class_name}</h3>
-                          <p className="text-sm text-muted-foreground">
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-semibold text-base sm:text-lg text-foreground truncate">{grade.class_name}</h3>
+                          <p className="text-xs sm:text-sm text-muted-foreground">
                             Last updated: {new Date(grade.updated_at).toLocaleDateString()}
                           </p>
                         </div>
-                        <div className="text-right">
-                          <p className={`text-3xl font-bold ${getGradeColor(grade.overall_grade)}`}>
+                        <div className="text-right flex-shrink-0 ml-2">
+                          <p className={`text-2xl sm:text-3xl font-bold ${getGradeColor(grade.overall_grade)}`}>
                             {grade.overall_grade}
                           </p>
-                          <p className="text-sm text-muted-foreground">
+                          <p className="text-xs sm:text-sm text-muted-foreground">
                             {grade.overall_score?.toFixed(1)}%
                           </p>
                         </div>
@@ -468,20 +468,20 @@ const CoursesLearningSnapshot: React.FC<CoursesLearningSnapshotProps> = ({ stude
 
                       {grade.grade_breakdown && typeof grade.grade_breakdown === 'object' && (
                         <div className="space-y-3">
-                          <h4 className="font-medium text-foreground flex items-center gap-2">
+                          <h4 className="font-medium text-sm sm:text-base text-foreground flex items-center gap-2">
                             <Calculator className="w-4 h-4 text-accent" />
                             Grade Breakdown
                           </h4>
 
                           {(grade.grade_breakdown as any)?.quiz_scores && Object.keys((grade.grade_breakdown as any).quiz_scores).length > 0 && (
                             <div className="space-y-2">
-                              <p className="text-sm font-medium text-muted-foreground">Quiz Scores:</p>
+                              <p className="text-xs sm:text-sm font-medium text-muted-foreground">Quiz Scores:</p>
                               <div className="grid gap-2">
                                 {Object.entries((grade.grade_breakdown as any).quiz_scores).map(([quizId, quizData]: [string, any]) => (
-                                  <div key={quizId} className="flex justify-between items-center p-2 bg-background/30 rounded border border-primary/20">
-                                    <span className="text-sm text-foreground">{quizData.title}</span>
-                                    <div className="text-right">
-                                      <span className={`font-medium ${getScoreColor(quizData.percentage)}`}>
+                                  <div key={quizId} className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 p-2 bg-background/30 rounded border border-primary/20">
+                                    <span className="text-xs sm:text-sm text-foreground truncate">{quizData.title}</span>
+                                    <div className="text-right flex-shrink-0">
+                                      <span className={`font-medium text-sm ${getScoreColor(quizData.percentage)}`}>
                                         {quizData.score}/{quizData.total_points}
                                       </span>
                                       <span className="text-xs text-muted-foreground ml-2">
@@ -496,15 +496,15 @@ const CoursesLearningSnapshot: React.FC<CoursesLearningSnapshotProps> = ({ stude
 
                           {(grade.grade_breakdown as any)?.custom_scores && Object.keys((grade.grade_breakdown as any).custom_scores).length > 0 && (
                             <div className="space-y-2">
-                              <p className="text-sm font-medium text-muted-foreground">Additional Assessments:</p>
+                              <p className="text-xs sm:text-sm font-medium text-muted-foreground">Additional Assessments:</p>
                               <div className="grid gap-2">
                                 {Object.entries((grade.grade_breakdown as any).custom_scores).map(([key, score]: [string, any]) => (
-                                  <div key={key} className="flex justify-between items-center p-2 bg-background/30 rounded border border-primary/20">
-                                    <span className="text-sm text-foreground">
+                                  <div key={key} className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 p-2 bg-background/30 rounded border border-primary/20">
+                                    <span className="text-xs sm:text-sm text-foreground truncate">
                                       {(grade.grade_breakdown as any).custom_names?.[key] || 'Assessment'}
                                     </span>
-                                    <div className="text-right">
-                                      <span className={`font-medium ${getScoreColor(score)}`}>
+                                    <div className="text-right flex-shrink-0">
+                                      <span className={`font-medium text-sm ${getScoreColor(score)}`}>
                                         {score}%
                                       </span>
                                       <span className="text-xs text-muted-foreground ml-2">
@@ -527,8 +527,8 @@ const CoursesLearningSnapshot: React.FC<CoursesLearningSnapshotProps> = ({ stude
         </Card>
 
         <Card className="card-minimal glass-effect border-primary/20">
-          <CardHeader className="border-b border-primary/20">
-            <CardTitle className="flex items-center gap-2 text-primary">
+          <CardHeader className="border-b border-primary/20 p-4 sm:p-6">
+            <CardTitle className="flex items-center gap-2 text-primary text-base sm:text-lg">
               <div className="w-8 h-8 bg-gradient-to-br from-primary/20 to-accent/20 rounded-lg flex items-center justify-center">
                 <BookOpen className="w-5 h-5 text-primary" />
               </div>
@@ -536,14 +536,14 @@ const CoursesLearningSnapshot: React.FC<CoursesLearningSnapshotProps> = ({ stude
               <TrendingUp className="w-4 h-4 text-accent ml-auto" />
             </CardTitle>
           </CardHeader>
-          <CardContent className="p-6">
+          <CardContent className="p-4 sm:p-6">
             {!quizSubmissions || quizSubmissions.length === 0 ? (
               <div className="text-center py-8">
                 <div className="w-16 h-16 bg-gradient-to-br from-primary/20 to-accent/20 rounded-full flex items-center justify-center mx-auto mb-4">
                   <BookOpen className="w-8 h-8 text-muted-foreground" />
                 </div>
-                <p className="text-muted-foreground">No quiz results available yet.</p>
-                <p className="text-sm text-muted-foreground mt-2">Complete quizzes to see your results here.</p>
+                <p className="text-muted-foreground text-sm sm:text-base">No quiz results available yet.</p>
+                <p className="text-xs sm:text-sm text-muted-foreground mt-2">Complete quizzes to see your results here.</p>
               </div>
             ) : (
               <div className="space-y-3">
@@ -553,19 +553,19 @@ const CoursesLearningSnapshot: React.FC<CoursesLearningSnapshotProps> = ({ stude
                     : 0;
                   
                   return (
-                    <div key={submission.id} className="flex justify-between items-center p-3 glass-effect rounded border border-primary/20 hover:border-accent/40 transition-all">
-                      <div className="flex-1">
-                        <h4 className="font-medium text-foreground">{submission.quizzes?.title}</h4>
-                        <p className="text-sm text-muted-foreground">
+                    <div key={submission.id} className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 p-3 glass-effect rounded border border-primary/20 hover:border-accent/40 transition-all">
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-medium text-sm sm:text-base text-foreground truncate">{submission.quizzes?.title}</h4>
+                        <p className="text-xs sm:text-sm text-muted-foreground truncate">
                           📚 {submission.quizzes?.classes?.name}
                         </p>
                         <p className="text-xs text-muted-foreground">
                           Submitted: {new Date(submission.submitted_at).toLocaleDateString()}
                         </p>
                       </div>
-                      <div className="text-right">
+                      <div className="text-right flex-shrink-0">
                         <div className="bg-gradient-to-br from-primary/20 to-accent/20 rounded-lg p-2">
-                          <p className={`font-bold ${getScoreColor(percentage)}`}>
+                          <p className={`font-bold text-sm sm:text-base ${getScoreColor(percentage)}`}>
                             {submission.score}/{submission.quizzes?.total_points}
                           </p>
                           <p className="text-xs text-muted-foreground">
@@ -591,7 +591,7 @@ const CoursesLearningSnapshot: React.FC<CoursesLearningSnapshotProps> = ({ stude
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-8">
+      <div className="flex items-center justify-center py-8 px-4">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
       </div>
     );
@@ -600,57 +600,59 @@ const CoursesLearningSnapshot: React.FC<CoursesLearningSnapshotProps> = ({ stude
   if (showCourseDetails && selectedCourse) {
     return (
       <PermissionWrapper permission="view_submit_assignments">
-        <div className="space-y-4 sm:space-y-6 p-4 sm:p-6 max-w-7xl mx-auto">
+        <div className="space-y-4 sm:space-y-6 p-3 sm:p-4 md:p-6 max-w-7xl mx-auto">
           <Button variant="outline" onClick={handleBackToCourses}>
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Courses
           </Button>
 
           <Card>
-            <CardHeader>
+            <CardHeader className="p-4 sm:p-6">
               <div className="flex justify-between items-start">
-                <div>
-                  <CardTitle className="text-2xl">{selectedCourse.course_name}</CardTitle>
-                  <div className="flex gap-2 mt-2">
+                <div className="flex-1 min-w-0">
+                  <CardTitle className="text-xl sm:text-2xl truncate">{selectedCourse.course_name}</CardTitle>
+                  <div className="flex gap-2 mt-2 flex-wrap">
                     <Badge variant="outline">{selectedCourse.course_code}</Badge>
                     <Badge>{selectedCourse.credits} Credits</Badge>
                   </div>
-                  <p className="text-muted-foreground mt-2">{selectedCourse.description}</p>
+                  <p className="text-sm sm:text-base text-muted-foreground mt-2">{selectedCourse.description}</p>
                 </div>
               </div>
             </CardHeader>
           </Card>
 
           <Card>
-            <CardHeader>
-              <CardTitle>Course Materials</CardTitle>
+            <CardHeader className="p-4 sm:p-6">
+              <CardTitle className="text-lg sm:text-xl">Course Materials</CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-4 sm:p-6">
               <div className="space-y-3">
                 {courseMaterials.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground">
+                  <div className="text-center py-8 text-sm sm:text-base text-muted-foreground">
                     No materials available for this course
                   </div>
                 ) : (
                   courseMaterials.map((material, index) => (
                     <div key={index} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-3 sm:p-4 border rounded-lg">
-                      <div className="flex items-start space-x-3">
-                        {getMaterialIcon(material.material_type)}
+                      <div className="flex items-start space-x-3 flex-1 min-w-0">
+                        <div className="flex-shrink-0">
+                          {getMaterialIcon(material.material_type)}
+                        </div>
                         <div className="flex-1 min-w-0">
                           <p className="font-medium text-sm sm:text-base truncate">{material.title}</p>
-                          <p className="text-xs sm:text-sm text-muted-foreground mt-1">{material.description}</p>
+                          <p className="text-xs sm:text-sm text-muted-foreground mt-1 line-clamp-2">{material.description}</p>
                           <p className="text-xs text-muted-foreground mt-1">
                             Uploaded: {new Date(material.uploaded_at).toLocaleDateString()}
                           </p>
                         </div>
                       </div>
-                      <div className="flex space-x-2">
+                      <div className="flex space-x-2 flex-shrink-0">
                         {material.file_url && (
                           <>
                             <Button size="sm" variant="outline" asChild>
                               <a href={material.file_url} target="_blank" rel="noopener noreferrer">
-                                <ExternalLink className="sm:h-4 sm:w-4 h-3 w-3 mr-1" />
-                                View
+                                <ExternalLink className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+                                <span className="text-xs sm:text-sm">View</span>
                               </a>
                             </Button>
                             <Button 
@@ -660,7 +662,7 @@ const CoursesLearningSnapshot: React.FC<CoursesLearningSnapshotProps> = ({ stude
                               disabled={downloadingFile === material.id}
                             >
                               <Download className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
-                              {downloadingFile === material.id ? 'Downloading...' : 'Download'}
+                              <span className="text-xs sm:text-sm">{downloadingFile === material.id ? 'Downloading...' : 'Download'}</span>
                             </Button>
                           </>
                         )}
@@ -674,7 +676,7 @@ const CoursesLearningSnapshot: React.FC<CoursesLearningSnapshotProps> = ({ stude
 
           <Card>
             <CardHeader className="p-4 sm:p-6">
-              <CardTitle>Assignments</CardTitle>
+              <CardTitle className="text-lg sm:text-xl">Assignments</CardTitle>
             </CardHeader>
             <CardContent className="p-4 sm:p-6">
               <div className="space-y-4">
@@ -686,11 +688,11 @@ const CoursesLearningSnapshot: React.FC<CoursesLearningSnapshotProps> = ({ stude
                   courseAssignments.map((assignment, index) => (
                     <div key={index} className="p-3 sm:p-4 border rounded-lg">
                       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2 mb-3">
-                        <div className="flex-1">
-                          <h4 className="font-medium text-sm sm:text-base">{assignment.title}</h4>
-                          <p className="text-xs sm:text-sm text-muted-foreground mt-1">{assignment.description}</p>
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-medium text-sm sm:text-base truncate">{assignment.title}</h4>
+                          <p className="text-xs sm:text-sm text-muted-foreground mt-1 line-clamp-2">{assignment.description}</p>
                         </div>
-                        <Badge variant={assignment.assignment_submissions?.length > 0 ? 'default' : 'secondary'} className="text-xs self-start">
+                        <Badge variant={assignment.assignment_submissions?.length > 0 ? 'default' : 'secondary'} className="text-xs self-start flex-shrink-0">
                           {assignment.assignment_submissions?.length > 0 ? 'Submitted' : 'Pending'}
                         </Badge>
                       </div>
@@ -723,65 +725,65 @@ const CoursesLearningSnapshot: React.FC<CoursesLearningSnapshotProps> = ({ stude
 
   return (
     <PermissionWrapper permission="view_submit_assignments">
-      <div className="space-y-6">
+      <div className="space-y-4 sm:space-y-6 p-3 sm:p-4 md:p-6 max-w-7xl mx-auto">
         <div className="flex justify-between items-center">
           <div>
-            <h2 className="text-2xl font-bold">Courses & Learning Snapshot</h2>
-            <p className="text-muted-foreground">Track your academic progress and course materials</p>
+            <h2 className="text-xl sm:text-2xl font-bold">Courses & Learning Snapshot</h2>
+            <p className="text-sm sm:text-base text-muted-foreground">Track your academic progress and course materials</p>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
           <Card>
-            <CardContent className="p-6">
+            <CardContent className="p-4 sm:p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Enrolled Courses</p>
-                  <p className="text-2xl font-bold">{enrolledCourses.length}</p>
+                  <p className="text-xs sm:text-sm font-medium text-muted-foreground">Enrolled Courses</p>
+                  <p className="text-xl sm:text-2xl font-bold">{enrolledCourses.length}</p>
                 </div>
-                <BookOpen className="h-8 w-8 text-primary" />
+                <BookOpen className="h-6 w-6 sm:h-8 sm:w-8 text-primary" />
               </div>
             </CardContent>
           </Card>
 
           <Card>
-            <CardContent className="p-6">
+            <CardContent className="p-4 sm:p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Overall Progress</p>
-                  <p className="text-2xl font-bold">
+                  <p className="text-xs sm:text-sm font-medium text-muted-foreground">Overall Progress</p>
+                  <p className="text-xl sm:text-2xl font-bold">
                     {enrolledCourses.length > 0 
                       ? Math.round(enrolledCourses.reduce((sum, course) => sum + course.progress.progress, 0) / enrolledCourses.length)
                       : 0}%
                   </p>
                 </div>
-                <TrendingUp className="h-8 w-8 text-green-600" />
+                <TrendingUp className="h-6 w-6 sm:h-8 sm:w-8 text-green-600" />
               </div>
             </CardContent>
           </Card>
 
           <Card>
-            <CardContent className="p-6">
+            <CardContent className="p-4 sm:p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Current GPA</p>
-                  <p className="text-2xl font-bold">{calculateOverallGPA()}</p>
+                  <p className="text-xs sm:text-sm font-medium text-muted-foreground">Current GPA</p>
+                  <p className="text-xl sm:text-2xl font-bold">{calculateOverallGPA()}</p>
                 </div>
-                <Award className="h-8 w-8 text-yellow-600" />
+                <Award className="h-6 w-6 sm:h-8 sm:w-8 text-yellow-600" />
               </div>
             </CardContent>
           </Card>
 
           <Card>
-            <CardContent className="p-6">
+            <CardContent className="p-4 sm:p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Total Credits</p>
-                  <p className="text-2xl font-bold">
+                  <p className="text-xs sm:text-sm font-medium text-muted-foreground">Total Credits</p>
+                  <p className="text-xl sm:text-2xl font-bold">
                     {enrolledCourses.reduce((sum, course) => sum + (course.courses.credits || 0), 0)}
                   </p>
                 </div>
-                <Clock className="h-8 w-8 text-blue-600" />
+                <Clock className="h-6 w-6 sm:h-8 sm:w-8 text-blue-600" />
               </div>
             </CardContent>
           </Card>
@@ -790,29 +792,29 @@ const CoursesLearningSnapshot: React.FC<CoursesLearningSnapshotProps> = ({ stude
         <Tabs defaultValue="courses" className="space-y-4">
 
           <TabsContent value="courses" className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
               {enrolledCourses.map((enrollment, index) => (
                 <Card 
                   key={index} 
-                  className="cursor-pointer hover:shadow-lg hover:scale-105 transition-all duration-200"
+                  className="cursor-pointer hover:shadow-lg hover:scale-[1.02] sm:hover:scale-105 transition-all duration-200"
                   onClick={() => handleCourseClick(enrollment)}
                 >
-                  <CardHeader>
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <CardTitle className="text-lg">{enrollment.courses.course_name}</CardTitle>
-                        <Badge variant="outline">{enrollment.courses.course_code}</Badge>
+                  <CardHeader className="p-4 sm:p-6">
+                    <div className="flex justify-between items-start gap-2">
+                      <div className="flex-1 min-w-0">
+                        <CardTitle className="text-base sm:text-lg truncate">{enrollment.courses.course_name}</CardTitle>
+                        <Badge variant="outline" className="mt-2">{enrollment.courses.course_code}</Badge>
                       </div>
-                      <Badge variant={enrollment.progress.progress >= 75 ? 'default' : 'secondary'}>
+                      <Badge variant={enrollment.progress.progress >= 75 ? 'default' : 'secondary'} className="flex-shrink-0">
                         {enrollment.progress.progress}%
                       </Badge>
                     </div>
                   </CardHeader>
-                  <CardContent>
+                  <CardContent className="p-4 sm:p-6 pt-0">
                     <div className="space-y-3">
                       <Progress value={enrollment.progress.progress} />
-                      <div className="text-sm text-muted-foreground">
-                        <p>Instructor: {enrollment.courses.user_profiles?.first_name} {enrollment.courses.user_profiles?.last_name}</p>
+                      <div className="text-xs sm:text-sm text-muted-foreground space-y-1">
+                        <p className="truncate">Instructor: {enrollment.courses.user_profiles?.first_name} {enrollment.courses.user_profiles?.last_name}</p>
                         <p>Credits: {enrollment.courses.credits}</p>
                         <p>Assignments: {enrollment.progress.submittedAssignments}/{enrollment.progress.totalAssignments}</p>
                       </div>
@@ -821,10 +823,6 @@ const CoursesLearningSnapshot: React.FC<CoursesLearningSnapshotProps> = ({ stude
                 </Card>
               ))}
             </div>
-          </TabsContent>
-
-          <TabsContent value="grades">
-            {renderStudentGrades()}
           </TabsContent>
         </Tabs>
       </div>

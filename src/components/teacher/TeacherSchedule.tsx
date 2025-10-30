@@ -20,7 +20,8 @@ import {
   CheckCircle,
   Clock,
   Edit,
-  TrendingUp
+  TrendingUp,
+  AlertCircle
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -49,8 +50,8 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
   const [selectedCourseAnalytics, setSelectedCourseAnalytics] = useState<string>('');
   const [courseAnalytics, setCourseAnalytics] = useState<any[]>([]);
   const [editingStudent, setEditingStudent] = useState<string | null>(null);
+  const [minutesSinceStart, setMinutesSinceStart] = useState<number>(0);
   
-  // Location tracking states
   const [locationPermission, setLocationPermission] = useState<'granted' | 'denied' | 'prompt'>('prompt');
   const [currentLocation, setCurrentLocation] = useState<{latitude: number, longitude: number} | null>(null);
 
@@ -175,6 +176,14 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
     const currentTime = now.toTimeString().slice(0, 5);
     
     if (currentTime >= classData.start_time && currentTime <= classData.end_time) {
+      const startTimeParts = classData.start_time.split(':');
+      const startDate = new Date();
+      startDate.setHours(parseInt(startTimeParts[0]), parseInt(startTimeParts[1]), 0, 0);
+      
+      const elapsedMs = now.getTime() - startDate.getTime();
+      const elapsedMinutes = Math.floor(elapsedMs / 60000);
+      setMinutesSinceStart(elapsedMinutes);
+
       const endTimeParts = classData.end_time.split(':');
       const endDate = new Date();
       endDate.setHours(parseInt(endTimeParts[0]), parseInt(endTimeParts[1]), 0, 0);
@@ -187,6 +196,7 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
     } else {
       setCanGenerateQR(false);
       setTimeRemaining(0);
+      setMinutesSinceStart(0);
     }
   };
 
@@ -420,7 +430,6 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
       }
 
       const location = await getCurrentLocation();
-
       const today = new Date().toISOString().split('T')[0];
       const sessionDate = classData.scheduled_date || today;
 
@@ -464,6 +473,7 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
             .from('attendance_sessions')
             .select('id')
             .eq('qr_code', sessionCode)
+            .eq('session_date', sessionDate)
             .single();
           
           if (!existingCode) {
@@ -499,6 +509,7 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
 
         qrCodeData = sessionCode;
         session = newSession;
+        toast.success('QR Code generated! Session is now active.');
       }
 
       setSelectedClass(classData);
@@ -521,10 +532,6 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
       checkTimeValidity(classData);
       
       setTimeout(() => fetchAttendanceForSession(), 500);
-      
-      if (!existingSession) {
-        toast.success('QR Code generated successfully! Location tracked.');
-      }
 
       const endTimeParts = classData.end_time.split(':');
       const endDate = new Date();
@@ -1133,14 +1140,23 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
                     </AlertDescription>
                   </Alert>
                 ) : (
-                  <Alert className="border-green-200">
-                    <CheckCircle className="h-4 w-4 text-green-600" />
-                    <AlertDescription className="text-green-800 flex items-center justify-between">
-                      <span>Session active • {timeRemaining} min remaining</span>
-                      <Badge variant="outline">
-                        <MapPin className="h-3 w-3 mr-1" />
-                        15m radius enforced
-                      </Badge>
+                  <Alert className={minutesSinceStart <= 10 ? 'border-green-200' : 'border-yellow-200'}>
+                    <CheckCircle className={`h-4 w-4 ${minutesSinceStart <= 10 ? 'text-green-600' : 'text-yellow-600'}`} />
+                    <AlertDescription className={minutesSinceStart <= 10 ? 'text-green-800' : 'text-yellow-800'}>
+                      <div className="flex items-center justify-between flex-wrap gap-2">
+                        <span>
+                          Session active • {timeRemaining} min remaining
+                          {minutesSinceStart <= 10 ? (
+                            <> • {10 - minutesSinceStart} min left for full credit</>
+                          ) : (
+                            <> • Late period (0.5x credit)</>
+                          )}
+                        </span>
+                        <Badge variant="outline">
+                          <MapPin className="h-3 w-3 mr-1" />
+                          15m radius enforced
+                        </Badge>
+                      </div>
                     </AlertDescription>
                   </Alert>
                 )}
@@ -1156,6 +1172,12 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
                     <p className="text-xs text-muted-foreground">
                       Students can scan QR or enter this 6-character code
                     </p>
+                    <div className="flex items-center justify-center gap-2 text-xs">
+                      <AlertCircle className="h-3 w-3 text-blue-600" />
+                      <span className="text-blue-600 font-medium">
+                        First 10 min = Present | After 10 min = Late (0.5x)
+                      </span>
+                    </div>
                     <p className="text-xs text-yellow-600 font-medium flex items-center justify-center gap-1">
                       <MapPin className="h-3 w-3" />
                       Must be within 15 meters of your location
@@ -1215,6 +1237,7 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
                                     <div className="flex items-center gap-2">
                                       <Badge variant="outline" className="text-xs capitalize">
                                         {record.status}
+                                        {record.status === 'late' && ' (0.5x)'}
                                       </Badge>
                                       <span className={`text-xs font-semibold ${getAttendanceColor(attendancePercentage)}`}>
                                         {attendancePercentage}%

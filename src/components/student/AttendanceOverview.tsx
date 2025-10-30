@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { CheckCircle, XCircle, AlertTriangle, MapPin, Clock, Hash, Scan, QrCode as QrCodeIcon } from 'lucide-react';
+import { CheckCircle, XCircle, AlertTriangle, MapPin, Clock, Hash, Scan, QrCode as QrCodeIcon, AlertCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import QrScanner from 'qr-scanner';
@@ -32,7 +32,6 @@ const AttendanceOverview: React.FC<AttendanceOverviewProps> = ({ studentData }) 
   const [courses, setCourses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Location and QR scanning states
   const [sessionCode, setSessionCode] = useState('');
   const [isScanning, setIsScanning] = useState(false);
   const [markingLoading, setMarkingLoading] = useState(false);
@@ -214,10 +213,20 @@ const AttendanceOverview: React.FC<AttendanceOverviewProps> = ({ studentData }) 
             .eq('student_id', studentData.user_id)
             .single();
 
+          const startTimeParts = session.start_time.split(':');
+          const startDate = new Date();
+          startDate.setHours(parseInt(startTimeParts[0]), parseInt(startTimeParts[1]), 0, 0);
+          
+          const now = new Date();
+          const elapsedMs = now.getTime() - startDate.getTime();
+          const elapsedMinutes = Math.floor(elapsedMs / 60000);
+
           return {
             ...session,
             alreadyMarked: !!attendance,
-            markedStatus: attendance?.status
+            markedStatus: attendance?.status,
+            minutesSinceStart: elapsedMinutes,
+            isLateWindow: elapsedMinutes > 10
           };
         })
       );
@@ -232,6 +241,9 @@ const AttendanceOverview: React.FC<AttendanceOverviewProps> = ({ studentData }) 
     try {
       setMarkingLoading(true);
 
+      const today = new Date().toISOString().split('T')[0];
+
+      // Find session by code and today's date
       const { data: session, error: sessionError } = await supabase
         .from('attendance_sessions')
         .select(`
@@ -247,14 +259,16 @@ const AttendanceOverview: React.FC<AttendanceOverviewProps> = ({ studentData }) 
           )
         `)
         .eq('qr_code', code.toUpperCase())
+        .eq('session_date', today)
         .eq('is_active', true)
         .single();
 
       if (sessionError || !session) {
-        toast.error('Invalid or expired session code');
+        toast.error('Invalid session code or session has expired');
         return;
       }
 
+      // Check if already marked for this session
       const { data: existingAttendance } = await supabase
         .from('attendance')
         .select('id, status')
@@ -263,10 +277,11 @@ const AttendanceOverview: React.FC<AttendanceOverviewProps> = ({ studentData }) 
         .single();
 
       if (existingAttendance) {
-        toast.info(`Already marked as ${existingAttendance.status}`);
+        toast.info(`Already marked as ${existingAttendance.status} for this class`);
         return;
       }
 
+      // Verify enrollment
       const { data: enrollment } = await supabase
         .from('enrollments')
         .select('id')
@@ -280,6 +295,7 @@ const AttendanceOverview: React.FC<AttendanceOverviewProps> = ({ studentData }) 
         return;
       }
 
+      // Verify location
       const instructorLocation = session.instructor_location;
       
       if (!instructorLocation || !instructorLocation.latitude || !instructorLocation.longitude) {
@@ -295,29 +311,38 @@ const AttendanceOverview: React.FC<AttendanceOverviewProps> = ({ studentData }) 
       );
 
       if (distance > 15) {
-        toast.error(`You are too far from the class (${Math.round(distance)}m away). Must be within 15m.`);
+        toast.error(`You are too far from the classroom (${Math.round(distance)}m away). Must be within 15m.`);
         return;
       }
 
+      // Determine status based on time
       const now = new Date();
       const currentTime = now.toTimeString().slice(0, 5);
       const classStartTime = session.start_time;
       const classEndTime = session.end_time;
 
-      const [startHour, startMin] = classStartTime.split(':').map(Number);
-      const startDate = new Date();
-      startDate.setHours(startHour, startMin, 0, 0);
-      const tenMinutesLater = new Date(startDate.getTime() + 10 * 60000);
-      const tenMinutesLaterTime = `${tenMinutesLater.getHours().toString().padStart(2, '0')}:${tenMinutesLater.getMinutes().toString().padStart(2, '0')}`;
-
-      let status = 'present';
       if (currentTime > classEndTime) {
         toast.error('Class has ended. Cannot mark attendance.');
         return;
-      } else if (currentTime > tenMinutesLaterTime) {
-        status = 'late';
       }
 
+      // Calculate minutes since class start
+      const [startHour, startMin] = classStartTime.split(':').map(Number);
+      const startDate = new Date();
+      startDate.setHours(startHour, startMin, 0, 0);
+      
+      const elapsedMs = now.getTime() - startDate.getTime();
+      const elapsedMinutes = Math.floor(elapsedMs / 60000);
+
+      let status = 'present';
+      let statusMessage = '✓ Attendance marked as PRESENT!';
+      
+      if (elapsedMinutes > 10) {
+        status = 'late';
+        statusMessage = '⚠ Marked as LATE (0.5x credit) - Arrived after 10 minutes';
+      }
+
+      // Insert attendance record
       const { error: attendanceError } = await supabase
         .from('attendance')
         .insert({
@@ -327,22 +352,20 @@ const AttendanceOverview: React.FC<AttendanceOverviewProps> = ({ studentData }) 
           status: status,
           session_id: session.id,
           marked_by: studentData.user_id,
+          marked_at: new Date().toISOString(),
           location_verified: true,
           device_info: {
             latitude: studentLocation.latitude,
             longitude: studentLocation.longitude,
             distance: Math.round(distance),
-            timestamp: new Date().toISOString()
+            timestamp: new Date().toISOString(),
+            minutes_since_start: elapsedMinutes
           }
         });
 
       if (attendanceError) throw attendanceError;
 
-      toast.success(
-        status === 'present' 
-          ? '✓ Attendance marked successfully!' 
-          : '⚠ Marked as late (arrived after 10 minutes)'
-      );
+      toast.success(statusMessage);
       
       setSessionCode('');
       setScanDialogOpen(false);
@@ -658,8 +681,6 @@ const AttendanceOverview: React.FC<AttendanceOverviewProps> = ({ studentData }) 
         </Select>
       </div>
 
-
-
       <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3 md:gap-4 w-full max-w-full">
         <Card className="xs:col-span-2 sm:col-span-3 lg:col-span-1">
           <CardContent className="p-3 sm:p-4 md:p-6">
@@ -733,6 +754,13 @@ const AttendanceOverview: React.FC<AttendanceOverviewProps> = ({ studentData }) 
                   Location access required • Click "Enable Location" to mark attendance
                 </span>
               )}
+            </AlertDescription>
+          </Alert>
+
+          <Alert className="border-blue-200 bg-blue-50">
+            <AlertCircle className="h-4 w-4 text-blue-600" />
+            <AlertDescription className="text-blue-800">
+              <strong>Attendance Rules:</strong> Mark within first 10 minutes for full credit (Present). After 10 minutes = Late (0.5x credit). Must be within 15m of instructor.
             </AlertDescription>
           </Alert>
 
@@ -816,7 +844,9 @@ const AttendanceOverview: React.FC<AttendanceOverviewProps> = ({ studentData }) 
                     className={`p-4 rounded-lg border-2 ${
                       session.alreadyMarked 
                         ? 'border-gray-200 bg-gray-50' 
-                        : 'border-green-200 bg-green-50 animate-pulse'
+                        : session.isLateWindow
+                        ? 'border-yellow-200 bg-yellow-50'
+                        : 'border-green-200 bg-green-50'
                     }`}
                   >
                     <div className="flex items-start justify-between">
@@ -838,12 +868,28 @@ const AttendanceOverview: React.FC<AttendanceOverviewProps> = ({ studentData }) 
                         {session.topic && (
                           <p className="text-sm text-muted-foreground mt-1">{session.topic}</p>
                         )}
+                        {!session.alreadyMarked && (
+                          <div className={`text-xs font-medium mt-2 flex items-center gap-1 ${
+                            session.isLateWindow ? 'text-yellow-700' : 'text-green-700'
+                          }`}>
+                            <AlertCircle className="h-3 w-3" />
+                            {session.isLateWindow 
+                              ? `Late window - Will be marked as Late (0.5x credit)` 
+                              : `${10 - session.minutesSinceStart} min left for full credit`
+                            }
+                          </div>
+                        )}
                       </div>
                       <div>
                         {session.alreadyMarked ? (
-                          <Badge variant="outline" className="capitalize">
+                          <Badge variant="outline" className="capitalize flex items-center gap-1">
                             {getStatusIcon(session.markedStatus)}
-                            <span className="ml-1">{session.markedStatus}</span>
+                            <span>{session.markedStatus}</span>
+                            {session.markedStatus === 'late' && <span className="text-xs">(0.5x)</span>}
+                          </Badge>
+                        ) : session.isLateWindow ? (
+                          <Badge className="bg-yellow-600">
+                            Mark (Late)
                           </Badge>
                         ) : (
                           <Badge className="bg-green-600">
@@ -882,8 +928,20 @@ const AttendanceOverview: React.FC<AttendanceOverviewProps> = ({ studentData }) 
                             Marked at {new Date(record.marked_at).toLocaleTimeString()}
                           </div>
                           {record.device_info?.distance && (
-                            <div className="text-xs opacity-70">
-                              Distance: {record.device_info.distance}m from instructor
+                            <div className="text-xs opacity-70 flex items-center gap-1 mt-1">
+                              <MapPin className="h-3 w-3" />
+                              {record.device_info.distance}m from instructor
+                              {record.location_verified && (
+                                <CheckCircle className="h-3 w-3 text-green-600 ml-1" />
+                              )}
+                            </div>
+                          )}
+                          {record.device_info?.minutes_since_start !== undefined && (
+                            <div className="text-xs opacity-70 mt-1">
+                              {record.device_info.minutes_since_start <= 10 
+                                ? `Marked within first 10 minutes` 
+                                : `Marked ${record.device_info.minutes_since_start} minutes after start`
+                              }
                             </div>
                           )}
                         </div>
@@ -891,6 +949,7 @@ const AttendanceOverview: React.FC<AttendanceOverviewProps> = ({ studentData }) 
                           {getStatusIcon(record.status)}
                           <Badge variant="outline" className="capitalize">
                             {record.status}
+                            {record.status === 'late' && <span className="ml-1 text-xs">(0.5x)</span>}
                           </Badge>
                         </div>
                       </div>
@@ -1013,6 +1072,7 @@ const AttendanceOverview: React.FC<AttendanceOverviewProps> = ({ studentData }) 
                       </div>
                       <Badge className={`${getAttendanceStatusColor(record.status)} flex-shrink-0 text-xs`}>
                         {record.status.charAt(0).toUpperCase() + record.status.slice(1)}
+                        {record.status === 'late' && ' (0.5x)'}
                       </Badge>
                     </div>
                   ))

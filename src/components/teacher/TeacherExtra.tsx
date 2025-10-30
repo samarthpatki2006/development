@@ -110,7 +110,32 @@ const TeacherExtra = ({ teacherData }: TeacherEventsProps) => {
       }
 
       console.log('Fetched scheduled classes:', data);
-      setScheduledClasses(data || []);
+      
+      // Filter out classes that have already passed (completed or in the past)
+      const now = new Date();
+      const currentDate = now.toISOString().split('T')[0];
+      const currentTime = now.toTimeString().split(' ')[0].substring(0, 5);
+      
+      const upcomingClasses = (data || []).filter(cls => {
+        // Don't show completed or cancelled classes
+        if (cls.status === 'completed' || cls.status === 'cancelled') {
+          return false;
+        }
+        
+        // Show classes that haven't passed yet
+        if (cls.scheduled_date > currentDate) {
+          return true;
+        }
+        
+        // For today's classes, check if end time has passed
+        if (cls.scheduled_date === currentDate && cls.end_time > currentTime) {
+          return true;
+        }
+        
+        return false;
+      });
+      
+      setScheduledClasses(upcomingClasses);
     } catch (error) {
       console.error('Error fetching scheduled classes:', error);
       toast({

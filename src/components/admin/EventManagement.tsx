@@ -64,7 +64,9 @@ const EventManagement = ({ userProfile }: { userProfile: UserProfile }) => {
   const loadEvents = async () => {
     try {
       setIsLoading(true);
-      // Fetch events with organizer details and participant count
+      const now = new Date().toISOString();
+      
+      // Fetch only upcoming events (end_date >= current time)
       const { data: eventsData, error: eventsError } = await supabase
         .from('events')
         .select(`
@@ -75,7 +77,8 @@ const EventManagement = ({ userProfile }: { userProfile: UserProfile }) => {
           )
         `)
         .eq('college_id', userProfile.college_id)
-        .order('start_date', { ascending: false });
+        .gte('end_date', now)
+        .order('start_date', { ascending: true });
 
       if (eventsError) {
         throw eventsError;
@@ -282,7 +285,7 @@ const EventManagement = ({ userProfile }: { userProfile: UserProfile }) => {
                 <span>Event & Community Management</span>
               </CardTitle>
               <CardDescription className='mt-2'>
-                Organize and manage campus events, workshops, and community activities.
+                Organize and manage upcoming campus events, workshops, and community activities.
               </CardDescription>
             </div>
             <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
@@ -422,97 +425,106 @@ const EventManagement = ({ userProfile }: { userProfile: UserProfile }) => {
           </div>
 
           {/* Events Table */}
-          <div className="rounded-md border max-h-[350px] sm:max-h-[450px] overflow-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Event</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Date & Time</TableHead>
-                  <TableHead>Location</TableHead>
-                  <TableHead>Participants</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredEvents.map((event) => (
-                  <TableRow key={event.id}>
-                    <TableCell>
-                      <div>
-                        <div className="font-medium">{event.event_name}</div>
-                        <div className="text-sm text-gray-500 line-clamp-1">{event.description}</div>
-                        {event.organizer && (
-                          <div className="text-xs text-gray-400">
-                            by {event.organizer.first_name} {event.organizer.last_name}
-                          </div>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge className={getEventTypeColor(event.event_type)}>
-                        {event.event_type}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div className="text-sm">
-                        <div className="flex items-center space-x-1">
-                          <Clock className="w-3 h-3 text-gray-400" />
-                          <span>{formatDateTime(event.start_date)}</span>
-                        </div>
-                        <div className="text-gray-500 text-xs mt-1">
-                          to {formatDateTime(event.end_date)}
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center space-x-1">
-                        <MapPin className="w-3 h-3 text-gray-400" />
-                        <span className="text-sm">{event.location}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center space-x-1">
-                        <Users className="w-3 h-3 text-gray-400" />
-                        <span>{event.participant_count}/{event.max_participants}</span>
-                      </div>
-                      {event.registration_required && (
-                        <div className="text-xs text-orange-600">Registration Required</div>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={event.is_active ? "default" : "secondary"}>
-                        {event.is_active ? "Active" : "Cancelled"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center space-x-2">
-                        <Button size="sm" variant="outline">
-                          <Edit className="w-3 h-3" />
-                        </Button>
-                        <Button size="sm" variant="outline">
-                          <Users className="w-3 h-3" />
-                        </Button>
-                        {userProfile.id === event.organizer_id && (
-                          <Button
-                            size="sm"
-                            variant={event.is_active ? "destructive" : "default"}
-                            onClick={() => handleUpdateEventStatus(event.id, !event.is_active)}
-                          >
-                            {event.is_active ? "Cancel" : "Activate"}
-                          </Button>
-                        )}
-                      </div>
-                    </TableCell>
+          {filteredEvents.length > 0 ? (
+            <div className="rounded-md border max-h-[350px] sm:max-h-[450px] overflow-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Event</TableHead>
+                    <TableHead>Type</TableHead>
+                    <TableHead>Date & Time</TableHead>
+                    <TableHead>Location</TableHead>
+                    <TableHead>Participants</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Actions</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-
-          {filteredEvents.length === 0 && !isLoading && (
-            <div className="text-center py-8 text-gray-500">
-              No events found matching your criteria.
+                </TableHeader>
+                <TableBody>
+                  {filteredEvents.map((event) => (
+                    <TableRow key={event.id}>
+                      <TableCell>
+                        <div>
+                          <div className="font-medium">{event.event_name}</div>
+                          <div className="text-sm text-gray-500 line-clamp-1">{event.description}</div>
+                          {event.organizer && (
+                            <div className="text-xs text-gray-400">
+                              by {event.organizer.first_name} {event.organizer.last_name}
+                            </div>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge className={getEventTypeColor(event.event_type)}>
+                          {event.event_type}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div className="text-sm">
+                          <div className="flex items-center space-x-1">
+                            <Clock className="w-3 h-3 text-gray-400" />
+                            <span>{formatDateTime(event.start_date)}</span>
+                          </div>
+                          <div className="text-gray-500 text-xs mt-1">
+                            to {formatDateTime(event.end_date)}
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center space-x-1">
+                          <MapPin className="w-3 h-3 text-gray-400" />
+                          <span className="text-sm">{event.location}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center space-x-1">
+                          <Users className="w-3 h-3 text-gray-400" />
+                          <span>{event.participant_count}/{event.max_participants}</span>
+                        </div>
+                        {event.registration_required && (
+                          <div className="text-xs text-orange-600">Registration Required</div>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={event.is_active ? "default" : "secondary"}>
+                          {event.is_active ? "Active" : "Cancelled"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center space-x-2">
+                          <Button size="sm" variant="outline">
+                            <Edit className="w-3 h-3" />
+                          </Button>
+                          <Button size="sm" variant="outline">
+                            <Users className="w-3 h-3" />
+                          </Button>
+                          {userProfile.id === event.organizer_id && (
+                            <Button
+                              size="sm"
+                              variant={event.is_active ? "destructive" : "default"}
+                              onClick={() => handleUpdateEventStatus(event.id, !event.is_active)}
+                            >
+                              {event.is_active ? "Cancel" : "Activate"}
+                            </Button>
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          ) : (
+            <div className="text-center py-12 text-gray-500">
+              <Calendar className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+              <h3 className="text-lg font-medium mb-2">No Upcoming Events</h3>
+              <p>No upcoming events found matching your criteria. Create your first event to get started.</p>
+              <Button
+                className="mt-4"
+                onClick={() => setIsAddDialogOpen(true)}
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Create First Event
+              </Button>
             </div>
           )}
         </CardContent>

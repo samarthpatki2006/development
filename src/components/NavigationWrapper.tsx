@@ -107,9 +107,7 @@ const NavigationWrapper = ({ children }: NavigationWrapperProps) => {
           return;
         }
 
-        // ==========================================
         // Check onboarding status for first login
-        // ==========================================
         const { data: onboarding, error: onboardingError } = await supabase
           .from('user_onboarding')
           .select('password_reset_required, first_login_completed, onboarding_completed')
@@ -152,9 +150,7 @@ const NavigationWrapper = ({ children }: NavigationWrapperProps) => {
           setIsChecking(false);
           return;
         }
-        // ==========================================
         // END: First login logic
-        // ==========================================
 
         const correctRoute = USER_ROUTE_MAP[profile.user_type as keyof typeof USER_ROUTE_MAP];
         

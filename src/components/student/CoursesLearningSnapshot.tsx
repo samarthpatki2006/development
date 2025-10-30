@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { BookOpen, FileText, Video, Download, ExternalLink, Clock, Award, TrendingUp, Trophy, Calculator } from 'lucide-react';
+import { BookOpen, FileText, Video, Download, ExternalLink, Clock, Award, TrendingUp, Trophy, Calculator, ArrowLeft } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import PermissionWrapper from '@/components/PermissionWrapper';
@@ -41,18 +41,30 @@ const CoursesLearningSnapshot: React.FC<CoursesLearningSnapshotProps> = ({ stude
         return;
       }
 
-      const { data: gradesData } = await supabase
+      const { data: gradesData, error: gradesError } = await supabase
         .from("grades")
         .select("*")
         .eq("student_id", user.user.id)
         .order("updated_at", { ascending: false });
+
+      if (gradesError) {
+        console.error('Error fetching grades:', gradesError);
+        setGrades([]);
+        return;
+      }
 
       if (!gradesData || gradesData.length === 0) {
         setGrades([]);
         return;
       }
 
-      const classIds = gradesData.map(g => g.class_id);
+      const classIds = gradesData.map(g => g.class_id).filter(Boolean);
+      
+      if (classIds.length === 0) {
+        setGrades(gradesData.map(grade => ({ ...grade, class_name: 'Unknown Class' })));
+        return;
+      }
+
       const { data: classesData } = await supabase
         .from("classes")
         .select("id, name")
@@ -80,29 +92,52 @@ const CoursesLearningSnapshot: React.FC<CoursesLearningSnapshotProps> = ({ stude
         return;
       }
 
-      const { data: submissions } = await supabase
+      const { data: submissions, error: submissionsError } = await supabase
         .from("quiz_submissions")
         .select("*")
         .eq("student_id", user.user.id)
         .not("score", "is", null)
         .order("submitted_at", { ascending: false });
 
+      if (submissionsError) {
+        console.error('Error fetching quiz submissions:', submissionsError);
+        setQuizSubmissions([]);
+        return;
+      }
+
       if (!submissions || submissions.length === 0) {
         setQuizSubmissions([]);
         return;
       }
 
-      const quizIds = submissions.map(s => s.quiz_id);
-      const { data: quizzesData } = await supabase
+      const quizIds = submissions.map(s => s.quiz_id).filter(Boolean);
+      
+      if (quizIds.length === 0) {
+        setQuizSubmissions(submissions);
+        return;
+      }
+
+      const { data: quizzesData, error: quizzesError } = await supabase
         .from("quizzes")
         .select("id, title, total_points, weightage, class_id")
         .in("id", quizIds);
 
+      if (quizzesError) {
+        console.error('Error fetching quizzes:', quizzesError);
+        setQuizSubmissions(submissions);
+        return;
+      }
+
       const classIds = quizzesData?.map(q => q.class_id).filter(Boolean) || [];
-      const { data: classesData } = await supabase
-        .from("classes")
-        .select("id, name")
-        .in("id", classIds);
+      
+      let classesData = [];
+      if (classIds.length > 0) {
+        const { data: classes } = await supabase
+          .from("classes")
+          .select("id, name")
+          .in("id", classIds);
+        classesData = classes || [];
+      }
 
       const submissionsWithDetails = submissions.map(submission => {
         const quiz = quizzesData?.find(q => q.id === submission.quiz_id);
@@ -283,8 +318,6 @@ const CoursesLearningSnapshot: React.FC<CoursesLearningSnapshotProps> = ({ stude
     setDownloadingFile(material.id);
     
     try {
-      // Extract the file path from the full URL
-      // file_url format: https://[project-id].supabase.co/storage/v1/object/public/course-materials/[file-path]
       const urlParts = material.file_url.split('/course-materials/');
       const filePath = urlParts[1];
 
@@ -292,7 +325,6 @@ const CoursesLearningSnapshot: React.FC<CoursesLearningSnapshotProps> = ({ stude
         throw new Error('Invalid file path');
       }
 
-      // Download the file from Supabase Storage
       const { data, error } = await supabase.storage
         .from('course-materials')
         .download(filePath);
@@ -301,13 +333,11 @@ const CoursesLearningSnapshot: React.FC<CoursesLearningSnapshotProps> = ({ stude
         throw error;
       }
 
-      // Create a blob URL and trigger download
       const blob = new Blob([data]);
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
       
-      // Use the material title as filename, or extract from path
       const fileName = material.title || filePath.split('/').pop() || 'download';
       link.download = fileName;
       
@@ -395,7 +425,6 @@ const CoursesLearningSnapshot: React.FC<CoursesLearningSnapshotProps> = ({ stude
 
     return (
       <div className="space-y-4 sm:space-y-6 p-4 sm:p-6 max-w-7xl mx-auto">
-        {/* Overall Grades */}
         <Card className="card-minimal glass-effect border-primary/20">
           <CardHeader className="border-b border-primary/20">
             <CardTitle className="flex items-center gap-2 text-primary">
@@ -444,7 +473,6 @@ const CoursesLearningSnapshot: React.FC<CoursesLearningSnapshotProps> = ({ stude
                             Grade Breakdown
                           </h4>
 
-                          {/* Quiz Scores */}
                           {(grade.grade_breakdown as any)?.quiz_scores && Object.keys((grade.grade_breakdown as any).quiz_scores).length > 0 && (
                             <div className="space-y-2">
                               <p className="text-sm font-medium text-muted-foreground">Quiz Scores:</p>
@@ -466,7 +494,6 @@ const CoursesLearningSnapshot: React.FC<CoursesLearningSnapshotProps> = ({ stude
                             </div>
                           )}
 
-                          {/* Custom Assessments */}
                           {(grade.grade_breakdown as any)?.custom_scores && Object.keys((grade.grade_breakdown as any).custom_scores).length > 0 && (
                             <div className="space-y-2">
                               <p className="text-sm font-medium text-muted-foreground">Additional Assessments:</p>
@@ -499,7 +526,6 @@ const CoursesLearningSnapshot: React.FC<CoursesLearningSnapshotProps> = ({ stude
           </CardContent>
         </Card>
 
-        {/* Individual Quiz Results */}
         <Card className="card-minimal glass-effect border-primary/20">
           <CardHeader className="border-b border-primary/20">
             <CardTitle className="flex items-center gap-2 text-primary">
@@ -571,18 +597,15 @@ const CoursesLearningSnapshot: React.FC<CoursesLearningSnapshotProps> = ({ stude
     );
   }
 
-  // Course Details View
   if (showCourseDetails && selectedCourse) {
     return (
       <PermissionWrapper permission="view_submit_assignments">
         <div className="space-y-4 sm:space-y-6 p-4 sm:p-6 max-w-7xl mx-auto">
-          {/* Back Button */}
           <Button variant="outline" onClick={handleBackToCourses}>
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Courses
           </Button>
 
-          {/* Course Header */}
           <Card>
             <CardHeader>
               <div className="flex justify-between items-start">
@@ -598,7 +621,6 @@ const CoursesLearningSnapshot: React.FC<CoursesLearningSnapshotProps> = ({ stude
             </CardHeader>
           </Card>
 
-          {/* Course Materials */}
           <Card>
             <CardHeader>
               <CardTitle>Course Materials</CardTitle>
@@ -650,7 +672,6 @@ const CoursesLearningSnapshot: React.FC<CoursesLearningSnapshotProps> = ({ stude
             </CardContent>
           </Card>
 
-          {/* Assignments */}
           <Card>
             <CardHeader className="p-4 sm:p-6">
               <CardTitle>Assignments</CardTitle>
@@ -700,11 +721,9 @@ const CoursesLearningSnapshot: React.FC<CoursesLearningSnapshotProps> = ({ stude
     );
   }
 
-  // Courses Overview (Main View)
   return (
     <PermissionWrapper permission="view_submit_assignments">
       <div className="space-y-6">
-        {/* Header */}
         <div className="flex justify-between items-center">
           <div>
             <h2 className="text-2xl font-bold">Courses & Learning Snapshot</h2>
@@ -712,7 +731,6 @@ const CoursesLearningSnapshot: React.FC<CoursesLearningSnapshotProps> = ({ stude
           </div>
         </div>
 
-        {/* Quick Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <Card>
             <CardContent className="p-6">
@@ -770,12 +788,7 @@ const CoursesLearningSnapshot: React.FC<CoursesLearningSnapshotProps> = ({ stude
         </div>
 
         <Tabs defaultValue="courses" className="space-y-4">
-          <TabsList>
-            <TabsTrigger value="courses">My Courses</TabsTrigger>
-            <TabsTrigger value="grades">Grades & Performance</TabsTrigger>
-          </TabsList>
 
-          {/* Courses Overview */}
           <TabsContent value="courses" className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {enrolledCourses.map((enrollment, index) => (
@@ -810,7 +823,6 @@ const CoursesLearningSnapshot: React.FC<CoursesLearningSnapshotProps> = ({ stude
             </div>
           </TabsContent>
 
-          {/* Grades Tab */}
           <TabsContent value="grades">
             {renderStudentGrades()}
           </TabsContent>

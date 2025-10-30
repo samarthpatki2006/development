@@ -358,17 +358,6 @@ const AdminDashboard = ({ sessionData }: AdminDashboardProps) => {
     }
   ];
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-black">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-400 mx-auto"></div>
-          <p className="mt-4 text-white font-medium">Loading admin dashboard...</p>
-        </div>
-      </div>
-    );
-  }
-
   if (!userProfile) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">

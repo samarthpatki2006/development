@@ -29,11 +29,6 @@ const LoadingOverlay: React.FC<LoadingOverlayProps> = ({ loadingState, className
 
   const getMessage = () => {
     if (loadingState.message) return loadingState.message;
-<<<<<<< HEAD
-    
-=======
-
->>>>>>> samarth-pr
     switch (loadingState.operation) {
       case 'fetching':
         return 'Loading students...';
@@ -49,19 +44,6 @@ const LoadingOverlay: React.FC<LoadingOverlayProps> = ({ loadingState, className
   };
 
   return (
-<<<<<<< HEAD
-    <div className={`fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center ${className}`}>
-      <Card className="w-80">
-        <CardContent className="text-center py-8">
-          <div className="flex flex-col items-center space-y-4">
-            {getIcon()}
-            
-            <div className="space-y-2">
-              <h3 className="text-lg font-semibold text-foreground">
-                {getMessage()}
-              </h3>
-              <p className="text-sm text-muted-foreground">
-=======
     <div className={`fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 ${className}`}>
       <Card className="w-full max-w-[20rem] sm:max-w-sm">
         <CardContent className="text-center py-6 sm:py-8 px-4 sm:px-6">
@@ -73,7 +55,6 @@ const LoadingOverlay: React.FC<LoadingOverlayProps> = ({ loadingState, className
                 {getMessage()}
               </h3>
               <p className="text-xs sm:text-sm text-muted-foreground">
->>>>>>> samarth-pr
                 Please wait while we process your request...
               </p>
             </div>

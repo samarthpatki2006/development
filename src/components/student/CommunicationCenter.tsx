@@ -330,12 +330,15 @@ const CommunicationHub = ({ studentData, initialChannelId }) => {
 
   const fetchContacts = async () => {
     try {
-      // Get all users from the same college
+      // Students can only contact teachers, alumni, and other students
+      const allowedUserTypes = ['teacher', 'alumni', 'student'];
+      
       const { data, error } = await supabase
         .from('user_profiles')
         .select('*')
         .eq('college_id', studentData.college_id)
         .neq('id', studentData.user_id)
+        .in('user_type', allowedUserTypes)
         .eq('is_active', true)
         .order('first_name');
 

@@ -12,15 +12,6 @@ const categories = [
   { value: "other", label: "Other" }
 ];
 
-const categoryStyles = {
-  books: "bg-white/5 text-white/90 border-white/20",
-  electronics: "bg-white/5 text-white/90 border-white/20",
-  furniture: "bg-white/5 text-white/90 border-white/20",
-  clothing: "bg-white/5 text-white/90 border-white/20",
-  sports: "bg-white/5 text-white/90 border-white/20",
-  other: "bg-white/5 text-white/90 border-white/20"
-};
-
 const conditions = [
   { value: "new", label: "New" },
   { value: "like_new", label: "Like New" },
@@ -33,7 +24,7 @@ const MarketplaceApp = ({ onNavigateToChat }) => {
   const [selectedProduct, setSelectedProduct] = useState(null);
 
   return (
-    <div className="min-h-screen bg-black">
+    <div className="min-h-screen bg-background">
       {view === "marketplace" && (
         <Marketplace 
           onViewProduct={(p) => { setSelectedProduct(p); setView("detail"); }} 
@@ -134,115 +125,105 @@ const Marketplace = ({ onViewProduct, onSellClick, onMyListingsClick }) => {
   };
 
   return (
-    <>
-      {/* Hero Section */}
-      <div className="bg-black text-white border-b border-white/15">
-        <div className="container mx-auto px-6 py-4">
-          <div className="max-w-4xl">
-            {/* Title */}
-            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-semibold mb-4 tracking-tight">
-              Student Marketplace
-            </h1>
-
-            {/* Subtitle */}
-            <p className="text-base sm:text-lg md:text-xl mb-8 sm:mb-10 leading-relaxed text-white/70">
-              Buy and sell used items with fellow students in your community
-            </p>
-
-            {/* Search Bar */}
-            <div className="relative mb-8">
-              <Search className="absolute left-4 sm:left-5 top-1/2 -translate-y-1/2 h-5 w-5 text-black" />
-              <input
-                type="text"
-                placeholder="Search for textbooks, electronics, furniture..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-12 sm:pl-14 pr-4 sm:pr-6 py-4 sm:py-5 rounded-md bg-white/10 border border-white/15 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-white/40 focus:border-transparent transition-all duration-300 text-sm sm:text-base"
-              />
+    <div className="space-y-4 sm:space-y-6 p-4 sm:p-6 max-w-7xl mx-auto">
+      {/* Header Card */}
+      <div className="card-minimal glass-effect border-primary/20">
+        <div className="p-6">
+          <div className="flex justify-between items-start mb-6">
+            <div>
+              <h2 className="text-2xl font-bold text-foreground mb-2">Student Marketplace</h2>
+              <p className="text-muted-foreground">Buy and sell used items with fellow students in your community</p>
             </div>
+          </div>
 
-            {/* Action Buttons */}
-            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
-              <button
-                onClick={onSellClick}
-                className="w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 rounded-md font-semibold bg-white text-black hover:bg-white/90 transition-all duration-300 flex items-center justify-center gap-2"
-              >
-                <Plus className="h-5 w-5" />
-                List an Item
-              </button>
+          {/* Search Bar */}
+          <div className="relative mb-6">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+            <input
+              type="text"
+              placeholder="Search for textbooks, electronics, furniture..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-12 pr-4 py-3 rounded-lg bg-background border border-border text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all duration-300"
+            />
+          </div>
 
-              <button
-                onClick={onMyListingsClick}
-                className="w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 rounded-md font-semibold bg-white/10 text-white hover:bg-white/20 transition-all duration-300 flex items-center justify-center gap-2 border border-white/15"
-              >
-                <Package className="h-5 w-5" />
-                My Listings
-              </button>
-            </div>
+          {/* Action Buttons */}
+          <div className="flex flex-col sm:flex-row gap-3">
+            <button
+              onClick={onSellClick}
+              className="w-full sm:w-auto px-6 py-3 rounded-lg font-semibold bg-primary text-primary-foreground hover:bg-primary/90 transition-all duration-300 flex items-center justify-center gap-2"
+            >
+              <Plus className="h-5 w-5" />
+              List an Item
+            </button>
+
+            <button
+              onClick={onMyListingsClick}
+              className="w-full sm:w-auto px-6 py-3 rounded-lg font-semibold bg-card text-foreground hover:bg-accent transition-all duration-300 flex items-center justify-center gap-2 border border-border"
+            >
+              <Package className="h-5 w-5" />
+              My Listings
+            </button>
           </div>
         </div>
       </div>
 
-      <div className="container mx-auto px-4 sm:px-6 py-4">
-        {/* Category Scroll */}
-        <div className="mb-8 sm:mb-10 flex gap-3 overflow-x-auto pb-4 scrollbar-hide">
-          {categories.map((category) => {
-            const isSelected = selectedCategory === category.value;
-            return (
-              <button
-                key={category.value}
-                onClick={() => setSelectedCategory(category.value)}
-                className={`px-5 sm:px-6 py-2.5 sm:py-3 rounded-md font-medium transition-all duration-300 whitespace-nowrap border text-sm sm:text-base ${isSelected
-                    ? "bg-white text-black border-white"
-                    : "bg-white/10 text-white/70 border-white/15 hover:bg-white/15 hover:border-white/25"
-                  }`}
-              >
-                {category.label}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Loading */}
-        {loading ? (
-          <div className="flex items-center justify-center py-20">
-            <Loader2 className="h-10 sm:h-12 w-10 sm:w-12 animate-spin text-white" />
-          </div>
-        ) : filteredProducts.length === 0 ? (
-          <div className="text-center py-16 sm:py-20 rounded-md bg-white/10 border border-white/15 px-4">
-            <Package className="h-16 sm:h-20 w-16 sm:w-20 text-white/40 mx-auto mb-4" />
-            <p className="text-xl sm:text-2xl font-semibold mb-2 text-white">
-              No items found
-            </p>
-            <p className="text-white/60 text-sm sm:text-base">
-              Try adjusting your search or be the first to list something!
-            </p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 sm:gap-6">
-            {filteredProducts.map((product) => (
-              <ProductCard
-                key={product.id}
-                product={product}
-                onClick={() => onViewProduct(product)}
-              />
-            ))}
-          </div>
-        )}
+      {/* Category Filter */}
+      <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+        {categories.map((category) => {
+          const isSelected = selectedCategory === category.value;
+          return (
+            <button
+              key={category.value}
+              onClick={() => setSelectedCategory(category.value)}
+              className={`px-5 py-2.5 rounded-lg font-medium transition-all duration-300 whitespace-nowrap border ${
+                isSelected
+                  ? "bg-primary text-primary-foreground border-primary"
+                  : "bg-card text-muted-foreground border-border hover:bg-accent hover:text-foreground"
+              }`}
+            >
+              {category.label}
+            </button>
+          );
+        })}
       </div>
-    </>
+
+      {/* Loading & Products Grid */}
+      {loading ? (
+        <div className="flex items-center justify-center py-20">
+          <Loader2 className="h-10 w-10 animate-spin text-primary" />
+        </div>
+      ) : filteredProducts.length === 0 ? (
+        <div className="card-minimal text-center py-16">
+          <Package className="h-20 w-20 text-muted-foreground mx-auto mb-4" />
+          <p className="text-xl font-semibold mb-2 text-foreground">No items found</p>
+          <p className="text-muted-foreground">Try adjusting your search or be the first to list something!</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+          {filteredProducts.map((product) => (
+            <ProductCard
+              key={product.id}
+              product={product}
+              onClick={() => onViewProduct(product)}
+            />
+          ))}
+        </div>
+      )}
+    </div>
   );
 };
 
 const ProductCard = ({ product, onClick }) => {
-  const categoryStyle = categoryStyles[product.category] || categoryStyles.other;
   const firstImage = product.images && product.images.length > 0 ? product.images[0] : null;
+  
   return (
     <div
       onClick={onClick}
-      className="bg-white/8 rounded-sm overflow-hidden border border-white/15 hover:border-white/40 hover:bg-white/12 transition-all duration-300 cursor-pointer group"
+      className="card-minimal glass-effect border-primary/20 hover:border-accent/40 transition-all duration-300 cursor-pointer group overflow-hidden"
     >
-      <div className="aspect-square bg-white/5 overflow-hidden relative">
+      <div className="aspect-square bg-muted overflow-hidden relative">
         {firstImage ? (
           <img
             src={firstImage}
@@ -251,23 +232,23 @@ const ProductCard = ({ product, onClick }) => {
           />
         ) : (
           <div className="flex items-center justify-center h-full">
-            <Package className="h-20 w-20 text-white/20" />
+            <Package className="h-20 w-20 text-muted-foreground/30" />
           </div>
         )}
       </div>
 
       <div className="p-5">
-        <h3 className="font-bold text-lg line-clamp-2 mb-2 text-white group-hover:text-white/80 transition-colors">
+        <h3 className="font-bold text-lg line-clamp-2 mb-2 text-foreground group-hover:text-primary transition-colors">
           {product.title}
         </h3>
-        <p className="text-sm text-white/60 mb-4 line-clamp-2 leading-relaxed">
+        <p className="text-sm text-muted-foreground mb-4 line-clamp-2 leading-relaxed">
           {product.description}
         </p>
         <div className="flex items-center justify-between">
-          <div className="text-2xl font-bold text-white">
+          <div className="text-2xl font-bold text-primary">
             ₹{product.price}
           </div>
-          <span className={`px-3 py-1.5 rounded-sm text-xs font-semibold border ${categoryStyle}`}>
+          <span className="px-3 py-1.5 rounded-lg text-xs font-semibold border border-border bg-card text-muted-foreground">
             {product.category}
           </span>
         </div>
@@ -277,7 +258,6 @@ const ProductCard = ({ product, onClick }) => {
 };
 
 const ProductDetail = ({ product, onBack, onNavigateToChat }) => {
-  const categoryStyle = categoryStyles[product.category] || categoryStyles.other;
   const firstImage = product.images && product.images.length > 0 ? product.images[0] : null;
   const sellerName = product.seller ? `${product.seller.first_name} ${product.seller.last_name}` : "Anonymous";
   const sellerEmail = product.seller?.email || "";
@@ -371,82 +351,85 @@ const ProductDetail = ({ product, onBack, onNavigateToChat }) => {
   };
 
   return (
-    <div className="container mx-auto px-6 py-10">
+    <div className="space-y-4 sm:space-y-6 p-4 sm:p-6 max-w-7xl mx-auto">
       <button
         onClick={onBack}
-        className="flex items-center gap-2 text-white/70 hover:text-white mb-8 font-medium transition-colors duration-300"
+        className="flex items-center gap-2 text-muted-foreground hover:text-foreground font-medium transition-colors duration-300"
       >
         <ArrowLeft className="h-5 w-5" />
         Back to Marketplace
       </button>
 
-      <div className="grid lg:grid-cols-2 gap-10">
-        <div className="bg-white/8 rounded-sm overflow-hidden border border-white/15">
+      <div className="grid lg:grid-cols-2 gap-6">
+        {/* Product Image */}
+        <div className="card-minimal glass-effect border-primary/20 overflow-hidden">
           <div className="aspect-square">
             {firstImage ? (
               <img src={firstImage} alt={product.title} className="w-full h-full object-cover" />
             ) : (
-              <div className="flex items-center justify-center h-full bg-white/5">
-                <Package className="h-32 w-32 text-white/20" />
+              <div className="flex items-center justify-center h-full bg-muted">
+                <Package className="h-32 w-32 text-muted-foreground/30" />
               </div>
             )}
           </div>
         </div>
 
+        {/* Product Details */}
         <div className="space-y-6">
-          <div className="bg-white/8 rounded-sm p-8 border border-white/15">
-            <h1 className="text-4xl font-bold mb-5 leading-tight text-white">
+          <div className="card-minimal glass-effect border-primary/20 p-6">
+            <h1 className="text-3xl font-bold mb-4 text-foreground">
               {product.title}
             </h1>
             <div className="flex items-center gap-3 mb-6">
-              <span className={`px-4 py-2 rounded-sm text-sm font-semibold border ${categoryStyle}`}>
+              <span className="px-4 py-2 rounded-lg text-sm font-semibold border border-border bg-card text-muted-foreground">
                 {product.category}
               </span>
-              <span className="px-4 py-2 bg-white/5 rounded-sm text-sm font-semibold border border-white/15 text-white/70">
+              <span className="px-4 py-2 rounded-lg text-sm font-semibold border border-border bg-card text-muted-foreground">
                 {product.condition}
               </span>
             </div>
 
-            <div className="text-5xl font-bold text-white mb-6">
+            <div className="text-4xl font-bold text-primary mb-6">
               ₹{product.price}
             </div>
 
-            <p className="text-white/70 leading-relaxed text-lg">
+            <p className="text-muted-foreground leading-relaxed">
               {product.description}
             </p>
           </div>
 
-          <div className="bg-white/8 rounded-sm p-8 border border-white/15">
-            <h2 className="text-2xl font-bold mb-6 text-white">Seller Information</h2>
-            <div className="space-y-5">
+          {/* Seller Information */}
+          <div className="card-minimal glass-effect border-primary/20 p-6">
+            <h2 className="text-xl font-bold mb-6 text-foreground">Seller Information</h2>
+            <div className="space-y-4">
               <div className="flex items-center gap-4">
-                <div className="bg-white/8 rounded-full p-3">
-                  <User className="h-6 w-6 text-white/70" />
+                <div className="bg-muted rounded-full p-3">
+                  <User className="h-6 w-6 text-muted-foreground" />
                 </div>
                 <div>
-                  <p className="text-sm text-white/60 font-medium">Name</p>
-                  <p className="font-semibold text-lg text-white">{sellerName}</p>
+                  <p className="text-sm text-muted-foreground font-medium">Name</p>
+                  <p className="font-semibold text-foreground">{sellerName}</p>
                 </div>
               </div>
 
               <div className="flex items-center gap-4">
-                <div className="bg-white/8 rounded-full p-3">
-                  <Mail className="h-6 w-6 text-white/70" />
+                <div className="bg-muted rounded-full p-3">
+                  <Mail className="h-6 w-6 text-muted-foreground" />
                 </div>
                 <div>
-                  <p className="text-sm text-white/60 font-medium">Email</p>
-                  <p className="font-semibold text-lg text-white break-all">{sellerEmail}</p>
+                  <p className="text-sm text-muted-foreground font-medium">Email</p>
+                  <p className="font-semibold text-foreground break-all">{sellerEmail}</p>
                 </div>
               </div>
 
               {sellerPhone && (
                 <div className="flex items-center gap-4">
-                  <div className="bg-white/8 rounded-full p-3">
-                    <Phone className="h-6 w-6 text-white/70" />
+                  <div className="bg-muted rounded-full p-3">
+                    <Phone className="h-6 w-6 text-muted-foreground" />
                   </div>
                   <div>
-                    <p className="text-sm text-white/60 font-medium">Phone</p>
-                    <p className="font-semibold text-lg text-white">{sellerPhone}</p>
+                    <p className="text-sm text-muted-foreground font-medium">Phone</p>
+                    <p className="font-semibold text-foreground">{sellerPhone}</p>
                   </div>
                 </div>
               )}
@@ -455,7 +438,7 @@ const ProductDetail = ({ product, onBack, onNavigateToChat }) => {
             <button
               onClick={handleContactSeller}
               disabled={contacting}
-              className="w-full mt-8 bg-white text-black py-4 rounded-sm font-semibold hover:bg-white/90 transition-all duration-300 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full mt-6 bg-primary text-primary-foreground py-3 rounded-lg font-semibold hover:bg-primary/90 transition-all duration-300 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {contacting ? (
                 <>
@@ -587,45 +570,45 @@ const SellItem = ({ onBack }) => {
   };
 
   return (
-    <div className="container mx-auto px-6 py-10 max-w-3xl">
+    <div className="space-y-4 sm:space-y-6 p-4 sm:p-6 max-w-3xl mx-auto">
       <button 
         onClick={onBack} 
-        className="flex items-center gap-2 text-white/70 hover:text-white mb-8 font-medium transition-colors duration-300"
+        className="flex items-center gap-2 text-muted-foreground hover:text-foreground font-medium transition-colors duration-300"
       >
         <ArrowLeft className="h-5 w-5" />
         Back to Marketplace
       </button>
 
-      <div className="bg-white/8 rounded-sm p-10 border border-white/15">
-        <h1 className="text-4xl font-bold mb-3 text-white">List Your Item</h1>
-        <p className="text-white/60 text-lg mb-10">Fill in the details to sell your item to fellow students</p>
+      <div className="card-minimal glass-effect border-primary/20 p-6 sm:p-8">
+        <h1 className="text-3xl font-bold mb-2 text-foreground">List Your Item</h1>
+        <p className="text-muted-foreground mb-8">Fill in the details to sell your item to fellow students</p>
 
         <div className="space-y-6">
           <div>
-            <label className="block text-sm font-bold mb-2 text-white">Item Title *</label>
+            <label className="block text-sm font-semibold mb-2 text-foreground">Item Title *</label>
             <input
               type="text"
               value={formData.title}
               onChange={(e) => setFormData({ ...formData, title: e.target.value })}
               placeholder="e.g., Calculus Textbook - 12th Edition"
-              className="w-full px-5 py-4 rounded-sm bg-white/8 border border-white/15 text-black focus:outline-none focus:ring-2 focus:ring-white/40 focus:border-transparent transition-all duration-300"
+              className="w-full px-4 py-3 rounded-lg bg-background border border-border text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all duration-300"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-bold mb-2 text-white">Description *</label>
+            <label className="block text-sm font-semibold mb-2 text-foreground">Description *</label>
             <textarea
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               placeholder="Describe the condition, features, and any other relevant details..."
               rows={5}
-              className="w-full px-5 py-4 rounded-sm bg-white/8 border border-white/15 text-black focus:outline-none focus:ring-2 focus:ring-white/40 focus:border-transparent resize-none transition-all duration-300"
+              className="w-full px-4 py-3 rounded-lg bg-background border border-border text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary resize-none transition-all duration-300"
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
             <div>
-              <label className="block text-sm font-bold mb-2 text-white">Price (₹) *</label>
+              <label className="block text-sm font-semibold mb-2 text-foreground">Price (₹) *</label>
               <input
                 type="number"
                 step="10"
@@ -633,43 +616,43 @@ const SellItem = ({ onBack }) => {
                 value={formData.price}
                 onChange={(e) => setFormData({ ...formData, price: e.target.value })}
                 placeholder="0"
-                className="w-full px-5 py-4 rounded-sm bg-white/8 border border-white/15 text-black focus:outline-none focus:ring-2 focus:ring-white/40 focus:border-transparent transition-all duration-300"
+                className="w-full px-4 py-3 rounded-lg bg-background border border-border text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all duration-300"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-bold mb-2 text-white">Category *</label>
+              <label className="block text-sm font-semibold mb-2 text-foreground">Category *</label>
               <select
                 value={formData.category}
                 onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                className="w-full px-5 py-4 rounded-sm bg-white/8 border border-white/15 text-black focus:outline-none focus:ring-2 focus:ring-white/40 focus:border-transparent transition-all duration-300"
+                className="w-full px-4 py-3 rounded-lg bg-background border border-border text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all duration-300"
               >
-                <option value="" className="bg-black">Select category...</option>
+                <option value="">Select category...</option>
                 {categories.filter(c => c.value !== "all").map(cat => (
-                  <option key={cat.value} value={cat.value} className="bg-black">{cat.label}</option>
+                  <option key={cat.value} value={cat.value}>{cat.label}</option>
                 ))}
               </select>
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-bold mb-2 text-white">Condition *</label>
+            <label className="block text-sm font-semibold mb-2 text-foreground">Condition *</label>
             <select
               value={formData.condition}
               onChange={(e) => setFormData({ ...formData, condition: e.target.value })}
-              className="w-full px-5 py-4 rounded-sm bg-white/8 border border-white/15 text-black focus:outline-none focus:ring-2 focus:ring-white/40 focus:border-transparent transition-all duration-300"
+              className="w-full px-4 py-3 rounded-lg bg-background border border-border text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all duration-300"
             >
               {conditions.map(cond => (
-                <option key={cond.value} value={cond.value} className="bg-black">{cond.label}</option>
+                <option key={cond.value} value={cond.value}>{cond.label}</option>
               ))}
             </select>
           </div>
 
           <div>
-            <label className="block text-sm font-bold mb-2 text-white">Product Images</label>
-            <p className="text-sm text-white/60 mb-3">Upload photos of your item</p>
+            <label className="block text-sm font-semibold mb-2 text-foreground">Product Images</label>
+            <p className="text-sm text-muted-foreground mb-3">Upload photos of your item</p>
             
-            <div className="border-2 border-dashed border-white/15 rounded-sm p-6 text-center hover:border-white/30 transition-colors duration-300 bg-white/5">
+            <div className="border-2 border-dashed border-border rounded-lg p-6 text-center hover:border-primary/40 transition-colors duration-300 bg-card">
               <input
                 type="file"
                 accept="image/*"
@@ -685,14 +668,14 @@ const SellItem = ({ onBack }) => {
               >
                 {uploading ? (
                   <>
-                    <Loader2 className="h-12 w-12 text-white/60 animate-spin" />
-                    <p className="font-medium text-white/70">Uploading images...</p>
+                    <Loader2 className="h-12 w-12 text-muted-foreground animate-spin" />
+                    <p className="font-medium text-muted-foreground">Uploading images...</p>
                   </>
                 ) : (
                   <>
-                    <Upload className="h-12 w-12 text-white/40" />
-                    <p className="font-semibold text-white/70">Click to upload images</p>
-                    <p className="text-sm text-white/50">PNG, JPG, GIF up to 10MB</p>
+                    <Upload className="h-12 w-12 text-muted-foreground" />
+                    <p className="font-semibold text-foreground">Click to upload images</p>
+                    <p className="text-sm text-muted-foreground">PNG, JPG, GIF up to 10MB</p>
                   </>
                 )}
               </label>
@@ -705,11 +688,11 @@ const SellItem = ({ onBack }) => {
                     <img 
                       src={url} 
                       alt={`Upload ${idx + 1}`} 
-                      className="w-full h-32 object-cover rounded-sm border border-white/15"
+                      className="w-full h-32 object-cover rounded-lg border border-border"
                     />
                     <button
                       onClick={() => removeImage(idx)}
-                      className="absolute top-2 right-2 bg-red-600 text-white p-2 rounded-sm opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-700"
+                      className="absolute top-2 right-2 bg-destructive text-destructive-foreground p-2 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive/90"
                     >
                       <X className="h-4 w-4" />
                     </button>
@@ -722,7 +705,7 @@ const SellItem = ({ onBack }) => {
           <button
             onClick={handleSubmit}
             disabled={loading || uploading}
-            className="w-full bg-white text-black py-5 rounded-sm font-bold text-lg hover:bg-white/90 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed mt-8"
+            className="w-full bg-primary text-primary-foreground py-3 rounded-lg font-bold hover:bg-primary/90 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? "Listing Item..." : "List Item"}
           </button>
@@ -810,32 +793,32 @@ const MyListings = ({ onBack, onViewProduct }) => {
   };
 
   return (
-    <div className="container mx-auto px-6 py-10">
+    <div className="space-y-4 sm:space-y-6 p-4 sm:p-6 max-w-7xl mx-auto">
       <button 
         onClick={onBack} 
-        className="flex items-center gap-2 text-white/70 hover:text-white mb-8 font-medium transition-colors duration-300"
+        className="flex items-center gap-2 text-muted-foreground hover:text-foreground font-medium transition-colors duration-300"
       >
         <ArrowLeft className="h-5 w-5" />
         Back to Marketplace
       </button>
 
-      <div className="bg-white/8 rounded-sm p-8 border border-white/15 mb-8">
-        <h1 className="text-4xl font-bold mb-2 text-white">My Listings</h1>
-        <p className="text-lg text-white/60">Manage your marketplace items</p>
+      <div className="card-minimal glass-effect border-primary/20 p-6">
+        <h1 className="text-3xl font-bold mb-2 text-foreground">My Listings</h1>
+        <p className="text-muted-foreground">Manage your marketplace items</p>
       </div>
 
       {loading ? (
         <div className="flex items-center justify-center py-20">
-          <Loader2 className="h-12 w-12 animate-spin text-white" />
+          <Loader2 className="h-12 w-12 animate-spin text-primary" />
         </div>
       ) : myItems.length === 0 ? (
-        <div className="text-center py-20 bg-white/8 rounded-sm border border-white/15">
-          <Package className="h-20 w-20 text-white/40 mx-auto mb-4" />
-          <p className="text-2xl font-semibold mb-2 text-white">No listings yet</p>
-          <p className="text-white/60 mb-6">Start selling by listing your first item!</p>
+        <div className="card-minimal text-center py-20">
+          <Package className="h-20 w-20 text-muted-foreground mx-auto mb-4" />
+          <p className="text-2xl font-semibold mb-2 text-foreground">No listings yet</p>
+          <p className="text-muted-foreground mb-6">Start selling by listing your first item!</p>
           <button
             onClick={onBack}
-            className="bg-white text-black px-8 py-3 rounded-sm font-semibold hover:bg-white/90 transition-all duration-300 inline-flex items-center gap-2"
+            className="bg-primary text-primary-foreground px-8 py-3 rounded-lg font-semibold hover:bg-primary/90 transition-all duration-300 inline-flex items-center gap-2"
           >
             <Plus className="h-5 w-5" />
             List an Item
@@ -859,15 +842,14 @@ const MyListings = ({ onBack, onViewProduct }) => {
 };
 
 const MyListingCard = ({ item, onDelete, onMarkAsSold, onView }) => {
-  const categoryStyle = categoryStyles[item.category] || categoryStyles.other;
   const firstImage = item.images && item.images.length > 0 ? item.images[0] : null;
   const isSold = item.status === "sold";
 
   return (
-    <div className={`bg-white/8 rounded-sm overflow-hidden border ${isSold ? 'border-white/10 opacity-60' : 'border-white/15'} hover:bg-white/12 transition-all duration-300`}>
+    <div className={`card-minimal glass-effect ${isSold ? 'border-border opacity-60' : 'border-primary/20'} transition-all duration-300`}>
       <div className="flex flex-col md:flex-row gap-6 p-6">
         <div 
-          className="w-full md:w-48 h-48 flex-shrink-0 bg-white/5 rounded-sm overflow-hidden cursor-pointer"
+          className="w-full md:w-48 h-48 flex-shrink-0 bg-muted rounded-lg overflow-hidden cursor-pointer"
           onClick={onView}
         >
           {firstImage ? (
@@ -878,7 +860,7 @@ const MyListingCard = ({ item, onDelete, onMarkAsSold, onView }) => {
             />
           ) : (
             <div className="flex items-center justify-center h-full">
-              <Package className="h-16 w-16 text-white/20" />
+              <Package className="h-16 w-16 text-muted-foreground/30" />
             </div>
           )}
         </div>
@@ -887,38 +869,38 @@ const MyListingCard = ({ item, onDelete, onMarkAsSold, onView }) => {
           <div className="flex items-start justify-between gap-4 mb-3">
             <div className="flex-1 min-w-0">
               <h3 
-                className="font-bold text-2xl mb-2 text-white cursor-pointer hover:text-white/80 transition-colors"
+                className="font-bold text-2xl mb-2 text-foreground cursor-pointer hover:text-primary transition-colors"
                 onClick={onView}
               >
                 {item.title}
               </h3>
               <div className="flex flex-wrap items-center gap-2 mb-3">
-                <span className={`px-3 py-1.5 rounded-sm text-xs font-semibold border ${categoryStyle}`}>
+                <span className="px-3 py-1.5 rounded-lg text-xs font-semibold border border-border bg-card text-muted-foreground">
                   {item.category}
                 </span>
-                <span className="px-3 py-1.5 rounded-sm text-xs font-semibold border border-white/20 bg-white/5 text-white/70">
+                <span className="px-3 py-1.5 rounded-lg text-xs font-semibold border border-border bg-card text-muted-foreground">
                   {item.condition}
                 </span>
                 {isSold && (
-                  <span className="px-3 py-1.5 rounded-sm text-xs font-semibold border border-red-500/30 bg-red-500/10 text-red-400">
+                  <span className="px-3 py-1.5 rounded-lg text-xs font-semibold border border-destructive/30 bg-destructive/10 text-destructive">
                     SOLD
                   </span>
                 )}
               </div>
             </div>
-            <div className="text-3xl font-bold text-white">
+            <div className="text-3xl font-bold text-primary">
               ₹{item.price}
             </div>
           </div>
 
-          <p className="text-white/60 mb-4 line-clamp-2 leading-relaxed">
+          <p className="text-muted-foreground mb-4 line-clamp-2 leading-relaxed">
             {item.description}
           </p>
 
           <div className="flex flex-wrap gap-3">
             <button
               onClick={onView}
-              className="px-5 py-2.5 bg-white/12 text-white rounded-sm font-semibold hover:bg-white/20 transition-all duration-300 flex items-center gap-2 border border-white/15"
+              className="px-5 py-2.5 bg-card text-foreground rounded-lg font-semibold hover:bg-accent transition-all duration-300 flex items-center gap-2 border border-border"
             >
               <Package className="h-4 w-4" />
               View Details
@@ -927,7 +909,7 @@ const MyListingCard = ({ item, onDelete, onMarkAsSold, onView }) => {
             {!isSold && (
               <button
                 onClick={() => onMarkAsSold(item.id)}
-                className="px-5 py-2.5 bg-green-600/20 text-green-400 rounded-sm font-semibold hover:bg-green-600/30 transition-all duration-300 border border-green-500/30"
+                className="px-5 py-2.5 bg-green-500/10 text-green-600 dark:text-green-400 rounded-lg font-semibold hover:bg-green-500/20 transition-all duration-300 border border-green-500/30"
               >
                 Mark as Sold
               </button>
@@ -935,7 +917,7 @@ const MyListingCard = ({ item, onDelete, onMarkAsSold, onView }) => {
             
             <button
               onClick={() => onDelete(item.id)}
-              className="px-5 py-2.5 bg-red-600/20 text-red-400 rounded-sm font-semibold hover:bg-red-600/30 transition-all duration-300 flex items-center gap-2 border border-red-500/30"
+              className="px-5 py-2.5 bg-destructive/10 text-destructive rounded-lg font-semibold hover:bg-destructive/20 transition-all duration-300 flex items-center gap-2 border border-destructive/30"
             >
               <Trash2 className="h-4 w-4" />
               Delete

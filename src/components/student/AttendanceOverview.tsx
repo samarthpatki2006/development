@@ -587,13 +587,13 @@ const AttendanceOverview: React.FC<AttendanceOverviewProps> = ({ studentData }) 
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'present':
-        return 'bg-green-50 text-green-700 border-green-200';
+        return 'text-green-700 border-green-200';
       case 'late':
-        return 'bg-yellow-50 text-yellow-700 border-yellow-200';
+        return 'text-yellow-700 border-yellow-200';
       case 'absent':
-        return 'bg-red-50 text-red-700 border-red-200';
+        return 'text-red-700 border-red-200';
       default:
-        return 'bg-gray-50 text-gray-700 border-gray-200';
+        return 'text-gray-700 border-gray-200';
     }
   };
 
@@ -757,9 +757,9 @@ const AttendanceOverview: React.FC<AttendanceOverviewProps> = ({ studentData }) 
             </AlertDescription>
           </Alert>
 
-          <Alert className="border-blue-200 bg-blue-50">
-            <AlertCircle className="h-4 w-4 text-blue-600" />
-            <AlertDescription className="text-blue-800">
+          <Alert>
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription >
               <strong>Attendance Rules:</strong> Mark within first 10 minutes for full credit (Present). After 10 minutes = Late (0.5x credit). Must be within 15m of instructor.
             </AlertDescription>
           </Alert>
@@ -843,10 +843,10 @@ const AttendanceOverview: React.FC<AttendanceOverviewProps> = ({ studentData }) 
                     key={session.id}
                     className={`p-4 rounded-lg border-2 ${
                       session.alreadyMarked 
-                        ? 'border-gray-200 bg-gray-50' 
+                        ? 'border-gray-200' 
                         : session.isLateWindow
-                        ? 'border-yellow-200 bg-yellow-50'
-                        : 'border-green-200 bg-green-50'
+                        ? 'border-yellow-200'
+                        : 'border-green-200'
                     }`}
                   >
                     <div className="flex items-start justify-between">

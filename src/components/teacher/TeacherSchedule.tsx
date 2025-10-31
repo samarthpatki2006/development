@@ -822,13 +822,13 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'present':
-        return 'bg-green-50 border-green-300 text-green-700';
+        return 'border-green-300 text-green-700';
       case 'late':
-        return 'bg-yellow-50 border-yellow-300 text-yellow-700';
+        return 'border-yellow-300 text-yellow-700';
       case 'absent':
-        return 'bg-red-50 border-red-300 text-red-700';
+        return 'border-red-300 text-red-700';
       default:
-        return 'bg-gray-50 border-gray-300 text-gray-700';
+        return 'border-gray-300 text-gray-700';
     }
   };
 
@@ -999,8 +999,8 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
 
   return (
     <div className="space-y-6">
-      <Alert className={locationPermission === 'granted' ? 'border-green-200 ' : 'border-yellow-200'}>
-        <MapPin className={`h-4 w-4 ${locationPermission === 'granted' ? 'text-green-600' : 'text-yellow-600'}`} />
+      <Alert className={locationPermission === 'granted' ? 'border-green-200 ' : 'border-blue-200'}>
+        <MapPin className={`h-4 w-4 ${locationPermission === 'granted' ? 'text-green-600' : 'text-blue-600'}`} />
         <AlertDescription>
           {locationPermission === 'granted' ? (
             <span className="text-green-800">
@@ -1026,10 +1026,6 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
       )}
 
       <Tabs defaultValue="schedule" className="space-y-4">
-        <TabsList className="w-full sm:w-auto">
-          <TabsTrigger value="schedule" className="flex-1 sm:flex-initial">Schedule</TabsTrigger>
-          <TabsTrigger value="analytics" className="flex-1 sm:flex-initial">Course Analytics</TabsTrigger>
-        </TabsList>
 
         <TabsContent value="schedule" className="space-y-6">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -1134,15 +1130,15 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
               <div className="space-y-6">
                 {!canGenerateQR ? (
                   <Alert className="border-red-200">
-                    <Clock className="h-4 w-4 text-red-600" />
-                    <AlertDescription className="text-red-800">
+                    <Clock className="h-4 w-4" />
+                    <AlertDescription>
                       Class has ended. Session is now closed.
                     </AlertDescription>
                   </Alert>
                 ) : (
-                  <Alert className={minutesSinceStart <= 10 ? 'border-green-200' : 'border-yellow-200'}>
-                    <CheckCircle className={`h-4 w-4 ${minutesSinceStart <= 10 ? 'text-green-600' : 'text-yellow-600'}`} />
-                    <AlertDescription className={minutesSinceStart <= 10 ? 'text-green-800' : 'text-yellow-800'}>
+                  <Alert className={minutesSinceStart <= 10 ? '' : ''}>
+                    <CheckCircle className={`h-4 w-4 ${minutesSinceStart <= 10 ? '' : ''}`} />
+                    <AlertDescription className={minutesSinceStart <= 10 ? '' : ''}>
                       <div className="flex items-center justify-between flex-wrap gap-2">
                         <span>
                           Session active • {timeRemaining} min remaining
@@ -1173,12 +1169,12 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
                       Students can scan QR or enter this 6-character code
                     </p>
                     <div className="flex items-center justify-center gap-2 text-xs">
-                      <AlertCircle className="h-3 w-3 text-blue-600" />
-                      <span className="text-blue-600 font-medium">
+                      <AlertCircle className="h-3 w-3" />
+                      <span className=" font-medium">
                         First 10 min = Present | After 10 min = Late (0.5x)
                       </span>
                     </div>
-                    <p className="text-xs text-yellow-600 font-medium flex items-center justify-center gap-1">
+                    <p className="text-xs font-medium flex items-center justify-center gap-1">
                       <MapPin className="h-3 w-3" />
                       Must be within 15 meters of your location
                     </p>
@@ -1222,7 +1218,7 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
                                   <MapPin className="h-3 w-3" />
                                   {record.device_info.distance}m away
                                   {record.location_verified && (
-                                    <CheckCircle className="h-3 w-3 text-green-600 ml-1" />
+                                    <CheckCircle className="h-3 w-3 ml-1" />
                                   )}
                                 </p>
                               )}
@@ -1356,7 +1352,7 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
                           <div 
                             key={clsIndex}
                             className={`absolute left-1 right-1 p-2 rounded text-xs border overflow-hidden cursor-pointer transition-all ${getClassTypeStyle(cls)} ${
-                              active ? 'ring-2 ring-green-500 ring-offset-1' : ''
+                              active ? 'ring-2 ring-offset-1' : ''
                             }`}
                             style={position}
                             onClick={() => generateQRCode(cls)}
@@ -1413,7 +1409,7 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
                     const isActive = isClassActive(classItem);
                     return (
                       <Card key={classItem.id} className={`p-3 sm:p-4 ${
-                        classItem.is_extra_class ? 'border-l-4 border-l-blue-500' : ''
+                        classItem.is_extra_class ? 'border-l-4' : ''
                       } ${isActive ? 'ring-2 ring-primary' : ''}`}>
                         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0">
                           <div className="flex items-center gap-3 sm:gap-4 flex-1 w-full">
@@ -1435,7 +1431,7 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
                                   </Badge>
                                 )}
                                 {isActive && (
-                                  <Badge className="text-xs bg-green-600">
+                                  <Badge className="text-xs">
                                     <Clock className="h-3 w-3 mr-1" />
                                     Active Now
                                   </Badge>
@@ -1470,71 +1466,6 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
                       </Card>
                     );
                   })}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="analytics" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-                  <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5" />
-                  Course Attendance Analytics
-                </CardTitle>
-                <select
-                  className="w-full sm:w-auto p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary bg-background"
-                  value={selectedCourseAnalytics}
-                  onChange={(e) => setSelectedCourseAnalytics(e.target.value)}
-                >
-                  <option value="">Select a course</option>
-                  {courses.map((course) => (
-                    <option key={course.id} value={course.id}>
-                      {course.course_code} - {course.course_name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {!selectedCourseAnalytics ? (
-                <p className="text-center text-muted-foreground py-8">Select a course to view analytics</p>
-              ) : courseAnalytics.length === 0 ? (
-                <p className="text-center text-muted-foreground py-8">No attendance data available for this course</p>
-              ) : (
-                <div className="space-y-3">
-                  {courseAnalytics.map((student, index) => (
-                    <div key={index} className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 sm:p-4 border rounded-lg hover:bg-muted/50 gap-3 sm:gap-0">
-                      <div className="flex-1 w-full">
-                        <p className="font-medium text-sm sm:text-base">
-                          {student.user_profiles?.first_name} {student.user_profiles?.last_name}
-                        </p>
-                        <p className="text-xs sm:text-sm text-muted-foreground">
-                          ID: {student.user_profiles?.user_code}
-                        </p>
-                        <div className="flex items-center gap-3 sm:gap-4 mt-2 text-xs">
-                          <span className="text-green-600">Present: {student.present}</span>
-                          <span className="text-yellow-600">Late: {student.late} (0.5x)</span>
-                          <span className="text-red-600">Absent: {student.absent}</span>
-                          <span className="text-muted-foreground">Total: {student.total}</span>
-                        </div>
-                      </div>
-                      <div className="text-right space-y-2 flex sm:flex-col items-center sm:items-end gap-3 sm:gap-2 w-full sm:w-auto justify-between sm:justify-start">
-                        <div className={`text-xl sm:text-2xl font-bold ${getAttendanceColor(student.percentage)}`}>
-                          {student.percentage}%
-                        </div>
-                        <Badge variant={
-                          parseFloat(student.percentage) >= 75 ? 'default' :
-                          parseFloat(student.percentage) >= 60 ? 'secondary' : 'destructive'
-                        }>
-                          {parseFloat(student.percentage) >= 75 ? 'Good' :
-                           parseFloat(student.percentage) >= 60 ? 'Warning' : 'Critical'}
-                        </Badge>
-                      </div>
-                    </div>
-                  ))}
                 </div>
               )}
             </CardContent>

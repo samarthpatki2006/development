@@ -82,6 +82,7 @@ const TeacherCourses = ({ teacherData }: TeacherCoursesProps) => {
   useEffect(() => {
     if (selectedCourse) {
       fetchCourseDetails();
+      fetchSubmissions();
     }
   }, [selectedCourse]);
 

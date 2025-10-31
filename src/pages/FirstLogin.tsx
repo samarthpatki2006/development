@@ -284,7 +284,7 @@ const FirstLogin = () => {
     const routes: Record<string, string> = {
       'student': '/student',
       'teacher': '/teacher',
-      'faculty': '/teacher',
+      'faculty': '/faculty',
       'admin': '/admin',
       'super_admin': '/admin',
       'parent': '/parent',

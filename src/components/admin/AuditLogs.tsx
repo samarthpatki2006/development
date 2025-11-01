@@ -248,7 +248,7 @@ const AuditLogs = ({ userProfile, adminRoles }: AuditLogsProps) => {
                 placeholder="Search audit logs..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-9 sm:pl-10 text-sm"
+                className="pl-9 sm:pl-10 text-sm focus-visible:ring-1 focus-visible:ring-gray-300"
               />
             </div>
             <Select value={filterModule} onValueChange={setFilterModule}>
@@ -283,7 +283,7 @@ const AuditLogs = ({ userProfile, adminRoles }: AuditLogsProps) => {
 
           {/* Audit Logs Table */}
           {filteredLogs.length > 0 ? (
-            <div className="rounded-md border overflow-x-auto">
+            <div className="rounded-md border max-h-[600px] overflow-auto scroll-smooth will-change-scroll transform-gpu">
               <Table>
                 <TableHeader>
                   <TableRow>

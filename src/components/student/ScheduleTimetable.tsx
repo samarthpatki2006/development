@@ -24,8 +24,8 @@ const ScheduleTimetable: React.FC<ScheduleTimetableProps> = ({ studentData }) =>
   const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
   const shortDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
   const timeSlots = [
-    '9:00 AM', '10:00 AM', '11:00 AM', '12:00 PM', 
-    '1:00 PM', '2:00 PM', '3:00 PM', '4:00 PM', '5:00 PM'
+    '9:00', '10:00', '11:00', '12:00', 
+    '13:00', '14:00', '15:00', '16:00', '17:00'
   ];
 
   useEffect(() => {
@@ -215,9 +215,10 @@ const ScheduleTimetable: React.FC<ScheduleTimetableProps> = ({ studentData }) =>
     if (!timeString) return '';
     const [hours, minutes] = timeString.split(':');
     const hour = parseInt(hours);
-    const ampm = hour >= 12 ? 'PM' : 'AM';
-    const displayHour = hour % 12 || 12;
-    return `${displayHour}:${minutes} ${ampm}`;
+    // const ampm = hour >= 12 ? 'PM' : 'AM';
+    // const displayHour = hour % 12 || 12;
+    // return `${displayHour}:${minutes} ${ampm}`;
+    return `${hour}:${minutes}`;
   };
 
   const getClassesForDay = (dayOfWeek: number, specificDate?: Date) => {
@@ -273,7 +274,7 @@ const ScheduleTimetable: React.FC<ScheduleTimetableProps> = ({ studentData }) =>
           </div>
         </div>
 
-        <Tabs defaultValue="daily" className="space-y-4">
+        <Tabs defaultValue="daily" className="space-y-4 bg-black backdrop-blur-lg">
           <TabsList className="w-full sm:w-auto grid grid-cols-3">
             <TabsTrigger value="daily" className="text-xs sm:text-sm">Daily</TabsTrigger>
             <TabsTrigger value="weekly" className="text-xs sm:text-sm">Weekly</TabsTrigger>
@@ -374,6 +375,8 @@ const ScheduleTimetable: React.FC<ScheduleTimetableProps> = ({ studentData }) =>
                   </div>
                 </div>
               </CardHeader>
+
+              
               <CardContent className="overflow-x-auto">
                 {/* Mobile/Tablet: List view */}
                 <div className="block lg:hidden space-y-4">
@@ -417,7 +420,7 @@ const ScheduleTimetable: React.FC<ScheduleTimetableProps> = ({ studentData }) =>
                                   </div>
                                   {cls.room_location && (
                                     <div className="text-xs opacity-80 mt-1 truncate">
-                                      📍 {cls.room_location}
+                                      <MapPin className='inline-block h-3 w-3 mr-1'/>{cls.room_location}
                                     </div>
                                   )}
                                   {cls.is_extra_class && (
@@ -437,7 +440,7 @@ const ScheduleTimetable: React.FC<ScheduleTimetableProps> = ({ studentData }) =>
                 {/* Desktop: Grid view */}
                 <div className="hidden lg:grid lg:grid-cols-8 gap-2 min-w-max">
                   {/* Time column */}
-                  <div className="space-y-2">
+                  <div className="">
                     <div className="h-12"></div>
                     {timeSlots.map(time => (
                       <div key={time} className="h-16 text-xs text-muted-foreground flex items-center">

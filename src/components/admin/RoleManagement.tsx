@@ -324,7 +324,10 @@ const RoleManagement = ({ userProfile }: RoleManagementProps) => {
         <CardContent className="p-4 sm:p-6 sm:pt-0">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
             {adminRoleTypes.map((role) => (
-              <div key={role.value} className="p-3 sm:p-4 border rounded-lg">
+              <div
+                key={role.value}
+                className="p-3 sm:p-4 border rounded-lg transition-all duration-300 hover:shadow-md hover:scale-[1.02] sm:hover:scale-102 cursor-pointer"
+              >
                 <div className="flex items-center space-x-2 mb-2">
                   <Award className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
                   <h4 className="font-medium text-sm sm:text-base">{role.label}</h4>

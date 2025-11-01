@@ -144,9 +144,9 @@ const StudentDashboard = ({ studentData, onNavigate }: StudentDashboardProps) =>
   };
 
   return (
-    <div className="space-y-6 py-8 animate-fade-in-up px-3 sm:px-4 md:px-6 overflow-x-hidden w-full">
+    <div className="space-y-6 py-6 animate-fade-in-up px-3 sm:px-8 md:px-12 overflow-x-hidden w-full bg-black">
       {/* Welcome Section */}
-      <div className="bg-card border border-white/10 rounded-lg p-4 sm:p-5 md:p-6">
+      <div className="border-b border-white/10 bg-black/20 backdrop-blur-md p-4 sm:p-5 md:p-6">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-xl sm:text-2xl font-bold mb-2 inline-block">
@@ -173,7 +173,7 @@ const StudentDashboard = ({ studentData, onNavigate }: StudentDashboardProps) =>
           return (
             <PermissionWrapper key={index} permission={stat.permission}>
               <Card
-                className="hover:shadow-md transition-all duration-300 hover:border-role-student/20 cursor-pointer hover:scale-[1.01] sm:hover:scale-[1.03] md:hover:scale-105"
+                className="bg-white/5 backdrop-blur-sm hover:shadow-md transition-all duration-300 hover:border-role-student/20 cursor-pointer hover:scale-[1.01] sm:hover:scale-[1.03] md:hover:scale-105"
                 onClick={() => handleStatCardClick(stat.title)}
               >
                 <CardContent className="p-3 sm:p-4 md:p-5">
@@ -195,15 +195,15 @@ const StudentDashboard = ({ studentData, onNavigate }: StudentDashboardProps) =>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
         {/* Recent Activities */}
-        <Card className="h-[450px] sm:h-[510px] border-white/20 bg-gradient-to-br from-card/60 to-card/40 backdrop-blur-md shadow-2xl overflow-hidden group">
+        <Card className="h-[450px] sm:h-[510px] border-white/20 bg-gradient-to-br from-card/60 to-card/40 backdrop-blur-sm overflow-hidden">
           <CardHeader className="sticky top-0 z-10 bg-gradient-to-b from-card/95 to-card/80 backdrop-blur-sm border-b border-white/10 pb-4">
             <CardTitle className="text-card-foreground text-lg sm:text-xl">Recent Activities</CardTitle>
             <CardDescription className="text-sm">Your latest academic activities</CardDescription>
           </CardHeader>
-          <CardContent className="h-[calc(100%-100px)] overflow-y-auto overflow-x-hidden scrollbar-thin space-y-3 sm:space-y-4 p-4 sm:p-6 ">
+          <CardContent className="h-[calc(100%-100px)] overflow-y-auto overflow-x-hidden scrollbar-thin space-y-3 sm:space-y-4 p-4 sm:p-6  ">
             {recentActivities.map((activity, index) => (
               <PermissionWrapper key={index} permission={activity.permission}>
-                <div key={index} className="flex flex-row items-start justify-start space-x-2 p-3 rounded-lg bg-white/5 border border-white/5 hover:bg-white/10 hover:border-white/10 transition-all duration-300 hover:shadow-md hover:shadow-green-500/5 will-change-transform">
+                <div key={index} className="flex flex-row items-start justify-start space-x-2 p-3 rounded-lg bg-white/5 border border-white/5 hover:bg-white/10 hover:border-white/10 transition-all duration-300 hover:shadow-sm hover:shadow-green-500/5 will-change-transform">
                   <div className="flex-shrink-0 mt-2 sm:mt-2.5">
                     <div className="w-2 h-2 bg-green-400 rounded-full  animate-pulse shadow-lg shadow-green-400/50"></div>
                   </div>
@@ -219,7 +219,7 @@ const StudentDashboard = ({ studentData, onNavigate }: StudentDashboardProps) =>
         </Card>
 
         {/* Quick Actions */}
-        <Card className="h-[450px] sm:h-[510px] border-white/20 bg-gradient-to-br from-card/60 to-card/40 backdrop-blur-md shadow-2xl overflow-hidden group">
+        <Card className="h-[450px] sm:h-[510px] border-white/20 bg-gradient-to-br from-card/60 to-card/40 backdrop-blur-sm overflow-hidden">
           <CardHeader className="sticky top-0 z-10 bg-gradient-to-b from-card/95 to-card/80 backdrop-blur-sm border-b border-white/10 pb-4">
             <CardTitle className="text-card-foreground text-lg sm:text-xl">Quick Actions</CardTitle>
             <CardDescription className="text-sm">Frequently used features - click to navigate</CardDescription>
@@ -229,7 +229,7 @@ const StudentDashboard = ({ studentData, onNavigate }: StudentDashboardProps) =>
               const Icon = action.icon;
               return (
                 <PermissionWrapper key={index} permission={action.permission}>
-                  <div key={index} className="flex flex-row items-start justify-start space-x-4 p-4 rounded-lg bg-white/5 border border-white/5 hover:bg-white/10 hover:border-white/10 transition-all duration-300 hover:shadow-md hover:shadow-green-500/5 will-change-transform"
+                  <div key={index} className="flex flex-row items-start justify-start space-x-4 p-4 rounded-lg border border-white/10 bg-white/5 hover:border-green-400/40 hover:bg-white/10 cursor-pointer transition-all duration-300 hover:shadow-lg hover:shadow-green-500/10 hover:-translate-y-0.5 will-change-transform"
                     onClick={() => handleQuickActionClick(action.navigateTo, action.title)}
                   >
                     <div className={`flex-shrink-0 p-2  ${action.color} transition-colors flex items-start self-start mt-1 mr-2`}>
@@ -249,7 +249,7 @@ const StudentDashboard = ({ studentData, onNavigate }: StudentDashboardProps) =>
 
       {/* Current Courses Preview */}
       <PermissionWrapper permission="view_submit_assignments">
-        <Card className="border-white/10">
+        <Card className="border-white/10 bg-card/50 backdrop-blur-sm">
           <CardHeader>
             <CardTitle className="text-xl sm:text-2xl font-bold text-card-foreground">Current Courses</CardTitle>
             <CardDescription>Your enrolled courses this semester - click to view details</CardDescription>
@@ -290,7 +290,7 @@ const StudentDashboard = ({ studentData, onNavigate }: StudentDashboardProps) =>
               <Button
                 variant="outline"
                 onClick={handleCourseClick}
-                className="mt-8 hover:bg-role-student/10 hover:text-role-student hover:border-role-student/20"
+                className="mt-8 hover:bg-role-student/10 hover:text-role-student hover:border-role-student/20 will-change-transform"
               >
                 View All Courses
               </Button>

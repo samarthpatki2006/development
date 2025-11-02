@@ -393,7 +393,7 @@ const AttendanceOverview: React.FC<AttendanceOverviewProps> = ({ studentData }) 
   }
 
   return (
-    <div className="space-y-4 sm:space-y-6 px-3 sm:px-4 md:px-6 w-full max-w-full">
+    <div className="space-y-4 sm:space-y-6 px-2 sm:px-0 overflow-x-hidden">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4">
         <div className="w-full sm:w-auto">
           <h2 className="text-xl sm:text-2xl md:text-3xl font-bold">Attendance Overview</h2>

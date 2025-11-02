@@ -267,7 +267,7 @@ const ScheduleTimetable: React.FC<ScheduleTimetableProps> = ({ studentData }) =>
 
   return (
     <PermissionWrapper permission="view_attendance">
-      <div className="space-y-4 sm:space-y-6 px-2 sm:px-0">
+      <div className="space-y-4 sm:space-y-6 px-2 sm:px-0 overflow-x-hidden">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
           <div>
@@ -276,7 +276,7 @@ const ScheduleTimetable: React.FC<ScheduleTimetableProps> = ({ studentData }) =>
           </div>
         </div>
 
-        <Tabs defaultValue="daily" className="space-y-4 bg-black backdrop-blur-lg">
+        <Tabs defaultValue="daily" className="w-full space-y-3 sm:space-y-4">
           <TabsList className="w-full sm:w-auto grid grid-cols-3">
             <TabsTrigger value="daily" className="text-xs sm:text-sm">Daily</TabsTrigger>
             <TabsTrigger value="weekly" className="text-xs sm:text-sm">Weekly</TabsTrigger>

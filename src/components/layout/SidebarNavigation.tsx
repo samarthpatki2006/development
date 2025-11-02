@@ -98,7 +98,7 @@ const SidebarNavigation = ({
           "fixed left-0 bottom-0 z-50 w-64 top-[64px]",
 
           // Desktop styles
-          "md:sticky md:h-[calc(100vh-64px)]",
+          "md:fixed md:h-[calc(100vh-64px)]",
 
           // Width transitions
           collapsed ? "md:w-16" : "md:w-64",

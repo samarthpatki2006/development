@@ -205,7 +205,7 @@ const HostelFacility: React.FC<HostelFacilityProps> = ({ studentData }) => {
   }
 
   return (
-    <div className="space-y-4 sm:space-y-6 px-3 sm:px-4 md:px-6 w-full max-w-full">
+    <div className="space-y-4 sm:space-y-6 px-2 sm:px-0 overflow-x-hidden">
       <div className="flex flex-col xs:flex-row justify-between items-start xs:items-center gap-3">
         <h2 className="text-lg sm:text-xl md:text-2xl font-bold">Hostel & Facilities</h2>
         <div className="flex flex-wrap gap-2">
@@ -221,24 +221,24 @@ const HostelFacility: React.FC<HostelFacilityProps> = ({ studentData }) => {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <div className="w-full px-0">
-          <TabsList className="grid w-full grid-cols-3 h-auto gap-0">
+        <div className="w-full mb-4">
+          <TabsList className="grid w-full grid-cols-3 h-auto">
             <TabsTrigger
               value="hostels"
-              className="flex flex-row items-center justify-center gap-1 xs:gap-1.5 text-xs xs:text-sm sm:text-base px-1 xs:px-2 sm:px-3 py-2.5 transition-all duration-200"
+              className="flex items-center justify-center gap-1.5 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3 py-2"
             >
-              <Building className="h-4 w-4 xs:h-4 xs:w-4 sm:h-5 sm:w-5 flex-shrink-0" />
-              <span className="whitespace-nowrap">Hostels</span>
+              <Building className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
+              <span className="truncate">Hostels</span>
             </TabsTrigger>
 
             <TabsTrigger
               value="applications"
-              className="flex flex-row items-center justify-center gap-0.5 xs:gap-1 text-[11px] xs:text-sm sm:text-base px-0.5 xs:px-2 sm:px-3 py-2.5 transition-all duration-200"
+              className="flex items-center justify-center gap-1.5 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3 py-2"
             >
-              <Bed className="h-3.5 w-3.5 xs:h-4 xs:w-4 sm:h-5 sm:w-5 flex-shrink-0" />
-              <span className="whitespace-nowrap">Applications</span>
+              <Bed className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
+              <span className="truncate">Applications</span>
               {applications.length > 0 && (
-                <Badge variant="secondary" className="ml-0.5 xs:ml-1 text-[8px] xs:text-[10px] px-1 xs:px-1.5 py-0">
+                <Badge variant="secondary" className="ml-1 text-[10px] px-1.5 py-0">
                   {applications.length}
                 </Badge>
               )}
@@ -246,13 +246,14 @@ const HostelFacility: React.FC<HostelFacilityProps> = ({ studentData }) => {
 
             <TabsTrigger
               value="facilities"
-              className="flex flex-row items-center justify-center gap-1 xs:gap-1.5 text-xs xs:text-sm sm:text-base px-1 xs:px-2 sm:px-3 py-2.5 transition-all duration-200"
+              className="flex items-center justify-center gap-1.5 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3 py-2"
             >
-              <Wrench className="h-4 w-4 xs:h-4 xs:w-4 sm:h-5 sm:w-5 flex-shrink-0" />
-              <span className="whitespace-nowrap">Facilities</span>
+              <Wrench className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
+              <span className="truncate">Facilities</span>
             </TabsTrigger>
           </TabsList>
         </div>
+
 
         <TabsContent value="hostels" className="space-y-4 sm:space-y-6">
           {pendingApplications.length > 0 && (
@@ -475,9 +476,9 @@ const HostelFacility: React.FC<HostelFacilityProps> = ({ studentData }) => {
               <CardTitle className="text-base sm:text-lg">Campus Facilities</CardTitle>
             </CardHeader>
             <CardContent className="p-4 sm:p-5 md:p-6">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 max-h-[450px] overflow-y-auto custom-scrollbar">
                 {facilities.map((facility: any) => (
-                  <Card key={facility.id} className="border hover:shadow-md transition-shadow w-full">
+                  <Card key={facility.id} className="border hover:shadow-md transition-shadow mr-2">
                     <CardContent className="p-3 sm:p-4">
                       <h4 className="font-semibold text-sm sm:text-base mb-2 break-words">{facility.facility_name}</h4>
                       <div className="space-y-1 text-xs sm:text-sm">

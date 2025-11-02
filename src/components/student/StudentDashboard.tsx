@@ -144,7 +144,7 @@ const StudentDashboard = ({ studentData, onNavigate }: StudentDashboardProps) =>
   };
 
   return (
-    <div className="space-y-6 py-6 animate-fade-in-up px-3 sm:px-8 md:px-12 overflow-x-hidden w-full bg-black">
+    <div className="animate-fade-in-up space-y-4 sm:space-y-6 px-2 sm:px-0 overflow-x-hidden bg-black">
       {/* Welcome Section */}
       <div className="border-b border-white/10 bg-black/20 backdrop-blur-md p-4 sm:p-5 md:p-6">
         <div className="flex items-center justify-between">
@@ -173,7 +173,7 @@ const StudentDashboard = ({ studentData, onNavigate }: StudentDashboardProps) =>
           return (
             <PermissionWrapper key={index} permission={stat.permission}>
               <Card
-                className="bg-white/5 backdrop-blur-sm hover:shadow-md transition-all duration-300 hover:border-role-student/20 cursor-pointer hover:scale-[1.01] sm:hover:scale-[1.03] md:hover:scale-105"
+                className="bg-card/50 backdrop-blur-sm transition-all duration-300 hover:border-role-student/20 cursor-pointer hover-translate-up"
                 onClick={() => handleStatCardClick(stat.title)}
               >
                 <CardContent className="p-3 sm:p-4 md:p-5">
@@ -195,12 +195,12 @@ const StudentDashboard = ({ studentData, onNavigate }: StudentDashboardProps) =>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
         {/* Recent Activities */}
-        <Card className="h-[450px] sm:h-[510px] border-white/20 bg-gradient-to-br from-card/60 to-card/40 backdrop-blur-sm overflow-hidden">
-          <CardHeader className="sticky top-0 z-10 bg-gradient-to-b from-card/95 to-card/80 backdrop-blur-sm border-b border-white/10 pb-4">
+        <Card className="h-[450px] sm:h-[510px] border-white/20 bg-gradient-to-br from-card/60 to-card/40 overflow-hidden pb-2">
+          <CardHeader className="sticky top-0 z-10 bg-neutral-800 border-b border-white/10 pb-4">
             <CardTitle className="text-card-foreground text-lg sm:text-xl">Recent Activities</CardTitle>
             <CardDescription className="text-sm">Your latest academic activities</CardDescription>
           </CardHeader>
-          <CardContent className="h-[calc(100%-100px)] overflow-y-auto overflow-x-hidden scrollbar-thin space-y-3 sm:space-y-4 p-4 sm:p-6  ">
+          <CardContent className="h-[calc(100%-100px)] custom-scrollbar overflow-x-hidden  space-y-3 sm:space-y-4 p-4 sm:p-6  ">
             {recentActivities.map((activity, index) => (
               <PermissionWrapper key={index} permission={activity.permission}>
                 <div key={index} className="flex flex-row items-start justify-start space-x-2 p-3 rounded-lg bg-white/5 border border-white/5 hover:bg-white/10 hover:border-white/10 transition-all duration-300 hover:shadow-sm hover:shadow-green-500/5 will-change-transform">
@@ -219,12 +219,12 @@ const StudentDashboard = ({ studentData, onNavigate }: StudentDashboardProps) =>
         </Card>
 
         {/* Quick Actions */}
-        <Card className="h-[450px] sm:h-[510px] border-white/20 bg-gradient-to-br from-card/60 to-card/40 backdrop-blur-sm overflow-hidden">
-          <CardHeader className="sticky top-0 z-10 bg-gradient-to-b from-card/95 to-card/80 backdrop-blur-sm border-b border-white/10 pb-4">
+        <Card className="h-[450px] sm:h-[510px] border-white/20 bg-gradient-to-br from-card/60 to-card/40 overflow-hidden">
+          <CardHeader className="sticky top-0 z-10 bg-gradient-to-b from-card/95 to-card/80 backdrop-blur-sm bg-neutral-800 border-b border-white/10 pb-4">
             <CardTitle className="text-card-foreground text-lg sm:text-xl">Quick Actions</CardTitle>
             <CardDescription className="text-sm">Frequently used features - click to navigate</CardDescription>
           </CardHeader>
-          <CardContent className="h-[calc(100%-100px)] overflow-y-auto overflow-x-hidden scroll-smooth space-y-3 sm:space-y-4 p-4 sm:p-6">
+          <CardContent className="h-[calc(100%-100px)] overflow-y-auto overflow-x-hidden custom-scrollbar space-y-3 sm:space-y-4 p-4 sm:p-6">
             {quickActions.map((action, index) => {
               const Icon = action.icon;
               return (
@@ -255,7 +255,7 @@ const StudentDashboard = ({ studentData, onNavigate }: StudentDashboardProps) =>
             <CardDescription>Your enrolled courses this semester - click to view details</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 max-h-[300px] overflow-y-auto custom-scrollbar">
               {[
                 { name: 'Data Structures & Algorithms', code: 'CS301', instructor: 'Dr. Smith', progress: 75 },
                 { name: 'Database Management Systems', code: 'CS302', instructor: 'Dr. Johnson', progress: 60 },

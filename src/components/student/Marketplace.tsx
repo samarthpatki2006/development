@@ -140,9 +140,9 @@ const Marketplace = ({ onViewProduct, onSellClick, onMyListingsClick }) => {
         <div className="container mx-auto px-6 py-4">
           <div className="max-w-4xl">
             {/* Title */}
-            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-semibold mb-4 tracking-tight">
+            <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-semibold mb-4 tracking-tight">
               Student Marketplace
-            </h1>
+            </h2>
 
             {/* Subtitle */}
             <p className="text-base sm:text-lg md:text-xl mb-8 sm:mb-10 leading-relaxed text-white/70">

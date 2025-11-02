@@ -172,7 +172,7 @@ const Anouncements: React.FC<CommunicationCenterProps> = ({ studentData }) => {
   }
 
   return (
-    <div className="space-y-4 sm:space-y-6 px-3 sm:px-4 md:px-6 w-full max-w-full">
+    <div className="space-y-4 sm:space-y-6 px-2 sm:px-0 overflow-x-hidden">
       <div className="flex flex-col xs:flex-row justify-between items-start xs:items-center gap-3">
         <h2 className="text-lg sm:text-xl md:text-2xl font-bold">Communication Center</h2>
         <div className="flex flex-wrap gap-2">

@@ -338,7 +338,7 @@ const CoursesLearningSnapshot: React.FC<CoursesLearningSnapshotProps> = ({ stude
     }
 
     return (
-      <div className="space-y-4 sm:space-y-6 p-4 sm:p-6 max-w-7xl mx-auto">
+      <div className="space-y-4 sm:space-y-6 px-2 sm:px-0 overflow-x-hidden animate-fade-in-up overflow-x-hidden bg-black">
         {/* Overall Grades */}
         <Card className="card-minimal glass-effect border-primary/20">
           <CardHeader className="border-b border-primary/20">
@@ -518,7 +518,7 @@ const CoursesLearningSnapshot: React.FC<CoursesLearningSnapshotProps> = ({ stude
 
   return (
     <PermissionWrapper permission="view_submit_assignments">
-      <div className="space-y-4 sm:space-y-6 p-4 sm:p-6 max-w-7xl mx-auto">
+      <div className="space-y-4 sm:space-y-6 p-4">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 sm:gap-0">
           <div>
@@ -584,13 +584,13 @@ const CoursesLearningSnapshot: React.FC<CoursesLearningSnapshotProps> = ({ stude
           </Card>
         </div>
 
-        <Tabs defaultValue="courses" className="space-y-3 sm:space-y-4">
-          <div className="overflow-x-auto -mx-3 px-3 sm:mx-0 sm:px-0">
-            <TabsList className="inline-flex w-auto min-w-full sm:min-w-0">
-              <TabsTrigger value="courses" className="text-xs sm:text-sm flex-1 sm:flex-none">Courses</TabsTrigger>
-              <TabsTrigger value="materials" className="text-xs sm:text-sm flex-1 sm:flex-none">Materials</TabsTrigger>
-              <TabsTrigger value="assignments" className="text-xs sm:text-sm flex-1 sm:flex-none">Assignments</TabsTrigger>
-              <TabsTrigger value="grades" className="text-xs sm:text-sm flex-1 sm:flex-none">Grades</TabsTrigger>
+        <Tabs defaultValue="courses" className="space-y-3 sm:space-y-4 w-full">
+          <div className="overflow-x-auto flex w-full h-auto">
+            <TabsList className="inline-flex flex w-full h-auto">
+              <TabsTrigger value="courses" className="flex-1 text-[14px] sm:text-sm px-1.5 xs:px-2 sm:px-3 py-2 whitespace-nowrap">Courses</TabsTrigger>
+              <TabsTrigger value="materials" className="flex-1 text-[14px] sm:text-sm px-1.5 xs:px-2 sm:px-3 py-2 whitespace-nowrap">Materials</TabsTrigger>
+              <TabsTrigger value="assignments" className="flex-1 text-[14px] sm:text-sm px-1.5 xs:px-2 sm:px-3 py-2 whitespace-nowrap">Assignments</TabsTrigger>
+              <TabsTrigger value="grades" className="flex-1 text-[14px] sm:text-sm px-1.5 xs:px-2 sm:px-3 py-2 whitespace-nowrap">Grades</TabsTrigger>
             </TabsList>
           </div>
 

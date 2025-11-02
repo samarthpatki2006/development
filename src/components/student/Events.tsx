@@ -483,7 +483,7 @@ const Events: React.FC<CalendarAttendanceProps> = ({ studentData }) => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6 px-2 sm:px-0 overflow-x-hidden">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold">Event Calendar</h2>
       </div>

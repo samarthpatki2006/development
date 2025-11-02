@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from "@/components/ui/use-toast";
+import { cn } from '@/lib/utils';
 import {
   BookOpen,
   Calendar,
@@ -316,12 +317,6 @@ const Student = () => {
     { id: 'support', label: 'Support', icon: HelpCircle },
   ];
 
-  const isFullWidthView = () => {
-    // Pages that handle their own padding and spacing internally
-    const fullWidthPages = ['dashboard', 'courses'];
-    return fullWidthPages.includes(activeView);
-  };
-
   const renderContent = () => {
     switch (activeView) {
       case 'dashboard':
@@ -574,7 +569,11 @@ const Student = () => {
         />
 
         {/* Main Content */}
-        <div className={`flex-1 w-full min-w-0 transition-all duration-300 ease-in-out ${isFullWidthView() ? '' : 'p-3 sm:p-6'}`}>
+        <div className={cn(
+          "flex-1 w-full min-w-0 transition-all duration-300 ease-in-out",
+          "px-4 py-4 sm:px-12 sm:py-6 mx-auto",
+          sidebarCollapsed ? "md:ml-16" : "md:ml-64",
+        )}>
           {renderContent()}
         </div>
       </div>

@@ -481,9 +481,9 @@ const ScheduleTimetable: React.FC<ScheduleTimetableProps> = ({ studentData }) =>
                               <div className={`p-1 rounded text-xs h-full border ${getClassTypeStyle(classAtTime.class_type)}`}>
                                 <div className="text-xs opacity-80 truncate">
                                   {classAtTime.class_type?.toLowerCase().includes("extra") ? (
-                                    <CalendarPlus className="h-3 w-3 inline-block mr-1 text-red-500" />
+                                    <CalendarPlus className="h-3 w-3 inline-block mr-1" />
                                   ) : (
-                                    <CalendarDays className="h-3 w-3 inline-block mr-1 text-blue-500" />
+                                    <CalendarDays className="h-3 w-3 inline-block mr-1" />
                                   )}
                                   {classAtTime.class_type.charAt(0).toUpperCase()+classAtTime.class_type.slice(1).toLowerCase()}
                                 </div>

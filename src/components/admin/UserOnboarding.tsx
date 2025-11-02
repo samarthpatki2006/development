@@ -68,12 +68,12 @@ const UserOnboarding = ({ userProfile }: { userProfile: UserProfile }) => {
 
   useEffect(() => {
     loadOnboardingData();
-    
+
     // Set up periodic check for onboarding status updates
     const interval = setInterval(() => {
       checkOnboardingStatus();
     }, 30000); // Check every 30 seconds
-    
+
     return () => clearInterval(interval);
   }, []);
 
@@ -87,7 +87,7 @@ const UserOnboarding = ({ userProfile }: { userProfile: UserProfile }) => {
   const loadOnboardingData = async () => {
     try {
       setIsLoading(true);
-      
+
       // Fetch onboarding records with user profiles
       const { data, error } = await supabase
         .from('user_onboarding')
@@ -137,7 +137,7 @@ const UserOnboarding = ({ userProfile }: { userProfile: UserProfile }) => {
       'parent': 'P',
       'alumni': 'L'
     }[userType] || 'U';
-    
+
     const sequence = Math.floor(Math.random() * 9999) + 1;
     return `${typePrefix}${year}${sequence.toString().padStart(4, '0')}`;
   };
@@ -324,7 +324,7 @@ const UserOnboarding = ({ userProfile }: { userProfile: UserProfile }) => {
   const handleResendWelcomeEmail = async (recordId: string) => {
     try {
       await handleSendWelcomeEmail(recordId);
-      
+
       toast({
         title: "Success",
         description: "Welcome email sent successfully.",
@@ -362,7 +362,7 @@ const UserOnboarding = ({ userProfile }: { userProfile: UserProfile }) => {
       }
 
       await loadOnboardingData();
-      
+
       toast({
         title: "Success",
         description: "Onboarding marked as completed.",
@@ -403,12 +403,12 @@ const UserOnboarding = ({ userProfile }: { userProfile: UserProfile }) => {
     try {
       // Get all pending onboarding records
       const pendingRecords = onboardingRecords.filter(record => !record.onboarding_completed);
-      
+
       for (const record of pendingRecords) {
         if (record.user_id) {
           // Check if user has logged in by querying auth.users or checking last sign in
           const { data: userData, error: userError } = await supabase.auth.admin.getUserById(record.user_id);
-          
+
           if (!userError && userData.user && userData.user.last_sign_in_at) {
             // User has logged in, mark onboarding as completed
             await handleMarkOnboardingCompleted(record.id);
@@ -527,8 +527,8 @@ const UserOnboarding = ({ userProfile }: { userProfile: UserProfile }) => {
                     </div>
                     <div>
                       <Label htmlFor="bulk_user_type">User Type</Label>
-                      <Select 
-                        value={bulkImportData.userType} 
+                      <Select
+                        value={bulkImportData.userType}
                         onValueChange={(value) => setBulkImportData({ ...bulkImportData, userType: value })}
                       >
                         <SelectTrigger>
@@ -575,7 +575,7 @@ const UserOnboarding = ({ userProfile }: { userProfile: UserProfile }) => {
                       <Input
                         id="first_name"
                         value={newUserForm.first_name}
-                        onChange={(e) => setNewUserForm({...newUserForm, first_name: e.target.value})}
+                        onChange={(e) => setNewUserForm({ ...newUserForm, first_name: e.target.value })}
                         required
                       />
                     </div>
@@ -584,7 +584,7 @@ const UserOnboarding = ({ userProfile }: { userProfile: UserProfile }) => {
                       <Input
                         id="last_name"
                         value={newUserForm.last_name}
-                        onChange={(e) => setNewUserForm({...newUserForm, last_name: e.target.value})}
+                        onChange={(e) => setNewUserForm({ ...newUserForm, last_name: e.target.value })}
                         required
                       />
                     </div>
@@ -594,13 +594,13 @@ const UserOnboarding = ({ userProfile }: { userProfile: UserProfile }) => {
                         id="email"
                         type="email"
                         value={newUserForm.email}
-                        onChange={(e) => setNewUserForm({...newUserForm, email: e.target.value})}
+                        onChange={(e) => setNewUserForm({ ...newUserForm, email: e.target.value })}
                         required
                       />
                     </div>
                     <div className="col-span-2">
                       <Label htmlFor="user_type">User Type</Label>
-                      <Select value={newUserForm.user_type} onValueChange={(value) => setNewUserForm({...newUserForm, user_type: value})}>
+                      <Select value={newUserForm.user_type} onValueChange={(value) => setNewUserForm({ ...newUserForm, user_type: value })}>
                         <SelectTrigger>
                           <SelectValue />
                         </SelectTrigger>
@@ -667,7 +667,7 @@ const UserOnboarding = ({ userProfile }: { userProfile: UserProfile }) => {
                                 {record.user_profiles?.first_name} {record.user_profiles?.last_name}
                               </div>
                               <div className="text-sm text-gray-500">{record.user_profiles?.email}</div>
-                              <Badge variant="outline" className="text-xs mt-1 capitalize">
+                              <Badge variant="outline" className={`text-xs mt-1 capitalize bg-role-${record.user_profiles?.user_type==='faculty'?'teacher':record.user_profiles?.user_type}/20 border-${record.user_profiles?.user_type==='faculty'?'teacher':record.user_profiles?.user_type}/100`}>
                                 {record.user_profiles?.user_type}
                               </Badge>
                             </div>
@@ -677,16 +677,27 @@ const UserOnboarding = ({ userProfile }: { userProfile: UserProfile }) => {
                           </TableCell>
                           <TableCell>
                             <div className="flex items-center gap-2">
-  {getEmailStatusBadge(record)}
-  <div className="flex items-center gap-1.5 text-gray-500">
-    {record.welcome_email_sent && (
-      <Mail className="w-3.5 h-3.5 text-blue-500" />
-    )}
-    {record.welcome_email_opened && (
-      <Eye className="w-3.5 h-3.5 text-green-500" />
-    )}
-  </div>
-</div>
+                              {getEmailStatusBadge(record)}
+                              <div className="flex items-center gap-1.5 text-gray-500">
+                                {record.welcome_email_sent && (
+                                  <Button
+                                    className="w-3.5 h-3.5 p-2 bg-blue-100 hover:bg-blue-200 rounded-full"
+                                    title="Message Delivered To User"
+                                  >
+                                    <Mail className="w-3.5 h-3.5 text-blue-800" />
+                                  </Button>
+                                )}
+
+                                {record.welcome_email_opened && (
+                                  <Button
+                                    className="w-3.5 h-3.5 p-2 bg-orange-100 hover:bg-orange-200 rounded-full"
+                                    title="Message Opened By User"
+                                  >
+                                    <Eye className="w-3.5 h-3.5 text-orange-800" />
+                                  </Button>
+                                )}
+                              </div>
+                            </div>
                           </TableCell>
                           <TableCell>
                             {getOnboardingStatusBadge(record)}
@@ -706,7 +717,7 @@ const UserOnboarding = ({ userProfile }: { userProfile: UserProfile }) => {
                                   <RefreshCw className="w-3 h-3" />
                                 </Button>
                               )}
-                              
+
                               {record.welcome_email_delivered && !record.welcome_email_opened && (
                                 <Button
                                   size="sm"
@@ -717,7 +728,7 @@ const UserOnboarding = ({ userProfile }: { userProfile: UserProfile }) => {
                                   <Mail className="w-3 h-3" />
                                 </Button>
                               )}
-                              
+
                               {record.welcome_email_opened && !record.onboarding_completed && (
                                 <Button
                                   size="sm"
@@ -728,9 +739,9 @@ const UserOnboarding = ({ userProfile }: { userProfile: UserProfile }) => {
                                   <CheckCircle className="w-3 h-3" />
                                 </Button>
                               )}
-                              
-                              <Button 
-                                size="sm" 
+
+                              <Button
+                                size="sm"
                                 variant="outline"
                                 title="View Details"
                               >

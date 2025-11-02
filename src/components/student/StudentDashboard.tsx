@@ -166,7 +166,7 @@ const StudentDashboard = ({ studentData, onNavigate }: StudentDashboardProps) =>
       </div>
 
       {/* Quick Stats Grid */}
-      <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4 w-ful">
+      <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4 w-full">
 
         {quickStats.map((stat, index) => {
           const Icon = stat.icon;

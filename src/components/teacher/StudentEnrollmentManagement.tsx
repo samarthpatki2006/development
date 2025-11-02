@@ -646,7 +646,7 @@ const StudentEnrollmentManagement = ({ teacherData }: { teacherData: UserProfile
           </div>
 
           {filteredEnrollments.length > 0 ? (
-            <div className="rounded-md border max-h-[500px] overflow-auto ">
+            <div className="rounded-md border max-h-[500px] overflow-auto custom-scrollbar">
               <table className="w-full">
                 <thead>
                   <tr className="border-b ">

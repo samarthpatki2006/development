@@ -310,7 +310,7 @@ const TeacherPerformance = ({ teacherData }: TeacherPerformanceProps) => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4 max-h-[600px] sm:max-h-[1000px] overflow-auto">
+            <div className="space-y-4 max-h-[600px] sm:max-h-[1000px] overflow-auto custom-scrollbar">
               {performanceData.map((student) => {
                 const perf = student.performance;
                 const isAtRisk = perf?.averageGrade < 60 || perf?.attendanceRate < 70;
@@ -411,7 +411,7 @@ const TeacherPerformance = ({ teacherData }: TeacherPerformanceProps) => {
                                 <span className="sm:hidden">Plan</span>
                               </Button>
                             </DialogTrigger>
-                            <DialogContent className="w-[95vw] sm:w-full max-w-lg max-h-[90vh] overflow-y-auto">
+                            <DialogContent className="w-[95vw] sm:w-full max-w-lg max-h-[90vh] overflow-y-auto custom-scrollbar">
                               <DialogHeader>
                                 <DialogTitle className="text-base sm:text-lg pr-6">
                                   Create Intervention Plan for {student.user_profiles?.first_name} {student.user_profiles?.last_name}

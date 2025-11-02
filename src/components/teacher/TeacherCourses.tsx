@@ -524,7 +524,7 @@ const TeacherCourses = ({ teacherData }: TeacherCoursesProps) => {
           </CardHeader>
           <CardContent>
             <Tabs defaultValue="materials" className="w-full">
-              <div className="w-full overflow-x-auto overflow-y-visible -mx-2 px-2 md:mx-0 md:px-0">
+              <div className="w-full overflow-x-auto overflow-y-visible -mx-2 px-2 md:mx-0 md:px-0 custom-scrollbar">
                 <TabsList className="inline-flex md:grid w-max md:w-full md:grid-cols-6 h-auto flex-nowrap md:flex-wrap gap-1 p-1">
                   <TabsTrigger value="materials" className="text-xs sm:text-sm whitespace-nowrap flex-shrink-0">Materials</TabsTrigger>
                   <TabsTrigger value="quizzes" className="text-xs sm:text-sm whitespace-nowrap flex-shrink-0">Quiz List</TabsTrigger>

@@ -319,7 +319,7 @@ const TeacherCommunication = ({ teacherData }: TeacherCommunicationProps) => {
                       New Announcement
                     </Button>
                   </DialogTrigger>
-                  <DialogContent className="w-[95vw] sm:w-full max-w-lg max-h-[90vh] overflow-y-auto">
+                  <DialogContent className="w-[95vw] sm:w-full max-w-lg max-h-[90vh] overflow-y-auto custom-scrollbar">
                     <DialogHeader>
                       <DialogTitle className="text-base sm:text-lg">Create Announcement</DialogTitle>
                     </DialogHeader>

@@ -451,7 +451,7 @@ const TeacherDocuments = ({ teacherData }: TeacherDocumentsProps) => {
                     Submit Document
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-md max-h-[85vh] sm:max-h-[80vh] overflow-y-auto mx-4">
+                <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-md max-h-[85vh] sm:max-h-[80vh] overflow-y-auto mx-4 custom-scrollbar">
                   <DialogHeader>
                     <DialogTitle className="text-base sm:text-lg">Submit New Document</DialogTitle>
                   </DialogHeader>

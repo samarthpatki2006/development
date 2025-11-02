@@ -948,7 +948,7 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
           </div>
 
           <Dialog open={isQRDialogOpen} onOpenChange={setIsQRDialogOpen}>
-            <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+            <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto custom-scrollbar">
               <DialogHeader>
                 <DialogTitle className="text-base sm:text-lg">Attendance QR Code & Live Tracking</DialogTitle>
               </DialogHeader>
@@ -989,7 +989,7 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
                     <Users className="h-4 w-4 sm:h-5 sm:w-5" />
                     Live Attendance ({attendanceRecords.filter(r => r.status === 'present' || r.status === 'late').length} / {attendanceRecords.length})
                   </h3>
-                  <div className="max-h-96 overflow-y-auto space-y-2">
+                  <div className="max-h-96 overflow-y-auto space-y-2 custom-scrollbar">
                     {attendanceRecords.length === 0 ? (
                       <p className="text-center text-muted-foreground py-4">
                         Loading student list...
@@ -1097,7 +1097,7 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="overflow-x-auto -mx-4 sm:mx-0">
+              <div className="overflow-x-auto -mx-4 sm:mx-0 custom-scrollbar">
                 <div className="inline-block min-w-full align-middle px-4 sm:px-0">
                   <div className="grid grid-cols-8 gap-1 sm:gap-2 min-w-[640px] sm:min-w-0">
                     <div className="space-y-1 sm:space-y-2">

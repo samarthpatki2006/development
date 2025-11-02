@@ -134,14 +134,16 @@ const TeacherDashboard = ({ teacherData, onNavigate }: TeacherDashboardProps) =>
     const Icon = stat.icon;
     return (
       <PermissionWrapper key={index} permission={stat.permission}>
-        <Card className="hover:shadow-md transition-shadow">
-          <CardContent className="p-6">
+        <Card className="bg-card/50 backdrop-blur-sm transition-all duration-300 hover:border-role-teacher/20 cursor-pointer hover-translate-up">
+          <CardContent className="p-3 sm:p-4 md:p-5">
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">{stat.title}</p>
-                <p className="text-2xl font-bold">{stat.value}</p>
+              <div className="min-w-0">
+                <p className="text-xs sm:text-sm font-medium text-muted-foreground truncate mb-1">{stat.title}</p>
+                <p className="text-lg sm:text-xl md:text-2xl font-bold text-foreground truncate">{stat.value}</p>
               </div>
-              <Icon className={`h-8 w-8 ${stat.color}`} />
+              <div className={`p-2 sm:p-3 rounded-lg flex-shrink-0 ml-3`}>
+                <Icon className={`h-5 w-5 sm:h-6 ${stat.color} sm:w-6`} />
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -151,7 +153,7 @@ const TeacherDashboard = ({ teacherData, onNavigate }: TeacherDashboardProps) =>
 
   const renderActivity = (activity: typeof RECENT_ACTIVITIES[0], index: number) => (
     <PermissionWrapper key={index} permission={activity.permission}>
-      <div className="flex flex-row items-start justify-start space-x-2 p-3 rounded-lg bg-white/5 border border-white/5 hover:bg-white/10 hover:border-white/10 transition-all duration-300 hover:shadow-md hover:shadow-blue-500/5 will-change-transform">
+      <div className="flex flex-row items-start justify-start space-x-2 p-3 rounded-lg border border-white/10 hover:border-blue-400/40 hover:bg-white/10 cursor-pointer transition-all duration-300 hover:shadow-lg hover:shadow-blue-500/10 hover:-translate-y-0.5 will-change-transform">
         <div className="flex-shrink-0 mt-2 sm:mt-2.5">
           <div className="w-2 h-2 bg-blue-400 rounded-full  animate-pulse shadow-lg shadow-blue-400/50"></div>
         </div>
@@ -169,7 +171,7 @@ const TeacherDashboard = ({ teacherData, onNavigate }: TeacherDashboardProps) =>
     return (
       <PermissionWrapper key={index} permission={action.permission}>
         <div
-          className="flex flex-row items-start justify-start space-x-4 p-4 rounded-lg bg-white/5 border border-white/5 hover:bg-white/10 hover:border-white/10 transition-all duration-300 hover:shadow-md hover:shadow-green-500/5 will-change-transform"
+          className="flex flex-row items-center justify-start space-x-4 p-4 rounded-lg border border-white/10 hover:border-blue-400/40 hover:bg-white/10 cursor-pointer transition-all duration-300 hover:shadow-lg hover:shadow-blue-500/10 hover:-translate-y-0.5 will-change-transform"
           onClick={() => handleQuickActionClick(action.navigateTo, action.title)}
         >
 
@@ -198,7 +200,7 @@ const TeacherDashboard = ({ teacherData, onNavigate }: TeacherDashboardProps) =>
             size="sm"
             variant="outline"
             onClick={handleAttendanceClick}
-            className=" transition-colors"
+            className="hover:bg-role-teacher/10 hover:text-role-teacher hover:border-role-teacher/20 will-change-transform"
           >
             Mark Attendance
           </Button>
@@ -208,9 +210,9 @@ const TeacherDashboard = ({ teacherData, onNavigate }: TeacherDashboardProps) =>
   );
 
   return (
-    <div className="space-y-6">
+    <div className="animate-fade-in-up space-y-6 bg-black">
       {/* Welcome Section */}
-      <Card >
+      <Card className="border-0 border-b border-white/10 bg-black/20 backdrop-blur-md">
         <CardHeader>
           <CardTitle className="flex items-center space-x-2 ">
             <span>Welcome, Prof. {teacherData.first_name} {teacherData.last_name}!</span>
@@ -231,23 +233,23 @@ const TeacherDashboard = ({ teacherData, onNavigate }: TeacherDashboardProps) =>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Recent Activities */}
-        <Card className="h-[450px] sm:h-[510px] border-white/20 bg-gradient-to-br from-card/60 to-card/40 backdrop-blur-md shadow-2xl overflow-hidden group">
-          <CardHeader className="sticky top-0 z-10 bg-gradient-to-b from-card/95 to-card/80 backdrop-blur-sm border-b border-white/10 pb-4">
+        <Card className="h-[450px] sm:h-[510px] border-white/20 bg-gradient-to-br from-card/60 to-card/40 overflow-hidden pb-2">
+          <CardHeader className="sticky top-0 z-10 bg-neutral-800 border-b border-white/10 pb-4">
             <CardTitle className="text-card-foreground text-lg sm:text-xl">Recent Activities</CardTitle>
             <CardDescription className="text-sm">Your latest teaching activities</CardDescription>
           </CardHeader>
-          <CardContent className="h-[calc(100%-100px)] overflow-y-auto overflow-x-hidden scrollbar-thin space-y-3 sm:space-y-4 p-4 sm:p-6 ">
+          <CardContent className="h-[calc(100%-100px)] custom-scrollbar overflow-x-hidden  space-y-3 sm:space-y-4 p-4 sm:p-6  ">
             {RECENT_ACTIVITIES.map(renderActivity)}
           </CardContent>
         </Card>
 
         {/* Quick Actions */}
-        <Card className="h-[450px] sm:h-[510px] border-white/20 bg-gradient-to-br from-card/60 to-card/40 backdrop-blur-md shadow-2xl overflow-hidden group">
-          <CardHeader className="sticky top-0 z-10 bg-gradient-to-b from-card/95 to-card/80 backdrop-blur-sm border-b border-white/10 pb-4">
+        <Card className="h-[450px] sm:h-[510px] border-white/20 bg-gradient-to-br from-card/60 to-card/40 overflow-hidden">
+          <CardHeader className="sticky top-0 z-10 bg-gradient-to-b from-card/95 to-card/80 backdrop-blur-sm bg-neutral-800 border-b border-white/10 pb-4">
             <CardTitle className="text-card-foreground text-lg sm:text-xl">Quick Actions</CardTitle>
             <CardDescription className="text-sm">Commonly used features - click to navigate</CardDescription>
           </CardHeader>
-          <CardContent className="h-[calc(100%-100px)] overflow-y-auto overflow-x-hidden scroll-smooth space-y-3 sm:space-y-4 p-4 sm:p-6">
+          <CardContent className="h-[calc(100%-100px)] custom-scrollbar overflow-x-hidden  space-y-3 sm:space-y-4 p-4 sm:p-6  ">
             {QUICK_ACTIONS.map(renderQuickAction)}
           </CardContent>
         </Card>
@@ -255,9 +257,9 @@ const TeacherDashboard = ({ teacherData, onNavigate }: TeacherDashboardProps) =>
 
       {/* Teaching Schedule */}
       <PermissionWrapper permission="mark_attendance">
-        <Card>
+        <Card className="border-white/10 bg-card/50 backdrop-blur-sm">
           <CardHeader>
-            <CardTitle>Today's Classes</CardTitle>
+            <CardTitle className="text-card-foreground flex items-center space-x-2">Today's Classes</CardTitle>
             <CardDescription>Your scheduled classes for today</CardDescription>
           </CardHeader>
           <CardContent>

@@ -646,7 +646,7 @@ const UserOnboarding = ({ userProfile }: { userProfile: UserProfile }) => {
 
             {['pending', 'completed', 'failed'].map((status) => (
               <TabsContent key={status} value={status}>
-                <div className="rounded-md border max-h-[350px] sm:max-h-[450px] overflow-auto">
+                <div className="rounded-md border max-h-[350px] sm:max-h-[450px] overflow-auto custom-scrollbar">
                   <Table>
                     <TableHeader>
                       <TableRow>

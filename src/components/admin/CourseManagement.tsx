@@ -240,7 +240,7 @@ const CourseManagement = ({ userProfile }: { userProfile: UserProfile }) => {
                   Add Course
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-2xl w-[95vw] max-h-[90vh] overflow-y-auto">
+              <DialogContent className="max-w-2xl w-[95vw] max-h-[90vh] overflow-y-auto custom-scrollbar">
                 <DialogHeader>
                   <DialogTitle>Add New Course</DialogTitle>
                   <DialogDescription>
@@ -361,7 +361,7 @@ const CourseManagement = ({ userProfile }: { userProfile: UserProfile }) => {
 
           {/* Courses Table */}
           {filteredCourses.length > 0 ? (
-            <div className="rounded-md border  max-h-[350px] sm:max-h-[450px] overflow-auto">
+            <div className="rounded-md border  max-h-[350px] sm:max-h-[450px] overflow-auto custom-scrollbar">
               <Table>
                 <TableHeader>
                   <TableRow>

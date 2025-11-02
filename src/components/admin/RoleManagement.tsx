@@ -249,7 +249,7 @@ const RoleManagement = ({ userProfile }: RoleManagementProps) => {
         </CardHeader>
         <CardContent className="p-4 sm:p-6 sm:pt-0">
           {/* Horizontally Scrollable Table */}
-          <div className="rounded-md border overflow-x-auto max-h-[350px] sm:max-h-[450px] overflow-auto">
+          <div className="rounded-md border overflow-x-auto custom-scrollbar max-h-[350px] sm:max-h-[450px] overflow-auto">
             <Table>
               <TableHeader>
                 <TableRow>

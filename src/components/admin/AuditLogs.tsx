@@ -283,7 +283,7 @@ const AuditLogs = ({ userProfile, adminRoles }: AuditLogsProps) => {
 
           {/* Audit Logs Table */}
           {filteredLogs.length > 0 ? (
-            <div className="rounded-md border max-h-[600px] overflow-auto scroll-smooth will-change-scroll transform-gpu">
+            <div className="rounded-md border max-h-[600px] overflow-auto scroll-smooth will-change-scroll transform-gpu custom-scrollbar">
               <Table>
                 <TableHeader>
                   <TableRow>

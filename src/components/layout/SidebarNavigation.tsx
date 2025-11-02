@@ -122,7 +122,7 @@ const SidebarNavigation = ({
 
 
         {/* Navigation Items */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-2">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar p-4 space-y-2">
           {items.map((item) => {
             const Icon = item.icon;
             const isActive = activeItem === item.id;

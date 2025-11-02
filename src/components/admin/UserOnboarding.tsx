@@ -638,8 +638,8 @@ const UserOnboarding = ({ userProfile }: { userProfile: UserProfile }) => {
                 <CheckCircle className="w-4 h-4" />
                 <span className="inline">Completed ({filteredRecords('completed').length})</span>
               </TabsTrigger>
-              <TabsTrigger value="failed" className="flex items-center space-x-2">
-                <XCircle className="w-4 h-4" />
+              <TabsTrigger value="failed" className="flex items-center space-x-2 ml-2">
+                <XCircle className="w-4 h-4 hidden md:block" />
                 <span className="inline">Failed ({filteredRecords('failed').length})</span>
               </TabsTrigger>
             </TabsList>
@@ -676,13 +676,17 @@ const UserOnboarding = ({ userProfile }: { userProfile: UserProfile }) => {
                             {record.user_profiles?.user_code}
                           </TableCell>
                           <TableCell>
-                            <div className="space-y-1">
-                              {getEmailStatusBadge(record)}
-                              <div className="flex items-center space-x-1 text-xs text-gray-500">
-                                {record.welcome_email_sent && <Mail className="w-3 h-3" />}
-                                {record.welcome_email_opened && <Eye className="w-3 h-3" />}
-                              </div>
-                            </div>
+                            <div className="flex items-center gap-2">
+  {getEmailStatusBadge(record)}
+  <div className="flex items-center gap-1.5 text-gray-500">
+    {record.welcome_email_sent && (
+      <Mail className="w-3.5 h-3.5 text-blue-500" />
+    )}
+    {record.welcome_email_opened && (
+      <Eye className="w-3.5 h-3.5 text-green-500" />
+    )}
+  </div>
+</div>
                           </TableCell>
                           <TableCell>
                             {getOnboardingStatusBadge(record)}

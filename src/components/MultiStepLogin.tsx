@@ -121,7 +121,6 @@ const MultiStepLogin = () => {
       const userRoutes = {
         'student': '/student',
         'faculty': '/teacher',
-        'teacher': '/teacher',
         'admin': '/admin',
         'super_admin': '/admin',
         'parent': '/parent',

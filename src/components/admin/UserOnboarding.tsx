@@ -760,7 +760,7 @@ const UserOnboarding = ({ userProfile }: { userProfile: UserProfile }) => {
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="student">Student</SelectItem>
-                          <SelectItem value="teacher">Teacher</SelectItem>
+                          <SelectItem value="faculty">Teacher</SelectItem>
                           <SelectItem value="admin">Admin</SelectItem>
                           <SelectItem value="parent">Parent</SelectItem>
                           <SelectItem value="alumni">Alumni</SelectItem>

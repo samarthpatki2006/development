@@ -283,8 +283,7 @@ const FirstLogin = () => {
   const redirectToDashboard = (userType: string) => {
     const routes: Record<string, string> = {
       'student': '/student',
-      'teacher': '/teacher',
-      'faculty': '/faculty',
+      'faculty': '/teacher',
       'admin': '/admin',
       'super_admin': '/admin',
       'parent': '/parent',

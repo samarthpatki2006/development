@@ -928,7 +928,7 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
   };
 
   const getClassPosition = (startTime: string, endTime: string) => {
-    const dayStartMinutes = 0;
+    const dayStartMinutes = 0 * 60;
     const dayEndMinutes = 24 * 60;
     const totalMinutes = dayEndMinutes - dayStartMinutes;
     
@@ -941,13 +941,13 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
     
     return {
       top: `${Math.max(0, topPercent)}%`,
-      height: `${Math.max(2, heightPercent)}%`
+      height: `${Math.max(3, heightPercent)}%`
     };
   };
 
   const generateTimeLabels = () => {
     const labels = [];
-    for (let hour = 0; hour < 24; hour++) {
+    for (let hour = 0; hour < 25; hour++) {
       labels.push({
         time: `${hour.toString().padStart(2, '0')}:00`,
         display: formatTime(`${hour.toString().padStart(2, '0')}:00`)

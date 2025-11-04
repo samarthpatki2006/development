@@ -60,7 +60,7 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
     room_location: ''
   });
 
-  const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thur', 'Fri', 'Sat'];
 
   useEffect(() => {
     if (teacherData?.user_id) {
@@ -1068,7 +1068,7 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
           </div>
 
           <Dialog open={isQRDialogOpen} onOpenChange={setIsQRDialogOpen}>
-            <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+            <DialogContent className="max-w-3xl max-h-[90vh] mt-2 overflow-y-auto">
               <DialogHeader>
                 <DialogTitle className="text-base sm:text-lg">Attendance Session - {selectedClass?.courses?.course_name}</DialogTitle>
               </DialogHeader>

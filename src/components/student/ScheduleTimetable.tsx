@@ -21,7 +21,7 @@ const ScheduleTimetable: React.FC<ScheduleTimetableProps> = ({ studentData }) =>
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
-  const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thur', 'Fri', 'Sat'];
 
   useEffect(() => {
     fetchScheduleData();
@@ -275,7 +275,7 @@ const ScheduleTimetable: React.FC<ScheduleTimetableProps> = ({ studentData }) =>
 
   const generateTimeLabels = () => {
     const labels = [];
-    for (let hour = 0; hour < 24; hour++) {
+    for (let hour = 0; hour < 25; hour++) {
       labels.push({
         time: `${hour.toString().padStart(2, '0')}:00`,
         display: formatTime(`${hour.toString().padStart(2, '0')}:00`)

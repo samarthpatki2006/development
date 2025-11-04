@@ -37,6 +37,7 @@ import RoleManagement from '../components/admin/RoleManagement';
 import AuditLogs from '../components/admin/AuditLogs';
 import SystemSettings from '../components/admin/SystemSettings';
 import StudentEnrollmentManagement from '@/components/teacher/StudentEnrollmentManagement';
+import TimetableManagement from '@/components/admin/TimetableManagement';
 
 interface TagFeature {
   feature_key: string;
@@ -51,8 +52,9 @@ const TAG_FEATURE_MAP: Record<string, TagFeature[]> = {
   super_admin: [
     { feature_key: 'dashboard', feature_name: 'Dashboard', feature_route: '/admin/dashboard', icon: 'Activity', display_order: 0 },
     { feature_key: 'users', feature_name: 'User Management', feature_route: '/admin/users', icon: 'Users', display_order: 1 },
-    { feature_key: 'courses', feature_name: 'Course Management', feature_route: '/admin/courses', icon: 'BookOpen', display_order: 2 },
-    { feature_key: 'enrollment', feature_name: 'Enrollment Management', feature_route: '/admin/enrollment', icon: 'Users', display_order: 1.5 },
+    { feature_key: 'courses', feature_name: 'Course Management', feature_route: '/admin/courses', icon: 'BookOpen', display_order: 1.5 },
+    { feature_key: 'enrollment', feature_name: 'Enrollment Management', feature_route: '/admin/enrollment', icon: 'Users', display_order: 2 },
+    { feature_key: 'timetable', feature_name: 'Timetable Management', feature_route: '/admin/timetable', icon: 'Time', display_order: 2.5 },
     { feature_key: 'events', feature_name: 'Event Management', feature_route: '/admin/events', icon: 'Calendar', display_order: 3 },
     { feature_key: 'finance', feature_name: 'Finance Management', feature_route: '/admin/finance', icon: 'DollarSign', display_order: 4 },
     { feature_key: 'facilities', feature_name: 'Facility Management', feature_route: '/admin/facilities', icon: 'Building', display_order: 5 },
@@ -62,8 +64,7 @@ const TAG_FEATURE_MAP: Record<string, TagFeature[]> = {
   ],
   user_admin: [
     { feature_key: 'dashboard', feature_name: 'Dashboard', feature_route: '/admin/dashboard', icon: 'Activity', display_order: 0 },
-    { feature_key: 'users', feature_name: 'User Management', feature_route: '/admin/users', icon: 'Users', display_order: 1 },
-    { feature_key: 'enrollment', feature_name: 'Enrollment Management', feature_route: '/admin/enrollment', icon: 'Users', display_order: 1.5 }
+    { feature_key: 'users', feature_name: 'User Management', feature_route: '/admin/users', icon: 'Users', display_order: 1 }
   ],
   financial_admin: [
     { feature_key: 'dashboard', feature_name: 'Dashboard', feature_route: '/admin/dashboard', icon: 'Activity', display_order: 0 },
@@ -71,23 +72,15 @@ const TAG_FEATURE_MAP: Record<string, TagFeature[]> = {
   ],
   academic_admin: [
     { feature_key: 'dashboard', feature_name: 'Dashboard', feature_route: '/admin/dashboard', icon: 'Activity', display_order: 0 },
-    { feature_key: 'courses', feature_name: 'Course Management', feature_route: '/admin/courses', icon: 'BookOpen', display_order: 2 },
-    { feature_key: 'enrollment', feature_name: 'Enrollment Management', feature_route: '/admin/enrollment', icon: 'Users', display_order: 1.5 }
-  ],
-  course_event_admin: [
-    { feature_key: 'dashboard', feature_name: 'Dashboard', feature_route: '/admin/dashboard', icon: 'Activity', display_order: 0 },
-    { feature_key: 'courses', feature_name: 'Course Management', feature_route: '/admin/courses', icon: 'BookOpen', display_order: 2 },
-    { feature_key: 'events', feature_name: 'Event Management', feature_route: '/admin/events', icon: 'Calendar', display_order: 3 }
+    { feature_key: 'courses', feature_name: 'Course Management', feature_route: '/admin/courses', icon: 'BookOpen', display_order: 1.5 },
+    { feature_key: 'enrollment', feature_name: 'Enrollment Management', feature_route: '/admin/enrollment', icon: 'Users', display_order: 2 },
+    { feature_key: 'timetable', feature_name: 'Timetable Management', feature_route: '/admin/timetable', icon: 'Time', display_order: 2.5 }
   ],
   event_admin: [
     { feature_key: 'dashboard', feature_name: 'Dashboard', feature_route: '/admin/dashboard', icon: 'Activity', display_order: 0 },
     { feature_key: 'events', feature_name: 'Event Management', feature_route: '/admin/events', icon: 'Calendar', display_order: 3 }
   ],
   facility_admin: [
-    { feature_key: 'dashboard', feature_name: 'Dashboard', feature_route: '/admin/dashboard', icon: 'Activity', display_order: 0 },
-    { feature_key: 'facilities', feature_name: 'Facility Management', feature_route: '/admin/facilities', icon: 'Building', display_order: 5 }
-  ],
-  hostel_admin: [
     { feature_key: 'dashboard', feature_name: 'Dashboard', feature_route: '/admin/dashboard', icon: 'Activity', display_order: 0 },
     { feature_key: 'facilities', feature_name: 'Facility Management', feature_route: '/admin/facilities', icon: 'Building', display_order: 5 }
   ],
@@ -488,6 +481,8 @@ const Admin = () => {
         return <CourseManagement userProfile={userProfile} />;
       case 'enrollment':
         return <StudentEnrollmentManagement teacherData={sessionData} />;
+      case 'timetable':
+        return <TimetableManagement userProfile={userProfile} />;
       case 'events':
         return <EventManagement userProfile={userProfile} />;
       case 'finance':

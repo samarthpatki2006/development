@@ -699,7 +699,7 @@ const RoleManagement = ({ userProfile, adminRoles }: RoleManagementProps) => {
               <TabsTrigger value="student_role">Student</TabsTrigger>
             </TabsList>
             
-            {['admin_role', 'faculty_role', 'student_role', 'club', 'committee'].map((category) => (
+            {['admin_role', 'faculty_role', 'student_role'].map((category) => (
               <TabsContent key={category} value={category} className="mt-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                   {availableTags
@@ -725,11 +725,6 @@ const RoleManagement = ({ userProfile, adminRoles }: RoleManagementProps) => {
                             {tag.is_active ? "Active" : "Inactive"}
                           </Badge>
                         </div>
-                        {tag.base_user_type && (
-                          <div className="mt-2 text-xs text-blue-600">
-                            For: {tag.base_user_type}
-                          </div>
-                        )}
                       </div>
                     ))}
                 </div>

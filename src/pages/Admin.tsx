@@ -17,7 +17,6 @@ import {
   Menu,
   User,
   LogOut,
-  Mail,
   AlertCircle,
   CheckCircle,
   Info,
@@ -47,6 +46,58 @@ interface TagFeature {
   display_order: number;
 }
 
+// Define feature mappings for each tag
+const TAG_FEATURE_MAP: Record<string, TagFeature[]> = {
+  super_admin: [
+    { feature_key: 'dashboard', feature_name: 'Dashboard', feature_route: '/admin/dashboard', icon: 'Activity', display_order: 0 },
+    { feature_key: 'users', feature_name: 'User Management', feature_route: '/admin/users', icon: 'Users', display_order: 1 },
+    { feature_key: 'courses', feature_name: 'Course Management', feature_route: '/admin/courses', icon: 'BookOpen', display_order: 2 },
+    { feature_key: 'enrollment', feature_name: 'Enrollment Management', feature_route: '/admin/enrollment', icon: 'Users', display_order: 1.5 },
+    { feature_key: 'events', feature_name: 'Event Management', feature_route: '/admin/events', icon: 'Calendar', display_order: 3 },
+    { feature_key: 'finance', feature_name: 'Finance Management', feature_route: '/admin/finance', icon: 'DollarSign', display_order: 4 },
+    { feature_key: 'facilities', feature_name: 'Facility Management', feature_route: '/admin/facilities', icon: 'Building', display_order: 5 },
+    { feature_key: 'roles', feature_name: 'Role Management', feature_route: '/admin/roles', icon: 'Shield', display_order: 6 },
+    { feature_key: 'audit', feature_name: 'Audit Logs', feature_route: '/admin/audit', icon: 'FileText', display_order: 7 },
+    { feature_key: 'system', feature_name: 'System Settings', feature_route: '/admin/system', icon: 'Settings', display_order: 8 }
+  ],
+  user_admin: [
+    { feature_key: 'dashboard', feature_name: 'Dashboard', feature_route: '/admin/dashboard', icon: 'Activity', display_order: 0 },
+    { feature_key: 'users', feature_name: 'User Management', feature_route: '/admin/users', icon: 'Users', display_order: 1 },
+    { feature_key: 'enrollment', feature_name: 'Enrollment Management', feature_route: '/admin/enrollment', icon: 'Users', display_order: 1.5 }
+  ],
+  financial_admin: [
+    { feature_key: 'dashboard', feature_name: 'Dashboard', feature_route: '/admin/dashboard', icon: 'Activity', display_order: 0 },
+    { feature_key: 'finance', feature_name: 'Finance Management', feature_route: '/admin/finance', icon: 'DollarSign', display_order: 4 }
+  ],
+  academic_admin: [
+    { feature_key: 'dashboard', feature_name: 'Dashboard', feature_route: '/admin/dashboard', icon: 'Activity', display_order: 0 },
+    { feature_key: 'courses', feature_name: 'Course Management', feature_route: '/admin/courses', icon: 'BookOpen', display_order: 2 },
+    { feature_key: 'enrollment', feature_name: 'Enrollment Management', feature_route: '/admin/enrollment', icon: 'Users', display_order: 1.5 }
+  ],
+  course_event_admin: [
+    { feature_key: 'dashboard', feature_name: 'Dashboard', feature_route: '/admin/dashboard', icon: 'Activity', display_order: 0 },
+    { feature_key: 'courses', feature_name: 'Course Management', feature_route: '/admin/courses', icon: 'BookOpen', display_order: 2 },
+    { feature_key: 'events', feature_name: 'Event Management', feature_route: '/admin/events', icon: 'Calendar', display_order: 3 }
+  ],
+  event_admin: [
+    { feature_key: 'dashboard', feature_name: 'Dashboard', feature_route: '/admin/dashboard', icon: 'Activity', display_order: 0 },
+    { feature_key: 'events', feature_name: 'Event Management', feature_route: '/admin/events', icon: 'Calendar', display_order: 3 }
+  ],
+  facility_admin: [
+    { feature_key: 'dashboard', feature_name: 'Dashboard', feature_route: '/admin/dashboard', icon: 'Activity', display_order: 0 },
+    { feature_key: 'facilities', feature_name: 'Facility Management', feature_route: '/admin/facilities', icon: 'Building', display_order: 5 }
+  ],
+  hostel_admin: [
+    { feature_key: 'dashboard', feature_name: 'Dashboard', feature_route: '/admin/dashboard', icon: 'Activity', display_order: 0 },
+    { feature_key: 'facilities', feature_name: 'Facility Management', feature_route: '/admin/facilities', icon: 'Building', display_order: 5 }
+  ],
+  system_admin: [
+    { feature_key: 'dashboard', feature_name: 'Dashboard', feature_route: '/admin/dashboard', icon: 'Activity', display_order: 0 },
+    { feature_key: 'audit', feature_name: 'Audit Logs', feature_route: '/admin/audit', icon: 'FileText', display_order: 7 },
+    { feature_key: 'system', feature_name: 'System Settings', feature_route: '/admin/system', icon: 'Settings', display_order: 8 }
+  ]
+};
+
 const Admin = () => {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(true);
@@ -66,7 +117,6 @@ const Admin = () => {
   const notificationRef = useRef(null);
   const userMenuRef = useRef(null);
 
-  // Mock notifications data
   const [notifications] = useState([
     {
       id: 1,
@@ -83,39 +133,13 @@ const Admin = () => {
       message: '5 new student registrations awaiting approval',
       time: '1 hour ago',
       read: false
-    },
-    {
-      id: 3,
-      type: 'success',
-      title: 'Backup Complete',
-      message: 'Daily system backup completed successfully',
-      time: '3 hours ago',
-      read: true
-    },
-    {
-      id: 4,
-      type: 'error',
-      title: 'Payment Failed',
-      message: 'Payment gateway connection issue detected',
-      time: '5 hours ago',
-      read: true
-    },
-    {
-      id: 5,
-      type: 'info',
-      title: 'New Course Added',
-      message: 'Computer Science course has been added to the system',
-      time: '1 day ago',
-      read: true
     }
   ]);
 
-  // Check for mobile view
   useEffect(() => {
     const checkMobile = () => {
       const mobile = window.innerWidth < 768;
       setIsMobile(mobile);
-      // Close mobile menu when switching to desktop
       if (!mobile) {
         setMobileMenuOpen(false);
       }
@@ -134,7 +158,6 @@ const Admin = () => {
     }
   };
 
-  // Handle clicks outside dropdowns
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (notificationRef.current && !notificationRef.current.contains(event.target)) {
@@ -149,7 +172,6 @@ const Admin = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Fetch user's assigned tags
   const fetchUserTags = async (userId: string) => {
     try {
       const { data, error } = await supabase
@@ -180,140 +202,40 @@ const Admin = () => {
     }
   };
 
-  // Fetch user's assigned tag features
-  const fetchUserFeatures = async (userId: string, tags: string[]) => {
-    try {
-      const { data, error } = await supabase
-        .from('user_tag_assignments')
-        .select(`
-          tag_id,
-          user_tags!inner(
-            id,
-            tag_name,
-            tag_category,
-            is_active,
-            tag_features(
-              feature_key,
-              feature_name,
-              feature_route,
-              icon,
-              display_order,
-              is_enabled
-            )
-          )
-        `)
-        .eq('user_id', userId)
-        .eq('is_active', true)
-        .or('expires_at.is.null,expires_at.gt.now()');
+  const buildFeaturesFromTags = (tags: string[]) => {
+    console.log('Building features from tags:', tags);
+    
+    const featuresMap = new Map<string, TagFeature>();
+    
+    // Always add dashboard first
+    featuresMap.set('dashboard', {
+      feature_key: 'dashboard',
+      feature_name: 'Dashboard',
+      feature_route: '/admin/dashboard',
+      icon: 'Activity',
+      display_order: 0
+    });
 
-      if (error) {
-        console.error('Error fetching user features:', error);
-        setAvailableFeatures([{
-          feature_key: 'dashboard',
-          feature_name: 'Dashboard',
-          feature_route: '/admin/dashboard',
-          icon: 'Activity',
-          display_order: 0
-        }]);
-        return;
-      }
-
-      // Extract and deduplicate features
-      const featuresMap = new Map<string, TagFeature>();
-      
-      if (data && data.length > 0) {
-        data.forEach(assignment => {
-          const tag = assignment.user_tags;
-          if (tag && tag.is_active && tag.tag_features) {
-            tag.tag_features.forEach(feature => {
-              if (feature.is_enabled && !featuresMap.has(feature.feature_key)) {
-                featuresMap.set(feature.feature_key, {
-                  feature_key: feature.feature_key,
-                  feature_name: feature.feature_name,
-                  feature_route: feature.feature_route,
-                  icon: feature.icon,
-                  display_order: feature.display_order
-                });
-              }
-            });
+    // Add features based on tags
+    tags.forEach(tag => {
+      const tagFeatures = TAG_FEATURE_MAP[tag];
+      if (tagFeatures) {
+        console.log(`Adding features for tag: ${tag}`, tagFeatures);
+        tagFeatures.forEach(feature => {
+          if (!featuresMap.has(feature.feature_key)) {
+            featuresMap.set(feature.feature_key, feature);
           }
         });
       }
+    });
 
-      // CRITICAL: super_admin has access to ALL features
-      const isSuperAdmin = tags.includes('super_admin');
-      
-      if (isSuperAdmin) {
-        console.log('Super admin detected - granting access to all features');
-        
-        // Add enrollment feature (from user_admin)
-        if (!featuresMap.has('enrollment')) {
-          featuresMap.set('enrollment', {
-            feature_key: 'enrollment',
-            feature_name: 'Enrollment Management',
-            feature_route: '/admin/enrollment',
-            icon: 'Users',
-            display_order: 1.5
-          });
-        }
-        
-        // Add role management (super_admin exclusive)
-        if (!featuresMap.has('roles')) {
-          featuresMap.set('roles', {
-            feature_key: 'roles',
-            feature_name: 'Role Management',
-            feature_route: '/admin/roles',
-            icon: 'Shield',
-            display_order: 6
-          });
-        }
-      } else {
-        // Non-super admin users: add features based on their specific tags
-        
-        // Add enrollment tab only for user_admin tag
-        if (tags.includes('user_admin')) {
-          console.log('Adding enrollment feature for user_admin tag');
-          featuresMap.set('enrollment', {
-            feature_key: 'enrollment',
-            feature_name: 'Enrollment Management',
-            feature_route: '/admin/enrollment',
-            icon: 'Users',
-            display_order: 1.5
-          });
-        }
-        
-        // Remove role management if user doesn't have super_admin
-        console.log('Removing role management - user does not have super_admin tag');
-        featuresMap.delete('roles');
-      }
+    // Convert to array and sort by display_order
+    const features = Array.from(featuresMap.values()).sort(
+      (a, b) => a.display_order - b.display_order
+    );
 
-      // Convert to array and sort by display_order
-      const features = Array.from(featuresMap.values()).sort(
-        (a, b) => a.display_order - b.display_order
-      );
-
-      // Always ensure dashboard is available
-      if (!features.some(f => f.feature_key === 'dashboard')) {
-        features.unshift({
-          feature_key: 'dashboard',
-          feature_name: 'Dashboard',
-          feature_route: '/admin/dashboard',
-          icon: 'Activity',
-          display_order: 0
-        });
-      }
-
-      setAvailableFeatures(features);
-    } catch (error) {
-      console.error('Error in fetchUserFeatures:', error);
-      setAvailableFeatures([{
-        feature_key: 'dashboard',
-        feature_name: 'Dashboard',
-        feature_route: '/admin/dashboard',
-        icon: 'Activity',
-        display_order: 0
-      }]);
-    }
+    console.log('Final available features:', features);
+    return features;
   };
 
   useEffect(() => {
@@ -340,7 +262,6 @@ const Admin = () => {
             return;
           }
 
-          // Set session data
           const userData = {
             user_id: profile.id,
             user_type: profile.user_type,
@@ -357,6 +278,7 @@ const Admin = () => {
 
           // Fetch user's tags
           const tags = await fetchUserTags(profile.id);
+          console.log('User tags fetched:', tags);
           setUserTags(tags);
 
           // Fetch tag assignments for display
@@ -381,8 +303,9 @@ const Admin = () => {
             }));
             setAdminRoles(roles);
 
-            // Fetch available features with tag-based filtering
-            await fetchUserFeatures(profile.id, tags);
+            // Build features from tags
+            const features = buildFeaturesFromTags(tags);
+            setAvailableFeatures(features);
           } else {
             setAdminRoles([]);
             setAvailableFeatures([{
@@ -417,8 +340,8 @@ const Admin = () => {
               };
               setUserProfile(profile);
               
-              // For development, assume super_admin and user_admin tags
-              const devTags = ['super_admin', 'user_admin'];
+              // For development, assume super_admin tag
+              const devTags = ['super_admin'];
               setUserTags(devTags);
               
               setAdminRoles([{
@@ -429,19 +352,8 @@ const Admin = () => {
                 assigned_at: new Date().toISOString()
               }]);
 
-              // For development, show all features
-              setAvailableFeatures([
-                { feature_key: 'dashboard', feature_name: 'Dashboard', feature_route: '/admin/dashboard', icon: 'Activity', display_order: 0 },
-                { feature_key: 'users', feature_name: 'User Management', feature_route: '/admin/users', icon: 'Users', display_order: 1 },
-                { feature_key: 'enrollment', feature_name: 'Enrollment Management', feature_route: '/admin/enrollment', icon: 'Users', display_order: 1.5 },
-                { feature_key: 'courses', feature_name: 'Course Management', feature_route: '/admin/courses', icon: 'BookOpen', display_order: 2 },
-                { feature_key: 'events', feature_name: 'Event Management', feature_route: '/admin/events', icon: 'Calendar', display_order: 3 },
-                { feature_key: 'finance', feature_name: 'Finance Management', feature_route: '/admin/finance', icon: 'DollarSign', display_order: 4 },
-                { feature_key: 'facilities', feature_name: 'Facility Management', feature_route: '/admin/facilities', icon: 'Building', display_order: 5 },
-                { feature_key: 'roles', feature_name: 'Role Management', feature_route: '/admin/roles', icon: 'Shield', display_order: 6 },
-                { feature_key: 'audit', feature_name: 'Audit Logs', feature_route: '/admin/audit', icon: 'FileText', display_order: 7 },
-                { feature_key: 'system', feature_name: 'System Settings', feature_route: '/admin/system', icon: 'Settings', display_order: 8 }
-              ]);
+              const features = buildFeaturesFromTags(devTags);
+              setAvailableFeatures(features);
             } else {
               navigate('/');
             }
@@ -467,31 +379,14 @@ const Admin = () => {
   };
 
   const handleNavigationChange = (view) => {
-    // Check if user has access to this feature
     const hasAccess = availableFeatures.some(f => f.feature_key === view);
-    
-    // Super admin bypasses all tag checks
     const isSuperAdmin = userTags.includes('super_admin');
     
-    if (isSuperAdmin) {
-      // Super admin can access everything
-      if (hasAccess) {
-        setActiveView(view);
-      }
-      return;
-    }
-    
-    // Additional tag-based checks for non-super admins
-    if (view === 'enrollment' && !userTags.includes('user_admin')) {
-      return;
-    }
-    
-    if (view === 'roles' && !userTags.includes('super_admin')) {
-      return;
-    }
-    
-    if (hasAccess) {
+    if (isSuperAdmin || hasAccess) {
       setActiveView(view);
+      if (isMobile) {
+        setMobileMenuOpen(false);
+      }
     }
   };
 
@@ -503,16 +398,6 @@ const Admin = () => {
   const toggleUserMenu = () => {
     setShowUserMenu(!showUserMenu);
     setShowNotifications(false);
-  };
-
-  const clearAllNotifications = () => {
-    setShowNotifications(false);
-    // TODO: Implement actual clear functionality when notifications are dynamic
-  };
-
-  const markNotificationAsRead = (notificationId: number) => {
-    console.log('Marking notification as read:', notificationId);
-    // TODO: Implement mark as read functionality
   };
 
   const getNotificationIcon = (type) => {
@@ -566,7 +451,6 @@ const Admin = () => {
     );
   }
 
-  // Build sidebar items from available features
   const sidebarItems = availableFeatures.map(feature => ({
     id: feature.feature_key,
     label: feature.feature_name,
@@ -574,52 +458,10 @@ const Admin = () => {
   }));
 
   const renderContent = () => {
-    // Check if user has access to current view
     const hasAccess = availableFeatures.some(f => f.feature_key === activeView);
-    
-    // Super admin bypasses all restrictions
     const isSuperAdmin = userTags.includes('super_admin');
     
-    if (!isSuperAdmin) {
-      // Additional tag-based checks for non-super admins
-      if (activeView === 'enrollment' && !userTags.includes('user_admin')) {
-        return (
-          <div className="flex items-center justify-center min-h-[400px]">
-            <div className="text-center">
-              <Shield className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-              <h2 className="text-2xl font-semibold text-foreground mb-2">Access Denied</h2>
-              <p className="text-muted-foreground">You need the 'user_admin' tag to access Enrollment Management.</p>
-              <Button 
-                onClick={() => setActiveView('dashboard')} 
-                className="mt-4"
-              >
-                Return to Dashboard
-              </Button>
-            </div>
-          </div>
-        );
-      }
-      
-      if (activeView === 'roles' && !userTags.includes('super_admin')) {
-        return (
-          <div className="flex items-center justify-center min-h-[400px]">
-            <div className="text-center">
-              <Shield className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-              <h2 className="text-2xl font-semibold text-foreground mb-2">Access Denied</h2>
-              <p className="text-muted-foreground">You need the 'super_admin' tag to access Role Management.</p>
-              <Button 
-                onClick={() => setActiveView('dashboard')} 
-                className="mt-4"
-              >
-                Return to Dashboard
-              </Button>
-            </div>
-          </div>
-        );
-      }
-    }
-    
-    if (!hasAccess && !isSuperAdmin) {
+    if (!isSuperAdmin && !hasAccess) {
       return (
         <div className="flex items-center justify-center min-h-[400px]">
           <div className="text-center">
@@ -642,10 +484,10 @@ const Admin = () => {
         return <AdminDashboard sessionData={sessionData} onNavigate={handleNavigationChange} />;
       case 'users':
         return <EnhancedUserManagement userProfile={userProfile} adminRoles={adminRoles} />;
-      case 'enrollment':
-        return <StudentEnrollmentManagement teacherData={sessionData} />;
       case 'courses':
         return <CourseManagement userProfile={userProfile} />;
+      case 'enrollment':
+        return <StudentEnrollmentManagement teacherData={sessionData} />;
       case 'events':
         return <EventManagement userProfile={userProfile} />;
       case 'finance':
@@ -665,27 +507,22 @@ const Admin = () => {
 
   return (
     <div className="min-h-screen bg-background overflow-x-hidden">
-      {/* Background Grid */}
       <div className="fixed inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:40px_40px] pointer-events-none"></div>
 
       {/* Header */}
       <div className="fixed w-full z-[100] bg-background/95 backdrop-blur-sm border-b border-white/10">
         <div className="container mx-auto px-3 sm:px-4">
           <div className="flex justify-between items-center h-16">
-            {/* Left Section */}
             <div className="flex items-center space-x-3 sm:space-x-6">
-              {/* Sidebar Toggle */}
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={handleSidebarToggle}
                 className="h-9 w-9 rounded-lg hover:bg-white/10 transition-all duration-200 ease-in-out"
               >
-                <span className="sr-only">Toggle sidebar</span>
                 <Menu className="h-7 w-7" />
               </Button>
 
-              {/* Logo + Portal Name */}
               <div className="flex items-center space-x-2">
                 <h1 className="text-xl sm:text-2xl font-bold text-foreground">ColCord</h1>
                 <div className="hidden sm:flex items-center space-x-2">
@@ -699,15 +536,14 @@ const Admin = () => {
             </div>
 
             <div className="flex items-center space-x-2 sm:space-x-3">
-              {/* Notifications Dropdown */}
               <div className="relative" ref={notificationRef}>
                 <Button
                   variant="ghost"
                   size="icon"
                   onClick={toggleNotifications}
-                  className="h-9 w-9 rounded-lg hover:bg-white/10 transition-all relative will-change-transform"
+                  className="h-9 w-9 rounded-lg hover:bg-white/10 transition-all relative"
                 >
-                  <Bell className="h-9 w-9 text-foreground" />
+                  <Bell className="h-5 w-5 text-foreground" />
                   {unreadCount > 0 && (
                     <div className="absolute -top-1 -right-1 h-5 w-5 bg-red-500 rounded-full flex items-center justify-center">
                       <span className="text-xs text-white font-medium">{unreadCount}</span>
@@ -715,33 +551,19 @@ const Admin = () => {
                   )}
                 </Button>
 
-                {/* Notifications Dropdown */}
                 {showNotifications && (
                   <div className="fixed right-3 sm:right-4 top-20 w-72 sm:w-96 bg-background/95 backdrop-blur-xl border border-white/20 rounded-xl shadow-2xl z-[9999]">
                     <div className="p-4 border-b border-white/10 flex items-center justify-between">
                       <h3 className="text-base sm:text-lg font-semibold text-foreground">Notifications</h3>
-                      <div className="flex items-center space-x-2">
-                        {notifications.length > 0 && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={clearAllNotifications}
-                            className="text-xs text-muted-foreground hover:text-foreground"
-                          >
-                            Clear All
-                          </Button>
-                        )}
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => setShowNotifications(false)}
-                          className="h-6 w-6"
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                      </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setShowNotifications(false)}
+                        className="h-6 w-6"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
                     </div>
-
                     <div className="max-h-80 sm:max-h-96 overflow-y-auto">
                       {notifications.length === 0 ? (
                         <div className="p-6 text-center">
@@ -752,9 +574,7 @@ const Admin = () => {
                         notifications.map((notification) => (
                           <div
                             key={notification.id}
-                            className={`p-4 border-b border-white/10 cursor-pointer hover:bg-white/5 transition-colors ${!notification.read ? 'bg-white/5' : ''
-                              }`}
-                            onClick={() => markNotificationAsRead(notification.id)}
+                            className={`p-4 border-b border-white/10 cursor-pointer hover:bg-white/5 transition-colors ${!notification.read ? 'bg-white/5' : ''}`}
                           >
                             <div className="flex items-start space-x-3">
                               <div className="flex-shrink-0 mt-1">
@@ -785,18 +605,16 @@ const Admin = () => {
                 )}
               </div>
 
-              {/* User Menu */}
               <div className="relative" ref={userMenuRef}>
                 <Button
                   variant="ghost"
                   size="icon"
                   onClick={toggleUserMenu}
-                  className="h-9 w-9 rounded-lg hover:bg-white/10 transition-all will-change-transform"
+                  className="h-9 w-9 rounded-lg hover:bg-white/10 transition-all"
                 >
-                  <User className="h-9 w-9 text-foreground" />
+                  <User className="h-5 w-5 text-foreground" />
                 </Button>
 
-                {/* User Menu Dropdown */}
                 {showUserMenu && (
                   <div className="fixed right-3 sm:right-4 top-20 w-60 sm:w-64 bg-background/95 backdrop-blur-xl border border-white/20 rounded-xl shadow-2xl z-[9999]">
                     <div className="p-4 border-b border-white/10">
@@ -811,12 +629,11 @@ const Admin = () => {
                           <p className="text-xs text-muted-foreground truncate">
                             {sessionData.email}
                           </p>
-
                           <div className="flex items-center space-x-2 mt-2">
-                            <Badge className="bg-red-500/20 text-red-300 border-red-400/30 font-medium text-xs pointer-events-none">
+                            <Badge className="bg-red-500/20 text-red-300 border-red-400/30 font-medium text-xs">
                               {sessionData.user_type}
                             </Badge>
-                            <span className=" text-red-300 border-red-400/30 text-xs font-medium">
+                            <span className="text-red-300 text-xs font-medium">
                               {sessionData.user_code}
                             </span>
                           </div>
@@ -854,26 +671,10 @@ const Admin = () => {
                       )}
                     </div>
                     
-                    <div className="p-2 space-y-2 sm:space-y-0">
-                      {availableFeatures.some(f => f.feature_key === 'system') && (
-                        <Button
-                          variant="ghost"
-                        className="w-full justify-start text-sm text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg will-change-transform"
-                          onClick={() => {
-                            setActiveView('system');
-                            setShowUserMenu(false);
-                          }}
-                        >
-                          <Settings className="h-4 w-4 mr-3" />
-                          Account Settings
-                        </Button>
-                      )}
-                      
-                      <div className="my-2 h-px bg-white/10"></div>
-                      
+                    <div className="p-2">
                       <Button
                         variant="ghost"
-                        className="w-full justify-start text-sm text-red-400 hover:text-red-300 hover:bg-ref-500/10 rounded-lg will-change-transform"
+                        className="w-full justify-start text-sm text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg"
                         onClick={handleLogout}
                       >
                         <LogOut className="h-4 w-4 mr-3" />
@@ -890,18 +691,16 @@ const Admin = () => {
 
       {/* Main Layout */}
       <div className="relative z-10 flex mt-[64px] min-h-[calc(100vh-4rem)]">
-        {/* Sidebar */}
         <SidebarNavigation
           items={sidebarItems}
           activeItem={activeView}
-          onItemClick={setActiveView}
+          onItemClick={handleNavigationChange}
           userType="admin"
           collapsed={sidebarCollapsed}
           mobileOpen={mobileMenuOpen}
           onMobileClose={() => setMobileMenuOpen(false)}
         />
 
-        {/* Main Content */}
         <div className={cn(
           "flex-1 w-full min-w-0 transition-all duration-300 ease-in-out",
           "px-4 py-4 sm:px-12 sm:py-6 mx-auto",

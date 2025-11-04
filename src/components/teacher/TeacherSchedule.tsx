@@ -50,6 +50,7 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
   const [courseAnalytics, setCourseAnalytics] = useState<any[]>([]);
   const [editingStudent, setEditingStudent] = useState<string | null>(null);
   const [minutesSinceStart, setMinutesSinceStart] = useState<number>(0);
+  const [teacherCourseIds, setTeacherCourseIds] = useState<string[]>([]);
 
   const [newSchedule, setNewSchedule] = useState({
     course_id: '',
@@ -63,10 +64,15 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
 
   useEffect(() => {
     if (teacherData?.user_id) {
-      fetchScheduleData();
       fetchTeacherCourses();
     }
-  }, [teacherData, currentWeek]);
+  }, [teacherData]);
+
+  useEffect(() => {
+    if (teacherData?.user_id && teacherCourseIds.length > 0) {
+      fetchScheduleData();
+    }
+  }, [teacherData, currentWeek, teacherCourseIds]);
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -157,18 +163,28 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
       const { data, error } = await supabase
         .from('courses')
         .select('id, course_name, course_code')
-        .eq('instructor_id', teacherData.user_id);
+        .eq('instructor_id', teacherData.user_id)
+        .eq('is_active', true);
 
-      if (!error && data) {
+      if (error) throw error;
+
+      if (data) {
         setCourses(data);
+        setTeacherCourseIds(data.map(c => c.id));
       }
     } catch (error) {
       console.error('Error fetching teacher courses:', error);
+      toast.error('Failed to fetch your courses');
     }
   };
 
   const fetchWeeklySchedule = async () => {
     try {
+      if (teacherCourseIds.length === 0) {
+        setSchedule([]);
+        return;
+      }
+
       const { data: regularSchedule, error: regularError } = await supabase
         .from('class_schedule')
         .select(`
@@ -177,21 +193,24 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
             id,
             course_name,
             course_code,
+            instructor_id,
             enrollments (count)
           )
         `)
-        .eq('courses.instructor_id', teacherData.user_id);
+        .in('course_id', teacherCourseIds);
 
       if (regularError) throw regularError;
 
       let allScheduleData = [];
 
       if (regularSchedule) {
-        const regularScheduleData = regularSchedule.map(schedule => ({
-          ...schedule,
-          is_extra_class: false,
-          class_type: 'regular'
-        }));
+        const regularScheduleData = regularSchedule
+          .filter(schedule => schedule.courses?.instructor_id === teacherData.user_id)
+          .map(schedule => ({
+            ...schedule,
+            is_extra_class: false,
+            class_type: 'regular'
+          }));
         allScheduleData = [...regularScheduleData];
       }
 
@@ -216,7 +235,8 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
           status,
           courses (
             course_name,
-            course_code
+            course_code,
+            instructor_id
           )
         `)
         .eq('teacher_id', teacherData.user_id)
@@ -244,6 +264,7 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
               id: extraClass.course_id,
               course_name: extraClass.courses?.course_name || extraClass.title,
               course_code: extraClass.courses?.course_code || 'EXTRA',
+              instructor_id: extraClass.teacher_id,
               enrollments: []
             }
           };
@@ -265,6 +286,11 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
     const todayDay = today.getDay();
     
     try {
+      if (teacherCourseIds.length === 0) {
+        setTodayClasses([]);
+        return;
+      }
+
       const { data: regularClasses, error: regularError } = await supabase
         .from('class_schedule')
         .select(`
@@ -273,20 +299,23 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
             id,
             course_name,
             course_code,
+            instructor_id,
             enrollments (count)
           )
         `)
-        .eq('courses.instructor_id', teacherData.user_id)
+        .in('course_id', teacherCourseIds)
         .eq('day_of_week', todayDay);
 
       let allTodayClasses = [];
 
       if (!regularError && regularClasses) {
-        const regularClassesData = regularClasses.map(cls => ({
-          ...cls,
-          is_extra_class: false,
-          class_type: 'regular'
-        }));
+        const regularClassesData = regularClasses
+          .filter(cls => cls.courses?.instructor_id === teacherData.user_id)
+          .map(cls => ({
+            ...cls,
+            is_extra_class: false,
+            class_type: 'regular'
+          }));
         allTodayClasses = [...regularClassesData];
       }
 
@@ -307,7 +336,8 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
           status,
           courses (
             course_name,
-            course_code
+            course_code,
+            instructor_id
           )
         `)
         .eq('teacher_id', teacherData.user_id)
@@ -332,6 +362,7 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
             id: extraClass.course_id,
             course_name: extraClass.courses?.course_name || extraClass.title,
             course_code: extraClass.courses?.course_code || 'EXTRA',
+            instructor_id: extraClass.teacher_id,
             enrollments: []
           }
         }));
@@ -349,6 +380,12 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
 
   const generateQRCode = async (classData: any) => {
     try {
+      // Verify teacher owns this course
+      if (!teacherCourseIds.includes(classData.course_id)) {
+        toast.error('You are not authorized to generate QR code for this course');
+        return;
+      }
+
       const now = new Date();
       const currentTime = now.toTimeString().slice(0, 5);
       
@@ -628,6 +665,12 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
 
   const fetchCourseAnalytics = async (courseId: string) => {
     try {
+      // Verify teacher owns this course
+      if (!teacherCourseIds.includes(courseId)) {
+        toast.error('You are not authorized to view analytics for this course');
+        return;
+      }
+
       const { data: enrollments, error: enrollError } = await supabase
         .from('enrollments')
         .select(`
@@ -831,6 +874,12 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
         return;
       }
 
+      // Verify teacher owns this course
+      if (!teacherCourseIds.includes(newSchedule.course_id)) {
+        toast.error('You can only schedule classes for your assigned courses');
+        return;
+      }
+
       if (newSchedule.start_time >= newSchedule.end_time) {
         toast.error('End time must be after start time');
         return;
@@ -868,6 +917,11 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
   };
 
   const canGenerateQRForClass = (classItem: any) => {
+    // Verify teacher owns this course
+    if (!teacherCourseIds.includes(classItem.course_id)) {
+      return false;
+    }
+    
     const now = new Date();
     const currentTime = now.toTimeString().slice(0, 5);
     return currentTime >= classItem.start_time && currentTime <= classItem.end_time;
@@ -917,6 +971,9 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
   return (
     <div className="space-y-6">
       <Tabs defaultValue="schedule" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="schedule">Schedule</TabsTrigger>
+        </TabsList>
 
         <TabsContent value="schedule" className="space-y-6">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">

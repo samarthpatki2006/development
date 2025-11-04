@@ -967,25 +967,6 @@ const UserOnboarding = ({ userProfile }: { userProfile: UserProfile }) => {
                           <td className="px-4 py-3">
                             <div className="space-y-1">
                               {getEmailStatusBadge(record)}
-                              <div className="flex items-center gap-1.5 text-gray-500">
-                                {record.welcome_email_sent && (
-                                  <Button
-                                    className="w-3.5 h-3.5 p-2 bg-blue-100 hover:bg-blue-200 rounded-full"
-                                    title="Message Delivered To User"
-                                  >
-                                    <Mail className="w-3.5 h-3.5 text-blue-800" />
-                                  </Button>
-                                )}
-
-                                {record.welcome_email_opened && (
-                                  <Button
-                                    className="w-3.5 h-3.5 p-2 bg-orange-100 hover:bg-orange-200 rounded-full"
-                                    title="Message Opened By User"
-                                  >
-                                    <Eye className="w-3.5 h-3.5 text-orange-800" />
-                                  </Button>
-                                )}
-                              </div>
                             </div>
                           </td>
                           <td className="px-4 py-3">

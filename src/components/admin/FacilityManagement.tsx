@@ -22,7 +22,8 @@ import {
   CheckCircle,
   XCircle,
   Clock,
-  Filter
+  Filter,
+  Trash2
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -248,6 +249,65 @@ const FacilityManagement = ({ userProfile }: { userProfile: UserProfile }) => {
       });
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+
+  const handleDeleteHostelRoom = async (roomId: string) => {
+    if (!confirm('Are you sure you want to delete this hostel room? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('hostel_rooms')
+        .delete()
+        .eq('id', roomId);
+
+      if (error) throw error;
+
+      setHostelRooms(hostelRooms.filter(room => room.id !== roomId));
+
+      toast({
+        title: "Success",
+        description: "Hostel room deleted successfully.",
+      });
+    } catch (error) {
+      console.error('Error deleting hostel room:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete hostel room. It may have active allocations.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDeleteFacility = async (facilityId: string) => {
+    if (!confirm('Are you sure you want to delete this facility? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('facilities')
+        .delete()
+        .eq('id', facilityId);
+
+      if (error) throw error;
+
+      setFacilities(facilities.filter(facility => facility.id !== facilityId));
+
+      toast({
+        title: "Success",
+        description: "Facility deleted successfully.",
+      });
+    } catch (error) {
+      console.error('Error deleting facility:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete facility. It may have active requests.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -613,6 +673,7 @@ const FacilityManagement = ({ userProfile }: { userProfile: UserProfile }) => {
                       <TableHead>Occupancy</TableHead>
                       <TableHead>Fee</TableHead>
                       <TableHead>Status</TableHead>
+                      <TableHead>Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -629,6 +690,17 @@ const FacilityManagement = ({ userProfile }: { userProfile: UserProfile }) => {
                           <Badge variant={room.is_available ? "default" : "secondary"}>
                             {room.is_available ? "Available" : "Full"}
                           </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Button
+                              size="sm"
+                              variant="outline"
+                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                              onClick={() => handleDeleteHostelRoom(room.id)}
+                              title="Delete/Deactivate User"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </Button>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -789,6 +861,7 @@ const FacilityManagement = ({ userProfile }: { userProfile: UserProfile }) => {
                       <TableHead>Location</TableHead>
                       <TableHead>Capacity</TableHead>
                       <TableHead>Status</TableHead>
+                      <TableHead>Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -802,6 +875,17 @@ const FacilityManagement = ({ userProfile }: { userProfile: UserProfile }) => {
                           <Badge variant={facility.is_available ? "default" : "secondary"}>
                             {facility.is_available ? "Available" : "Maintenance"}
                           </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Button
+                              size="sm"
+                              variant="outline"
+                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                              onClick={() => handleDeleteFacility(facility.id)}
+                              title="Delete Facility"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </Button>
                         </TableCell>
                       </TableRow>
                     ))}

@@ -45,6 +45,7 @@ import TeacherSupport from '@/components/teacher/TeacherSupport';
 import { supabase } from '@/integrations/supabase/client';
 import GradeManager from '@/components/teacher/GradeManager';
 import TeacherExtra from '@/components/teacher/TeacherExtra';
+import ClubAdvisor from '@/components/teacher/ClubAdvisor';
 
 const Teacher = () => {
   const [activeView, setActiveView] = useState('dashboard');
@@ -294,6 +295,7 @@ const Teacher = () => {
     { id: 'gradebook', label: 'Grading', icon: ClipboardList },
     { id: 'extra-classes', label: 'Extra Classes', icon: PlusCircleIcon },
     { id: 'events', label: 'Events', icon: Calendar },
+    // { id: 'club', label: 'Clubs', icon: Users },
     { id: 'performance', label: 'Student Performance', icon: TrendingUp },
     { id: 'communication', label: 'Communication', icon: MessageSquare },
     { id: 'parent-interaction', label: 'Parent Interaction', icon: Users },
@@ -321,6 +323,8 @@ const Teacher = () => {
         return <TeacherExtra teacherData={teacherData} />;
       case 'events':
         return <TeacherEvents teacherData={teacherData} />;
+      case 'club':
+        return <ClubAdvisor teacherData={teacherData} />;
       case 'performance':
         return <TeacherPerformance teacherData={teacherData} />;
       case 'communication':

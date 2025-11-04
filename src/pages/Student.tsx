@@ -121,26 +121,35 @@ const Student = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // NEW: Function to check if user has club access
+  // Function to check if user has club access
   const checkClubAccess = async (userId: string) => {
     try {
       const { data, error } = await supabase
         .from('user_tag_assignments')
         .select(`
           tag_id,
-          user_tags!inner (
+          user_tags (
+            tag_name,
             tag_category
           )
         `)
         .eq('user_id', userId)
         .eq('is_active', true);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching club access:', error);
+        setHasClubAccess(false);
+        return;
+      }
 
+      console.log('User tag assignments:', data); 
+
+      // Check if any tag has category 'club'
       const hasClubTags = data?.some(
-        assignment => assignment.user_tags.tag_category === 'club'
+        assignment => assignment.user_tags?.tag_category === 'student_role'
       );
 
+      console.log('Has club access:', hasClubTags); // Debug log
       setHasClubAccess(hasClubTags || false);
     } catch (error) {
       console.error('Error checking club access:', error);

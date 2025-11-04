@@ -272,7 +272,7 @@ const TeacherParentInteraction = ({ teacherData }: TeacherParentInteractionProps
                       Schedule Meeting
                     </Button>
                   </DialogTrigger>
-                  <DialogContent className="w-[95vw] sm:w-full max-w-lg max-h-[90vh] overflow-y-auto">
+                  <DialogContent className="w-[95vw] sm:w-full max-w-lg max-h-[90vh] overflow-y-auto custom-scrollbar">
                     <DialogHeader>
                       <DialogTitle className="text-base sm:text-lg">Schedule Parent Meeting</DialogTitle>
                     </DialogHeader>
@@ -389,11 +389,11 @@ const TeacherParentInteraction = ({ teacherData }: TeacherParentInteractionProps
                       Create Report
                     </Button>
                   </DialogTrigger>
-                  <DialogContent className="w-[95vw] sm:w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+                  <DialogContent className="w-[95vw] sm:w-full max-w-2xl max-h-[90vh] overflow-y-auto custom-scrollbar">
                     <DialogHeader>
                       <DialogTitle className="text-base sm:text-lg">Create Progress Report</DialogTitle>
                     </DialogHeader>
-                    <div className="space-y-4 max-h-96 overflow-y-auto px-1">
+                    <div className="space-y-4 max-h-96 overflow-y-auto px-1 custom-scrollbar">
                       <Select
                         value={newReport.student_id}
                         onValueChange={(value) => setNewReport({...newReport, student_id: value})}

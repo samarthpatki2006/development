@@ -12,6 +12,15 @@ const categories = [
   { value: "other", label: "Other" }
 ];
 
+const categoryStyles = {
+  books: "bg-white/5 text-white/90 border-white/20",
+  electronics: "bg-white/5 text-white/90 border-white/20",
+  furniture: "bg-white/5 text-white/90 border-white/20",
+  clothing: "bg-white/5 text-white/90 border-white/20",
+  sports: "bg-white/5 text-white/90 border-white/20",
+  other: "bg-white/5 text-white/90 border-white/20"
+};
+
 const conditions = [
   { value: "new", label: "New" },
   { value: "like_new", label: "Like New" },
@@ -258,6 +267,7 @@ const ProductCard = ({ product, onClick }) => {
 };
 
 const ProductDetail = ({ product, onBack, onNavigateToChat }) => {
+  const categoryStyle = categoryStyles[product.category] || categoryStyles.other;
   const firstImage = product.images && product.images.length > 0 ? product.images[0] : null;
   const sellerName = product.seller ? `${product.seller.first_name} ${product.seller.last_name}` : "Anonymous";
   const sellerEmail = product.seller?.email || "";
@@ -793,32 +803,32 @@ const MyListings = ({ onBack, onViewProduct }) => {
   };
 
   return (
-    <div className="space-y-4 sm:space-y-6 p-4 sm:p-6 max-w-7xl mx-auto">
-      <button 
-        onClick={onBack} 
-        className="flex items-center gap-2 text-muted-foreground hover:text-foreground font-medium transition-colors duration-300"
+    <div className="container mx-auto px-6 py-10">
+      <button
+        onClick={onBack}
+        className="flex items-center gap-2 text-white/70 hover:text-white mb-8 font-medium transition-colors duration-300"
       >
         <ArrowLeft className="h-5 w-5" />
         Back to Marketplace
       </button>
 
-      <div className="card-minimal glass-effect border-primary/20 p-6">
-        <h1 className="text-3xl font-bold mb-2 text-foreground">My Listings</h1>
-        <p className="text-muted-foreground">Manage your marketplace items</p>
+      <div className="bg-white/8 rounded-sm p-8 border border-white/15 mb-8">
+        <h1 className="text-4xl font-bold mb-2 text-white">My Listings</h1>
+        <p className="text-lg text-white/60">Manage your marketplace items</p>
       </div>
 
       {loading ? (
         <div className="flex items-center justify-center py-20">
-          <Loader2 className="h-12 w-12 animate-spin text-primary" />
+          <Loader2 className="h-12 w-12 animate-spin text-white" />
         </div>
       ) : myItems.length === 0 ? (
-        <div className="card-minimal text-center py-20">
-          <Package className="h-20 w-20 text-muted-foreground mx-auto mb-4" />
-          <p className="text-2xl font-semibold mb-2 text-foreground">No listings yet</p>
-          <p className="text-muted-foreground mb-6">Start selling by listing your first item!</p>
+        <div className="text-center py-20 bg-white/8 rounded-sm border border-white/15">
+          <Package className="h-20 w-20 text-white/40 mx-auto mb-4" />
+          <p className="text-2xl font-semibold mb-2 text-white">No listings yet</p>
+          <p className="text-white/60 mb-6">Start selling by listing your first item!</p>
           <button
             onClick={onBack}
-            className="bg-primary text-primary-foreground px-8 py-3 rounded-lg font-semibold hover:bg-primary/90 transition-all duration-300 inline-flex items-center gap-2"
+            className="bg-white text-black px-8 py-3 rounded-sm font-semibold hover:bg-white/90 transition-all duration-300 inline-flex items-center gap-2"
           >
             <Plus className="h-5 w-5" />
             List an Item
@@ -827,9 +837,9 @@ const MyListings = ({ onBack, onViewProduct }) => {
       ) : (
         <div className="grid grid-cols-1 gap-6">
           {myItems.map((item) => (
-            <MyListingCard 
-              key={item.id} 
-              item={item} 
+            <MyListingCard
+              key={item.id}
+              item={item}
               onDelete={handleDelete}
               onMarkAsSold={handleMarkAsSold}
               onView={() => onViewProduct(item)}
@@ -842,6 +852,7 @@ const MyListings = ({ onBack, onViewProduct }) => {
 };
 
 const MyListingCard = ({ item, onDelete, onMarkAsSold, onView }) => {
+  const categoryStyle = categoryStyles[item.category] || categoryStyles.other;
   const firstImage = item.images && item.images.length > 0 ? item.images[0] : null;
   const isSold = item.status === "sold";
 

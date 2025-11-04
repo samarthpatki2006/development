@@ -95,10 +95,10 @@ const SidebarNavigation = ({
           "bg-card border-r border-white/10 bg-black flex flex-col transition-all duration-300 ease-in-out",
 
           // Mobile styles
-          "fixed left-0 bottom-0 z-50 w-64 h-[calc(100vh-64px)]",
+          "fixed left-0 bottom-0 z-50 w-64 top-[64px]",
 
           // Desktop styles
-          "md:sticky md:h-[calc(100vh-64px)]",
+          "md:fixed md:h-[calc(100vh-64px)]",
 
           // Width transitions
           collapsed ? "md:w-16" : "md:w-64",
@@ -122,7 +122,7 @@ const SidebarNavigation = ({
 
 
         {/* Navigation Items */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-2">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar p-4 space-y-2">
           {items.map((item) => {
             const Icon = item.icon;
             const isActive = activeItem === item.id;

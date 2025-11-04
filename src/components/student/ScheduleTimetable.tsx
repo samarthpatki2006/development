@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Clock, MapPin, User, BookOpen, ChevronLeft, ChevronRight, Star } from 'lucide-react';
+import { Clock, MapPin, User, BookOpen, ChevronLeft, ChevronRight, Star, BookOpenText, CalendarPlus,CalendarDays } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import PermissionWrapper from '@/components/PermissionWrapper';
@@ -256,8 +256,8 @@ const ScheduleTimetable: React.FC<ScheduleTimetableProps> = ({ studentData }) =>
   };
 
   const getClassPosition = (startTime: string, endTime: string) => {
-    const dayStartMinutes = 8 * 60;
-    const dayEndMinutes = 18 * 60;
+    const dayStartMinutes = 0;
+    const dayEndMinutes = 24 * 60;
     const totalMinutes = dayEndMinutes - dayStartMinutes;
     
     const startMinutes = timeToMinutes(startTime);
@@ -269,15 +269,15 @@ const ScheduleTimetable: React.FC<ScheduleTimetableProps> = ({ studentData }) =>
     
     return {
       top: `${Math.max(0, topPercent)}%`,
-      height: `${Math.max(5, heightPercent)}%`
+      height: `${Math.max(2, heightPercent)}%`
     };
   };
 
   const generateTimeLabels = () => {
     const labels = [];
-    for (let hour = 8; hour <= 18; hour++) {
+    for (let hour = 0; hour < 24; hour++) {
       labels.push({
-        time: `${hour}:00`,
+        time: `${hour.toString().padStart(2, '0')}:00`,
         display: formatTime(`${hour.toString().padStart(2, '0')}:00`)
       });
     }
@@ -333,14 +333,14 @@ const ScheduleTimetable: React.FC<ScheduleTimetableProps> = ({ studentData }) =>
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-8 gap-2 min-h-[600px]">
+                <div className="grid grid-cols-8 gap-2 min-h-[800px]">
                   <div className="space-y-0 relative">
                     <div className="h-12"></div>
                     <div className="relative" style={{ height: 'calc(100% - 48px)' }}>
                       {generateTimeLabels().map((label, index) => (
                         <div 
                           key={label.time}
-                          className="absolute text-xs text-muted-foreground w-full"
+                          className="absolute text-xs text-muted-foreground w-full pr-2 text-right"
                           style={{ 
                             top: `${(index / (generateTimeLabels().length - 1)) * 100}%`,
                             transform: 'translateY(-50%)'
@@ -361,7 +361,7 @@ const ScheduleTimetable: React.FC<ScheduleTimetableProps> = ({ studentData }) =>
                         <div className="text-xs">{date.getDate()}</div>
                       </div>
                       
-                      <div className="relative border rounded-lg" style={{ height: 'calc(100% - 56px)', minHeight: '500px' }}>
+                      <div className="relative border rounded-lg" style={{ height: 'calc(100% - 56px)', minHeight: '700px' }}>
                         {generateTimeLabels().map((_, index) => (
                           <div 
                             key={index}

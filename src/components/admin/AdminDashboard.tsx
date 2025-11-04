@@ -479,9 +479,9 @@ const AdminDashboard = ({ sessionData }: AdminDashboardProps) => {
                   <CardTitle className="text-card-foreground text-lg sm:text-xl">Recent Activities</CardTitle>
                   <CardDescription className="text-sm">Latest system activities and updates</CardDescription>
                 </CardHeader>
-                <CardContent className="h-[calc(100%-100px)] overflow-y-auto overflow-x-hidden scrollbar-thin space-y-3 sm:space-y-4 p-4 sm:p-6 ">
+                <CardContent className="h-[calc(100%-100px)] overflow-y-auto overflow-x-hidden custom-scrollbar space-y-3 sm:space-y-4 p-4 sm:p-6 ">
                   {recentActivities.map((activity, index) => (
-                    <div key={index} className="flex flex-row items-start justify-start space-x-2 p-3 rounded-lg bg-white/5 border border-white/5 hover:bg-white/10 hover:border-white/10 transition-all duration-300 hover:shadow-md hover:shadow-purple-500/5 will-change-transform">
+                    <div key={index} className="flex flex-row items-start justify-start space-x-2 p-3 rounded-lg border border-white/10 hover:border-purple-400/40 hover:bg-white/10 cursor-pointer transition-all duration-300 hover:shadow-lg hover:shadow-purple-500/10 hover:-translate-y-0.5 will-change-transform">
                       <div className="flex-shrink-0">
                         <div className="w-2 h-2 bg-purple-400 rounded-full mt-2 animate-pulse shadow-lg shadow-purple-400/50"></div>
                       </div>
@@ -501,7 +501,7 @@ const AdminDashboard = ({ sessionData }: AdminDashboardProps) => {
                   <CardTitle className="text-card-foreground text-lg sm:text-xl">Quick Actions</CardTitle>
                   <CardDescription className="text-sm">Common administrative tasks</CardDescription>
                 </CardHeader>
-                <CardContent className="h-[calc(100%-100px)] overflow-y-auto overflow-x-hidden scroll-smooth space-y-3 sm:space-y-4 p-4 sm:p-6">
+                <CardContent className="h-[calc(100%-100px)] overflow-y-auto overflow-x-hidden custom-scrollbar space-y-3 sm:space-y-4 p-4 sm:p-6">
                   {quickActions.map((action, index) => {
                     const Icon = action.icon;
                     return (

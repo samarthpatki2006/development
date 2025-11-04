@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from "@/components/ui/use-toast";
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
 import {
   User,
   BookOpen,
@@ -521,7 +522,11 @@ const Parent = () => {
         />
 
         {/* Main Content */}
-        <div className="flex-1 w-full min-w-0 transition-all duration-300 ease-in-out p-3 sm:p-6">
+        <div className={cn(
+          "flex-1 w-full min-w-0 transition-all duration-300 ease-in-out",
+          "px-4 py-4 sm:px-12 sm:py-6 mx-auto",
+          sidebarCollapsed ? "md:ml-16" : "md:ml-64",
+        )}>
           {renderContent()}
         </div>
       </div>

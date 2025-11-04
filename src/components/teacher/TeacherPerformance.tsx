@@ -285,6 +285,7 @@ const TeacherPerformance = ({ teacherData }: TeacherPerformanceProps) => {
 
   const createInterventionPlan = async () => {
     try {
+      // In a real implementation, this would save the intervention plan
       toast({
         title: 'Success',
         description: 'Intervention plan created successfully'

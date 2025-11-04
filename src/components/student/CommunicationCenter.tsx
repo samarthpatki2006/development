@@ -527,7 +527,7 @@ const CommunicationHub = ({ studentData, initialChannelId }) => {
 
   if (loading) {
     return (
-      <div className="h-screen flex items-center justify-center bg-background overflow-hidden">
+      <div className="h-screen flex items-center justify-center bg-background">
         <div className="text-center">
           <div className="w-6 h-6 sm:w-10 sm:h-10 md:w-16 md:h-16 border-4 border-white/20 border-t-white rounded-full animate-spin mx-auto mb-4"></div>
           <p className="text-foreground/70">Loading messages...</p>

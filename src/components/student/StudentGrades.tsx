@@ -306,7 +306,7 @@ const StudentGrades = () => {
   });
 
   return (
-    <div className="space-y-4 sm:space-y-6 px-3 sm:px-4 md:px-6 w-full max-w-full">
+    <div className="space-y-4 sm:space-y-6 px-2 sm:px-0 overflow-x-hidden">
       {/* Overall Grades by Course */}
       <Card className="card-minimal glass-effect border-primary/20 w-full">
         <CardHeader className="border-b border-primary/20 p-4 sm:p-5 md:p-6">

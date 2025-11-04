@@ -477,7 +477,7 @@ const MultiStepLogin = () => {
       {/* Background Grid Pattern */}
       <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.05)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.05)_1px,transparent_1px)] bg-[size:20px_20px]"></div>
       
-      <div className="relative z-10 w-full max-w-md mx-auto px-4 sm:px-6 md:px-0">
+      <div className="elative z-10 w-full max-w-md mx-auto px-4 sm:px-6 md:px-0">
         {/* Hero Section - Compact for mobile */}
         <div className="text-center mb-4 sm:mb-6 animate-fade-in-up">
           <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground mb-2 sm:mb-3 break-words px-2">

@@ -166,8 +166,15 @@ All colors MUST be HSL. Typography follows system font hierarchy.
 
   /* Custom animations for industrial precision */
   @keyframes pulse-indicator {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.5; }
+
+    0%,
+    100% {
+      opacity: 1;
+    }
+
+    50% {
+      opacity: 0.5;
+    }
   }
 
   @keyframes fade-in-up {
@@ -175,6 +182,7 @@ All colors MUST be HSL. Typography follows system font hierarchy.
       opacity: 0;
       transform: translateY(20px);
     }
+
     to {
       opacity: 1;
       transform: translateY(0);
@@ -188,4 +196,18 @@ All colors MUST be HSL. Typography follows system font hierarchy.
   .animate-fade-in-up {
     animation: fade-in-up 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
   }
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.156);
+  border-radius:0px;
+  transition: background-color 0.3s ease;
 }

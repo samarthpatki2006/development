@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from "@/components/ui/use-toast";
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
 import {
   GraduationCap,
   Calendar,
@@ -376,10 +377,6 @@ const Teacher = () => {
 
             {/* Right Section */}
             <div className="flex items-center space-x-2 sm:space-x-3">
-              {/* Greeting (Hidden on Mobile) */}
-              <span className="hidden lg:block text-sm text-muted-foreground truncate max-w-[350px]">
-                Welcome, Prof. {teacherData.first_name} {teacherData.last_name}
-              </span>
 
               {/* Notifications */}
               <div className="relative" ref={notificationRef}>
@@ -542,19 +539,23 @@ const Teacher = () => {
 
       <div className="relative z-10 flex mt-[64px] min-h-[calc(100vh-4rem)]">
         {/* Sidebar */}
-          <SidebarNavigation
-            items={sidebarItems}
-            activeItem={activeView}
-            onItemClick={setActiveView}
-            userType="faculty"
-            collapsed={sidebarCollapsed}
-            mobileOpen={mobileMenuOpen}
-            onMobileClose={() => setMobileMenuOpen(false)}
-          />
+        <SidebarNavigation
+          items={sidebarItems}
+          activeItem={activeView}
+          onItemClick={setActiveView}
+          userType="faculty"
+          collapsed={sidebarCollapsed}
+          mobileOpen={mobileMenuOpen}
+          onMobileClose={() => setMobileMenuOpen(false)}
+        />
 
 
         {/* Main Content */}
-        <div className="flex-1 w-full min-w-0 min-h-[calc(100vh-4rem)] transition-all duration-300 ease-in-out p-3 sm:p-6 mb-100px">
+        <div className={cn(
+          "flex-1 w-full min-w-0 transition-all duration-300 ease-in-out",
+          "px-4 py-4 sm:px-12 sm:py-6 mx-auto",
+          sidebarCollapsed ? "md:ml-16" : "md:ml-64",
+        )}>
           {renderContent()}
         </div>
       </div>

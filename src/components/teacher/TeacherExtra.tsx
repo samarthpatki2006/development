@@ -392,7 +392,7 @@ const TeacherExtra = ({ teacherData }: TeacherEventsProps) => {
                         Schedule Class
                       </Button>
                     </DialogTrigger>
-                    <DialogContent className="max-w-md w-[95vw] sm:w-full max-h-[90vh] overflow-y-auto">
+                    <DialogContent className="max-w-md w-[95vw] sm:w-full max-h-[90vh] overflow-y-auto custom-scrollbar">
                       <DialogHeader>
                         <DialogTitle>Schedule New Class</DialogTitle>
                       </DialogHeader>
@@ -601,7 +601,7 @@ const TeacherExtra = ({ teacherData }: TeacherEventsProps) => {
 
         {/* Edit Dialog */}
         <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-          <DialogContent className="max-w-md w-[95vw] sm:w-full max-h-[90vh] overflow-y-auto">
+          <DialogContent className="max-w-md w-[95vw] sm:w-full max-h-[90vh] overflow-y-auto custom-scrollbar">
             <DialogHeader>
               <DialogTitle>Edit Class</DialogTitle>
             </DialogHeader>

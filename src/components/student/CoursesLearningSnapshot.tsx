@@ -247,6 +247,7 @@ const CoursesLearningSnapshot: React.FC<CoursesLearningSnapshotProps> = ({ stude
         .select('id')
         .eq('course_id', courseId);
 
+      // Get submitted assignments
       const { data: submissions } = await supabase
         .from('assignment_submissions')
         .select('assignment_id')
@@ -270,12 +271,14 @@ const CoursesLearningSnapshot: React.FC<CoursesLearningSnapshotProps> = ({ stude
 
   const fetchCourseDetails = async (courseId: string) => {
     try {
+      // Fetch course materials
       const { data: materials } = await supabase
         .from('lecture_materials')
         .select('*')
         .eq('course_id', courseId)
         .order('uploaded_at', { ascending: false });
 
+      // Fetch assignments
       const { data: assignments } = await supabase
         .from('assignments')
         .select(`
@@ -290,6 +293,7 @@ const CoursesLearningSnapshot: React.FC<CoursesLearningSnapshotProps> = ({ stude
         .eq('course_id', courseId)
         .eq('assignment_submissions.student_id', studentData.user_id);
 
+      // Fetch grades
       const { data: grades } = await supabase
         .from('grades')
         .select('*')
@@ -424,7 +428,7 @@ const CoursesLearningSnapshot: React.FC<CoursesLearningSnapshotProps> = ({ stude
     }
 
     return (
-      <div className="space-y-4 sm:space-y-6">
+      <div className="space-y-4 sm:space-y-6 px-2 sm:px-0 animate-fade-in-up overflow-x-hidden bg-black">
         <Card className="card-minimal glass-effect border-primary/20">
           <CardHeader className="border-b border-primary/20 p-4 sm:p-6">
             <CardTitle className="flex items-center gap-2 text-primary text-base sm:text-lg">
@@ -628,7 +632,7 @@ const CoursesLearningSnapshot: React.FC<CoursesLearningSnapshotProps> = ({ stude
             <CardContent className="p-4 sm:p-6">
               <div className="space-y-3">
                 {courseMaterials.length === 0 ? (
-                  <div className="text-center py-8 text-sm sm:text-base text-muted-foreground">
+                  <div className="text-center py-6 sm:py-8 text-sm sm:text-base text-muted-foreground">
                     No materials available for this course
                   </div>
                 ) : (

@@ -82,10 +82,16 @@ const UserOnboarding = ({ userProfile }: { userProfile: UserProfile }) => {
     return () => clearInterval(interval);
   }, []);
 
+  useEffect(() => {
+    if (onboardingRecords.length > 0) {
+      checkOnboardingStatus();
+    }
+  }, [onboardingRecords.length]);
+
   const loadOnboardingData = async () => {
     try {
       setIsLoading(true);
-      
+
       const { data, error } = await supabase
         .from('user_onboarding')
         .select(`
@@ -429,6 +435,24 @@ const UserOnboarding = ({ userProfile }: { userProfile: UserProfile }) => {
     }
   };
 
+  const checkOnboardingStatus = async () => {
+    try {
+      const pendingRecords = onboardingRecords.filter(record => !record.onboarding_completed);
+      
+      for (const record of pendingRecords) {
+        if (record.user_id) {
+          const { data: userData, error: userError } = await supabase.auth.admin.getUserById(record.user_id);
+          
+          if (!userError && userData.user && userData.user.last_sign_in_at) {
+            await handleMarkOnboardingCompleted(record.id);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error checking onboarding status:', error);
+    }
+  };
+
   const handleViewDetails = (record: UserOnboardingRecord) => {
     setSelectedRecord(record);
     setIsViewDetailsOpen(true);
@@ -607,24 +631,6 @@ const UserOnboarding = ({ userProfile }: { userProfile: UserProfile }) => {
         description: "Failed to process bulk import.",
         variant: "destructive",
       });
-    }
-  };
-
-  const checkOnboardingStatus = async () => {
-    try {
-      const pendingRecords = onboardingRecords.filter(record => !record.onboarding_completed);
-      
-      for (const record of pendingRecords) {
-        if (record.user_id) {
-          const { data: userData, error: userError } = await supabase.auth.admin.getUserById(record.user_id);
-          
-          if (!userError && userData.user && userData.user.last_sign_in_at) {
-            await handleMarkOnboardingCompleted(record.id);
-          }
-        }
-      }
-    } catch (error) {
-      console.error('Error checking onboarding status:', error);
     }
   };
 
@@ -883,7 +889,7 @@ const UserOnboarding = ({ userProfile }: { userProfile: UserProfile }) => {
                     </div>
                     <div className="col-span-2">
                       <Label htmlFor="user_type">User Type</Label>
-                      <Select value={newUserForm.user_type} onValueChange={(value) => setNewUserForm({...newUserForm, user_type: value})}>
+                      <Select value={newUserForm.user_type} onValueChange={(value) => setNewUserForm({ ...newUserForm, user_type: value })}>
                         <SelectTrigger>
                           <SelectValue />
                         </SelectTrigger>
@@ -921,15 +927,15 @@ const UserOnboarding = ({ userProfile }: { userProfile: UserProfile }) => {
                 <CheckCircle className="w-4 h-4" />
                 <span className="inline">Completed ({filteredRecords('completed').length})</span>
               </TabsTrigger>
-              <TabsTrigger value="failed" className="flex items-center space-x-2">
-                <XCircle className="w-4 h-4" />
+              <TabsTrigger value="failed" className="flex items-center space-x-2 ml-2">
+                <XCircle className="w-4 h-4 hidden md:block" />
                 <span className="inline">Failed ({filteredRecords('failed').length})</span>
               </TabsTrigger>
             </TabsList>
 
             {['pending', 'completed', 'failed'].map((status) => (
               <TabsContent key={status} value={status}>
-                <div className="rounded-md border max-h-[350px] sm:max-h-[450px] overflow-auto">
+                <div className="rounded-md border max-h-[350px] sm:max-h-[450px] overflow-auto custom-scrollbar">
                   <table className="w-full text-sm">
                     <thead className="top-0">
                       <tr>
@@ -961,9 +967,24 @@ const UserOnboarding = ({ userProfile }: { userProfile: UserProfile }) => {
                           <td className="px-4 py-3">
                             <div className="space-y-1">
                               {getEmailStatusBadge(record)}
-                              <div className="flex items-center space-x-1 text-xs text-gray-500">
-                                {record.welcome_email_sent && <Mail className="w-3 h-3" />}
-                                {record.welcome_email_opened && <Eye className="w-3 h-3" />}
+                              <div className="flex items-center gap-1.5 text-gray-500">
+                                {record.welcome_email_sent && (
+                                  <Button
+                                    className="w-3.5 h-3.5 p-2 bg-blue-100 hover:bg-blue-200 rounded-full"
+                                    title="Message Delivered To User"
+                                  >
+                                    <Mail className="w-3.5 h-3.5 text-blue-800" />
+                                  </Button>
+                                )}
+
+                                {record.welcome_email_opened && (
+                                  <Button
+                                    className="w-3.5 h-3.5 p-2 bg-orange-100 hover:bg-orange-200 rounded-full"
+                                    title="Message Opened By User"
+                                  >
+                                    <Eye className="w-3.5 h-3.5 text-orange-800" />
+                                  </Button>
+                                )}
                               </div>
                             </div>
                           </td>
@@ -1050,7 +1071,6 @@ const UserOnboarding = ({ userProfile }: { userProfile: UserProfile }) => {
         </CardContent>
       </Card>
 
-      {/* View Details Dialog */}
       {selectedRecord && (
         <Dialog open={isViewDetailsOpen} onOpenChange={setIsViewDetailsOpen}>
           <DialogContent className="max-w-2xl">

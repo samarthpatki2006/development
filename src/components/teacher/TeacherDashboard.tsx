@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { BookOpen, Users, FileText, Calendar, Award, Upload, Loader2 } from 'lucide-react';
+import { BookOpen, Users, FileText, Calendar, Award, Upload } from 'lucide-react';
 import PermissionWrapper from '@/components/PermissionWrapper';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -26,6 +26,16 @@ interface TodayClass {
   courseId: string;
   startTime: string;
   endTime: string;
+}
+
+interface CourseInfo {
+  id: string;
+  course_code: string;
+  course_name: string;
+  credits: number;
+  semester: string;
+  academic_year: string;
+  studentCount: number;
 }
 
 // Recent activities configuration
@@ -72,7 +82,7 @@ const QUICK_ACTIONS = [
     icon: Users,
     color: 'bg-green-50 text-green-600 hover:bg-green-100',
     permission: 'mark_attendance' as const,
-    navigateTo: 'attendance-tracking'
+    navigateTo: 'schedule'
   },
   {
     title: 'Upload Materials',
@@ -100,18 +110,22 @@ const TeacherDashboard = ({ teacherData, onNavigate }: TeacherDashboardProps) =>
     classesThisWeek: 0
   });
   const [todayClasses, setTodayClasses] = useState<TodayClass[]>([]);
-  const [isLoadingClasses, setIsLoadingClasses] = useState(true);
+  const [courses, setCourses] = useState<CourseInfo[]>([]);
 
   useEffect(() => {
-    if (teacherData?.id) {
+    
+    // Try multiple possible ID fields
+    const teacherId = teacherData?.id || teacherData?.user_id;
+    
       fetchTeacherStats();
       fetchTodayClasses();
-    }
-  }, [teacherData?.id]);
+      fetchTeacherCourses();
+  }, [teacherData?.id, teacherData?.user_id]);
 
   const fetchTeacherStats = async () => {
     try {
-      const teacherId = teacherData.id;
+      const teacherId = teacherData?.id || teacherData?.user_id;
+
 
       // Get current academic year and semester
       const currentDate = new Date();
@@ -120,65 +134,79 @@ const TeacherDashboard = ({ teacherData, onNavigate }: TeacherDashboardProps) =>
       const currentSemester = currentMonth >= 7 ? 'Fall' : 'Spring';
       const academicYear = currentMonth >= 7 ? `${currentYear}-${currentYear + 1}` : `${currentYear - 1}-${currentYear}`;
 
+
       // 1. Count courses teaching
-      const { count: coursesCount } = await supabase
+      const { data: coursesData, count: coursesCount, error: coursesError } = await supabase
         .from('courses')
-        .select('*', { count: 'exact', head: true })
-        .eq('instructor_id', teacherId)
-        .eq('is_active', true)
-        .eq('academic_year', academicYear)
-        .eq('semester', currentSemester);
-
-      // 2. Count total unique students
-      const { data: enrollmentsData } = await supabase
-        .from('enrollments')
-        .select('student_id, course_id!inner(instructor_id, is_active, academic_year, semester)')
-        .eq('course_id.instructor_id', teacherId)
-        .eq('course_id.is_active', true)
-        .eq('course_id.academic_year', academicYear)
-        .eq('course_id.semester', currentSemester)
-        .eq('status', 'enrolled');
-
-      const uniqueStudents = new Set(enrollmentsData?.map(e => e.student_id) || []);
-
-      // 3. Count pending assignments
-      const { data: coursesData } = await supabase
-        .from('courses')
-        .select('id')
+        .select('*', { count: 'exact' })
         .eq('instructor_id', teacherId)
         .eq('is_active', true);
 
+
+      // 2. Count total unique students across all courses
       const courseIds = coursesData?.map(c => c.id) || [];
-      let pendingCount = 0;
+      let totalStudents = 0;
 
       if (courseIds.length > 0) {
-        const { count } = await supabase
-          .from('assignment_submissions')
-          .select('*, assignment_id!inner(course_id)', { count: 'exact', head: true })
-          .in('assignment_id.course_id', courseIds)
-          .is('marks_obtained', null);
-        pendingCount = count || 0;
+        const { data: enrollmentsData, error: enrollError } = await supabase
+          .from('enrollments')
+          .select('student_id')
+          .in('course_id', courseIds)
+          .eq('status', 'enrolled');
+
+          const uniqueStudents = new Set(enrollmentsData?.map(e => e.student_id) || []);
+          totalStudents = uniqueStudents.size;
       }
 
-      // 4. Count classes this week
-      const today = new Date();
+      // 3. Count pending assignments (submissions without grades)
+      let pendingCount = 0;
+      if (courseIds.length > 0) {
+        const { data: assignmentsData, error: assignError } = await supabase
+          .from('assignments')
+          .select('id')
+          .in('course_id', courseIds);
+
+        if (assignError) {
+          console.error('Assignments query error:', assignError);
+        } else {
+          const assignmentIds = assignmentsData?.map(a => a.id) || [];
+
+          if (assignmentIds.length > 0) {
+            const { count, error: subError } = await supabase
+              .from('assignment_submissions')
+              .select('*', { count: 'exact', head: true })
+              .in('assignment_id', assignmentIds)
+              .is('marks_obtained', null);
+            
+            if (subError) {
+              console.error('Submissions query error:', subError);
+            } else {
+              console.log('Pending submissions count:', count);
+              pendingCount = count || 0;
+            }
+          }
+        }
+      }
+
+      // 4. Count classes this week from timetable_slots
       const daysThisWeek = Array.from({ length: 7 }, (_, i) => i);
 
-      const { count: classesCount } = await supabase
+      const { data: slotsData, count: classesCount, error: slotsError } = await supabase
         .from('timetable_slots')
-        .select('*', { count: 'exact', head: true })
+        .select('*', { count: 'exact' })
         .eq('instructor_id', teacherId)
         .eq('is_active', true)
-        .eq('academic_year', academicYear)
-        .eq('semester', currentSemester)
         .in('day_of_week', daysThisWeek);
 
-      setStats({
+
+      const newStats = {
         coursesTeaching: coursesCount || 0,
-        totalStudents: uniqueStudents.size,
+        totalStudents: totalStudents,
         pendingAssignments: pendingCount,
         classesThisWeek: classesCount || 0
-      });
+      };
+
+      setStats(newStats);
     } catch (error) {
       console.error('Error fetching teacher stats:', error);
     }
@@ -186,103 +214,114 @@ const TeacherDashboard = ({ teacherData, onNavigate }: TeacherDashboardProps) =>
 
   const fetchTodayClasses = async () => {
     try {
-      setIsLoadingClasses(true);
-      const teacherId = teacherData.id;
+      const teacherId = teacherData?.id || teacherData?.user_id;
+      
+      if (!teacherId) {
+        console.error('Cannot fetch today classes: No teacher ID available');
+        return;
+      }
+      
       const today = new Date();
       const dayOfWeek = today.getDay();
       const todayDate = today.toISOString().split('T')[0];
 
-      const currentYear = today.getFullYear();
-      const currentMonth = today.getMonth();
-      const currentSemester = currentMonth >= 7 ? 'Fall' : 'Spring';
-      const academicYear = currentMonth >= 7 ? `${currentYear}-${currentYear + 1}` : `${currentYear - 1}-${currentYear}`;
 
-      // Fetch regular timetable slots
-      const { data: timetableData } = await supabase
+      // Fetch regular timetable slots - simplified query first, then join manually
+      const { data: timetableData, error: timetableError } = await supabase
         .from('timetable_slots')
-        .select(`
-          *,
-          course_id (
-            id,
-            course_name,
-            course_code
-          ),
-          room_id (
-            room_number,
-            building
-          )
-        `)
+        .select('*')
         .eq('instructor_id', teacherId)
         .eq('day_of_week', dayOfWeek)
         .eq('is_active', true)
-        .eq('academic_year', academicYear)
-        .eq('semester', currentSemester)
         .order('start_time', { ascending: true });
 
+
       // Fetch extra classes for today
-      const { data: extraClassesData } = await supabase
+      const { data: extraClassesData, error: extraError } = await supabase
         .from('extra_class_schedule')
-        .select(`
-          *,
-          course_id (
-            id,
-            course_name,
-            course_code
-          )
-        `)
+        .select('*')
         .eq('teacher_id', teacherId)
         .eq('scheduled_date', todayDate)
         .eq('status', 'scheduled')
         .order('start_time', { ascending: true });
 
+
       const allClasses: TodayClass[] = [];
 
       // Process regular timetable slots
-      if (timetableData) {
+      if (timetableData && timetableData.length > 0) {
         for (const slot of timetableData) {
-          const { count: studentCount } = await supabase
-            .from('enrollments')
-            .select('*', { count: 'exact', head: true })
-            .eq('course_id', slot.course_id.id)
-            .eq('status', 'enrolled');
+          // Fetch course details
+          const { data: courseData } = await supabase
+            .from('courses')
+            .select('id, course_name, course_code')
+            .eq('id', slot.course_id)
+            .single();
 
-          const roomLocation = slot.room_id 
-            ? `${slot.room_id.building ? slot.room_id.building + ' - ' : ''}Room ${slot.room_id.room_number}`
-            : 'TBA';
+          // Fetch room details
+          const { data: roomData } = await supabase
+            .from('rooms')
+            .select('room_number, building')
+            .eq('id', slot.room_id)
+            .single();
 
-          allClasses.push({
-            course: `${slot.course_id.course_code} - ${slot.course_id.course_name}`,
-            time: `${formatTime(slot.start_time)} - ${formatTime(slot.end_time)}`,
-            room: roomLocation,
-            students: studentCount || 0,
-            courseId: slot.course_id.id,
-            startTime: slot.start_time,
-            endTime: slot.end_time
-          });
+          if (courseData) {
+            // Get student count
+            const { count: studentCount } = await supabase
+              .from('enrollments')
+              .select('*', { count: 'exact', head: true })
+              .eq('course_id', courseData.id)
+              .eq('status', 'enrolled');
+
+            const roomLocation = roomData 
+              ? `${roomData.building ? roomData.building + ' - ' : ''}Room ${roomData.room_number}`
+              : 'TBA';
+
+            allClasses.push({
+              course: `${courseData.course_code} - ${courseData.course_name}`,
+              time: `${formatTime(slot.start_time)} - ${formatTime(slot.end_time)}`,
+              room: roomLocation,
+              students: studentCount || 0,
+              courseId: courseData.id,
+              startTime: slot.start_time,
+              endTime: slot.end_time
+            });
+          }
         }
       }
 
       // Process extra classes
-      if (extraClassesData) {
+      if (extraClassesData && extraClassesData.length > 0) {
         for (const extraClass of extraClassesData) {
+          let courseInfo = null;
           let studentCount = 0;
+
           if (extraClass.course_id) {
-            const { count } = await supabase
-              .from('enrollments')
-              .select('*', { count: 'exact', head: true })
-              .eq('course_id', extraClass.course_id.id)
-              .eq('status', 'enrolled');
-            studentCount = count || 0;
+            const { data: courseData } = await supabase
+              .from('courses')
+              .select('id, course_name, course_code')
+              .eq('id', extraClass.course_id)
+              .single();
+
+            if (courseData) {
+              courseInfo = courseData;
+              const { count } = await supabase
+                .from('enrollments')
+                .select('*', { count: 'exact', head: true })
+                .eq('course_id', courseData.id)
+                .eq('status', 'enrolled');
+              studentCount = count || 0;
+            }
           }
 
           allClasses.push({
-            course: extraClass.course_id 
-              ? `${extraClass.course_id.course_code} - ${extraClass.course_id.course_name} (${extraClass.class_type})`
+            course: courseInfo 
+              ? `${courseInfo.course_code} - ${courseInfo.course_name} (${extraClass.class_type})`
               : `${extraClass.title} (${extraClass.class_type})`,
             time: `${formatTime(extraClass.start_time)} - ${formatTime(extraClass.end_time)}`,
             room: extraClass.room_location || 'TBA',
             students: studentCount,
-            courseId: extraClass.course_id?.id || '',
+            courseId: courseInfo?.id || '',
             startTime: extraClass.start_time,
             endTime: extraClass.end_time
           });
@@ -293,8 +332,57 @@ const TeacherDashboard = ({ teacherData, onNavigate }: TeacherDashboardProps) =>
       setTodayClasses(allClasses);
     } catch (error) {
       console.error('Error fetching today classes:', error);
-    } finally {
-      setIsLoadingClasses(false);
+    }
+  };
+
+  const fetchTeacherCourses = async () => {
+    try {
+      const teacherId = teacherData?.id || teacherData?.user_id;
+      
+      if (!teacherId) {
+        return;
+      }
+      
+
+      // Fetch courses taught by this teacher
+      const { data: coursesData, error } = await supabase
+        .from('courses')
+        .select('*')
+        .eq('instructor_id', teacherId)
+        .eq('is_active', true)
+        .order('course_code', { ascending: true });
+
+      if (error) {
+        console.error('Courses error:', error);
+        throw error;
+      }
+
+
+      // Fetch student count for each course
+      const coursesWithCounts = await Promise.all(
+        (coursesData || []).map(async (course) => {
+          const { count } = await supabase
+            .from('enrollments')
+            .select('*', { count: 'exact', head: true })
+            .eq('course_id', course.id)
+            .eq('status', 'enrolled');
+
+
+          return {
+            id: course.id,
+            course_code: course.course_code,
+            course_name: course.course_name,
+            credits: course.credits || 0,
+            semester: course.semester,
+            academic_year: course.academic_year,
+            studentCount: count || 0
+          };
+        })
+      );
+
+      setCourses(coursesWithCounts);
+    } catch (error) {
+      console.error('Error fetching teacher courses:', error);
     }
   };
 
@@ -393,7 +481,7 @@ const TeacherDashboard = ({ teacherData, onNavigate }: TeacherDashboardProps) =>
     return (
       <PermissionWrapper key={index} permission={action.permission}>
         <div
-          className="flex flex-row items-start justify-start space-x-4 p-4 rounded-lg bg-white/5 border border-white/5 hover:bg-white/10 hover:border-white/10 transition-all duration-300 hover:shadow-md hover:shadow-green-500/5 will-change-transform cursor-pointer"
+          className="flex flex-row items-center justify-start space-x-4 p-4 rounded-lg border border-white/10 hover:border-blue-400/40 hover:bg-white/10 cursor-pointer transition-all duration-300 hover:shadow-lg hover:shadow-blue-500/10 hover:-translate-y-0.5 will-change-transform"
           onClick={() => handleQuickActionClick(action.navigateTo, action.title)}
         >
           <div className={`flex-shrink-0 p-2 ${action.color} transition-colors flex items-start self-start mt-1 mr-2`}>
@@ -421,7 +509,7 @@ const TeacherDashboard = ({ teacherData, onNavigate }: TeacherDashboardProps) =>
             size="sm"
             variant="outline"
             onClick={handleAttendanceClick}
-            className="transition-colors"
+            className="hover:bg-role-teacher/10 hover:text-role-teacher hover:border-role-teacher/20 will-change-transform"
           >
             Mark Attendance
           </Button>
@@ -431,15 +519,15 @@ const TeacherDashboard = ({ teacherData, onNavigate }: TeacherDashboardProps) =>
   );
 
   return (
-    <div className="space-y-6">
+    <div className="animate-fade-in-up space-y-6 bg-black">
       {/* Welcome Section */}
-      <Card>
+      <Card className="border-0 border-b border-white/10 bg-black/20 backdrop-blur-md">
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
-            <span>Welcome, Prof. {teacherData.first_name} {teacherData.last_name}!</span>
+            <span>Welcome, Prof. {teacherData?.first_name} {teacherData?.last_name}!</span>
           </CardTitle>
           <CardDescription>
-            Teacher ID: {teacherData.user_code} | Department:
+            Teacher ID: {teacherData?.user_code}
           </CardDescription>
           <Badge className="bg-blue-600/30 text-blue-100 border border-blue-300/40 font-bold px-5 py-1.5 w-fit self-start md:self-auto rounded-full hover:bg-blue-600/40 hover:border-blue-300/60 hover:cursor-pointer hover:shadow-[0_0_20px_rgba(59,130,246,0.4)] transition-all duration-300 mt-4">
             FACULTY
@@ -454,31 +542,31 @@ const TeacherDashboard = ({ teacherData, onNavigate }: TeacherDashboardProps) =>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Recent Activities */}
-        <Card className="h-[450px] sm:h-[510px] border-white/20 bg-gradient-to-br from-card/60 to-card/40 backdrop-blur-md shadow-2xl overflow-hidden group">
-          <CardHeader className="sticky top-0 z-10 bg-gradient-to-b from-card/95 to-card/80 backdrop-blur-sm border-b border-white/10 pb-4">
+        <Card className="h-[450px] sm:h-[510px] border-white/20 bg-gradient-to-br from-card/60 to-card/40 overflow-hidden pb-2">
+          <CardHeader className="sticky top-0 z-10 bg-neutral-800 border-b border-white/10 pb-4">
             <CardTitle className="text-card-foreground text-lg sm:text-xl">Recent Activities</CardTitle>
             <CardDescription className="text-sm">Your latest teaching activities</CardDescription>
           </CardHeader>
-          <CardContent className="h-[calc(100%-100px)] overflow-y-auto overflow-x-hidden scrollbar-thin space-y-3 sm:space-y-4 p-4 sm:p-6">
+          <CardContent className="h-[calc(100%-100px)] custom-scrollbar overflow-x-hidden space-y-3 sm:space-y-4 p-4 sm:p-6">
             {RECENT_ACTIVITIES.map(renderActivity)}
           </CardContent>
         </Card>
 
         {/* Quick Actions */}
-        <Card className="h-[450px] sm:h-[510px] border-white/20 bg-gradient-to-br from-card/60 to-card/40 backdrop-blur-md shadow-2xl overflow-hidden group">
-          <CardHeader className="sticky top-0 z-10 bg-gradient-to-b from-card/95 to-card/80 backdrop-blur-sm border-b border-white/10 pb-4">
+        <Card className="h-[450px] sm:h-[510px] border-white/20 bg-gradient-to-br from-card/60 to-card/40 overflow-hidden">
+          <CardHeader className="sticky top-0 z-10 bg-gradient-to-b from-card/95 to-card/80 backdrop-blur-sm bg-neutral-800 border-b border-white/10 pb-4">
             <CardTitle className="text-card-foreground text-lg sm:text-xl">Quick Actions</CardTitle>
             <CardDescription className="text-sm">Commonly used features - click to navigate</CardDescription>
           </CardHeader>
-          <CardContent className="h-[calc(100%-100px)] overflow-y-auto overflow-x-hidden scroll-smooth space-y-3 sm:space-y-4 p-4 sm:p-6">
+          <CardContent className="h-[calc(100%-100px)] custom-scrollbar overflow-x-hidden space-y-3 sm:space-y-4 p-4 sm:p-6">
             {QUICK_ACTIONS.map(renderQuickAction)}
           </CardContent>
         </Card>
       </div>
 
       {/* Teaching Schedule */}
-      <PermissionWrapper permission="mark_attendance">
-        <Card>
+      {/* <PermissionWrapper permission="mark_attendance">
+        <Card className="border-white/10 bg-card/50 backdrop-blur-sm">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               Today's Classes
@@ -486,11 +574,7 @@ const TeacherDashboard = ({ teacherData, onNavigate }: TeacherDashboardProps) =>
             <CardDescription>Your scheduled classes for today</CardDescription>
           </CardHeader>
           <CardContent>
-            {isLoadingClasses ? (
-              <div className="flex items-center justify-center p-8">
-                <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
-              </div>
-            ) : todayClasses.length > 0 ? (
+            {todayClasses.length > 0 ? (
               <div className="space-y-3">
                 {todayClasses.map(renderClassItem)}
               </div>
@@ -498,6 +582,65 @@ const TeacherDashboard = ({ teacherData, onNavigate }: TeacherDashboardProps) =>
               <div className="text-center p-8 text-muted-foreground">
                 <Calendar className="h-12 w-12 mx-auto mb-3 opacity-50" />
                 <p>No classes scheduled for today</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </PermissionWrapper> */}
+
+      {/* My Courses */}
+      <PermissionWrapper permission="review_assignments">
+        <Card className="border-white/10 bg-card/50 backdrop-blur-sm">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <BookOpen className="h-5 w-5" />
+              My Courses
+            </CardTitle>
+            <CardDescription>Courses you are teaching this semester</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {courses.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {courses.map((course) => (
+                  <Card key={course.id} className="hover:shadow-lg transition-shadow border-white/10 bg-gradient-to-br from-card/60 to-card/40">
+                    <CardHeader className="pb-3">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <CardTitle className="text-base font-semibold text-card-foreground">
+                            {course.course_code}
+                          </CardTitle>
+                          <CardDescription className="text-sm mt-1 line-clamp-2">
+                            {course.course_name}
+                          </CardDescription>
+                        </div>
+                        <Badge variant="secondary" className="ml-2 shrink-0">
+                          {course.credits} Credits
+                        </Badge>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="pt-0">
+                      <div className="flex items-center justify-between text-sm">
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                          <Users className="h-4 w-4" />
+                          <span>{course.studentCount} Students</span>
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => onNavigate && onNavigate('courses')}
+                          className="hover:bg-blue-500/10 hover:text-blue-400"
+                        >
+                          View Details
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center p-8 text-muted-foreground">
+                <BookOpen className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                <p>No courses assigned for this semester</p>
               </div>
             )}
           </CardContent>

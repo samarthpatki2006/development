@@ -470,7 +470,7 @@ const TeacherRecognition = ({ teacherData }: TeacherRecognitionProps) => {
                         New Application
                       </Button>
                     </DialogTrigger>
-                    <DialogContent className="max-w-[95vw] sm:max-w-lg max-h-[90vh] overflow-y-auto">
+                    <DialogContent className="max-w-[95vw] sm:max-w-lg max-h-[90vh] overflow-y-auto custom-scrollbar">
                       <DialogHeader>
                         <DialogTitle className="text-base sm:text-lg">Submit New Application</DialogTitle>
                       </DialogHeader>

@@ -285,7 +285,7 @@ const EventManagement = ({ userProfile }: { userProfile: UserProfile }) => {
                 <span>Event & Community Management</span>
               </CardTitle>
               <CardDescription className='mt-2'>
-                Organize and manage upcoming campus events, workshops, and community activities.
+                Organize and manage campus events, workshops, and community activities.
               </CardDescription>
             </div>
             <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
@@ -295,7 +295,7 @@ const EventManagement = ({ userProfile }: { userProfile: UserProfile }) => {
                   Create Event
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-2xl w-[95vw] max-h-[90vh] overflow-y-auto">
+              <DialogContent className="max-w-2xl w-[95vw] max-h-[90vh] overflow-y-auto custom-scrollbar">
                 <DialogHeader>
                   <DialogTitle>New Event</DialogTitle>
                   <DialogDescription>
@@ -426,7 +426,7 @@ const EventManagement = ({ userProfile }: { userProfile: UserProfile }) => {
 
           {/* Events Table */}
           {filteredEvents.length > 0 ? (
-            <div className="rounded-md border max-h-[350px] sm:max-h-[450px] overflow-auto">
+            <div className="rounded-md border max-h-[350px] sm:max-h-[450px] overflow-auto custom-scrollbar">
               <Table>
                 <TableHeader>
                   <TableRow>

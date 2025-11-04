@@ -137,20 +137,12 @@ const QuestionEditor = ({
 
         {question.question_type === 'true_false' && (
           <div className="space-y-2">
-<<<<<<< HEAD
-            <Label>Correct Answer</Label>
-=======
             <Label className="text-xs sm:text-sm">Correct Answer</Label>
->>>>>>> samarth-pr
             <Select
               value={question.correct_answer}
               onValueChange={(value) => updateQuestion(question.id, 'correct_answer', value)}
             >
-<<<<<<< HEAD
-              <SelectTrigger className="bg-background/50 border-primary/20 focus:border-accent">
-=======
               <SelectTrigger className="bg-background/50 border-primary/20 focus:border-accent text-sm">
->>>>>>> samarth-pr
                 <SelectValue placeholder="Select correct answer" />
               </SelectTrigger>
               <SelectContent>

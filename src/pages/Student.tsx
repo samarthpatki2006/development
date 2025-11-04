@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from "@/components/ui/use-toast";
+import { cn } from '@/lib/utils';
 import {
   BookOpen,
   Calendar,
@@ -454,10 +455,6 @@ const Student = () => {
 
             {/* Right Section */}
             <div className="flex items-center space-x-2 sm:space-x-3">
-              {/* Greeting (Hidden on Mobile) */}
-              <span className="hidden lg:block text-sm text-muted-foreground truncate max-w-[350px]">
-                Welcome, {studentData.first_name} {studentData.last_name}
-              </span>
 
               {/* Notifications */}
               <div className="relative" ref={notificationRef}>
@@ -634,7 +631,11 @@ const Student = () => {
         />
 
         {/* Main Content */}
-        <div className={`flex-1 w-full min-w-0 transition-all duration-300 ease-in-out ${isFullWidthView() ? '' : 'p-3 sm:p-6'}`}>
+        <div className={cn(
+          "flex-1 w-full min-w-0 transition-all duration-300 ease-in-out",
+          "px-4 py-4 sm:px-12 sm:py-6 mx-auto",
+          sidebarCollapsed ? "md:ml-16" : "md:ml-64",
+        )}>
           {renderContent()}
         </div>
       </div>

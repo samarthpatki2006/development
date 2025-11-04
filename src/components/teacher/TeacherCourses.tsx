@@ -660,7 +660,7 @@ const TeacherCourses = ({ teacherData }: TeacherCoursesProps) => {
           </CardHeader>
           <CardContent>
             <Tabs defaultValue="materials" className="w-full">
-              <div className="w-full overflow-x-auto overflow-y-visible -mx-2 px-2 md:mx-0 md:px-0">
+              <div className="w-full overflow-x-auto overflow-y-visible -mx-2 px-2 md:mx-0 md:px-0 custom-scrollbar">
                 <TabsList className="inline-flex md:grid w-max md:w-full md:grid-cols-6 h-auto flex-nowrap md:flex-wrap gap-1 p-1">
                   <TabsTrigger value="materials" className="text-xs sm:text-sm whitespace-nowrap flex-shrink-0">Materials</TabsTrigger>
                   <TabsTrigger value="quizzes" className="text-xs sm:text-sm whitespace-nowrap flex-shrink-0">Quiz List</TabsTrigger>
@@ -1237,11 +1237,11 @@ const TeacherCourses = ({ teacherData }: TeacherCoursesProps) => {
                                 <div className="space-y-3">
                                   <div>
                                     <p className="text-xs sm:text-sm font-medium mb-1">Student's Essay:</p>
-                                    <div className="p-2 sm:p-3 bg-gray-50 border rounded min-h-[100px] text-xs sm:text-sm whitespace-pre-wrap">
+                                    <div className="p-2 sm:p-3 border rounded min-h-[100px] text-xs sm:text-sm whitespace-pre-wrap">
                                       {studentAnswer || <em className="text-muted-foreground">No answer provided</em>}
                                     </div>
                                   </div>
-                                  <div className="p-2 bg-yellow-50 border border-yellow-200 rounded">
+                                  <div className="p-2 border border-yellow-200 rounded">
                                     <p className="text-xs text-yellow-800">
                                       <strong>Note:</strong> Essay questions require manual grading. Please assign an appropriate score below.
                                     </p>
@@ -1260,7 +1260,7 @@ const TeacherCourses = ({ teacherData }: TeacherCoursesProps) => {
                                       type="number"
                                       min="0"
                                       max={question.marks || 1}
-                                      step="0.5"
+                                      step="1"
                                       value={currentScore}
                                       onChange={(e) => updateQuestionScore(question.id, e.target.value, question.marks || 1)}
                                       className="w-20 text-sm"

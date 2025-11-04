@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { CheckCircle, XCircle, AlertTriangle, MapPin, Clock, Hash, Scan, QrCode as QrCodeIcon, AlertCircle } from 'lucide-react';
+import { CheckCircle, XCircle, AlertTriangle, Clock, Hash, Scan, QrCode as QrCodeIcon, AlertCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import QrScanner from 'qr-scanner';
@@ -35,8 +35,6 @@ const AttendanceOverview: React.FC<AttendanceOverviewProps> = ({ studentData }) 
   const [sessionCode, setSessionCode] = useState('');
   const [isScanning, setIsScanning] = useState(false);
   const [markingLoading, setMarkingLoading] = useState(false);
-  const [locationPermission, setLocationPermission] = useState<'granted' | 'denied' | 'prompt'>('prompt');
-  const [currentLocation, setCurrentLocation] = useState<{latitude: number, longitude: number} | null>(null);
   const [todayAttendance, setTodayAttendance] = useState<any[]>([]);
   const [activeSessions, setActiveSessions] = useState<any[]>([]);
   const [scanDialogOpen, setScanDialogOpen] = useState(false);
@@ -47,7 +45,6 @@ const AttendanceOverview: React.FC<AttendanceOverviewProps> = ({ studentData }) 
     if (studentData?.user_id) {
       fetchAttendanceData();
       fetchCourses();
-      checkLocationPermission();
       fetchTodayAttendance();
       fetchActiveSessions();
       
@@ -79,65 +76,6 @@ const AttendanceOverview: React.FC<AttendanceOverviewProps> = ({ studentData }) 
       }
     };
   }, [isScanning, videoRef]);
-
-  const checkLocationPermission = async () => {
-    if ('geolocation' in navigator) {
-      try {
-        const permission = await navigator.permissions.query({ name: 'geolocation' });
-        setLocationPermission(permission.state);
-        
-        if (permission.state === 'granted') {
-          getCurrentLocation();
-        }
-      } catch (error) {
-        console.error('Permission check error:', error);
-      }
-    }
-  };
-
-  const getCurrentLocation = (): Promise<{latitude: number, longitude: number}> => {
-    return new Promise((resolve, reject) => {
-      if (!('geolocation' in navigator)) {
-        reject(new Error('Geolocation not supported'));
-        return;
-      }
-
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const location = {
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude
-          };
-          setCurrentLocation(location);
-          resolve(location);
-        },
-        (error) => {
-          console.error('Location error:', error);
-          reject(error);
-        },
-        {
-          enableHighAccuracy: true,
-          timeout: 10000,
-          maximumAge: 0
-        }
-      );
-    });
-  };
-
-  const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
-    const R = 6371e3;
-    const φ1 = lat1 * Math.PI / 180;
-    const φ2 = lat2 * Math.PI / 180;
-    const Δφ = (lat2 - lat1) * Math.PI / 180;
-    const Δλ = (lon2 - lon1) * Math.PI / 180;
-
-    const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
-              Math.cos(φ1) * Math.cos(φ2) *
-              Math.sin(Δλ/2) * Math.sin(Δλ/2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-
-    return R * c;
-  };
 
   const fetchTodayAttendance = async () => {
     try {
@@ -237,7 +175,7 @@ const AttendanceOverview: React.FC<AttendanceOverviewProps> = ({ studentData }) 
     }
   };
 
-  const markAttendance = async (code: string, studentLocation: {latitude: number, longitude: number}) => {
+  const markAttendance = async (code: string) => {
     try {
       setMarkingLoading(true);
 
@@ -295,26 +233,6 @@ const AttendanceOverview: React.FC<AttendanceOverviewProps> = ({ studentData }) 
         return;
       }
 
-      // Verify location
-      const instructorLocation = session.instructor_location;
-      
-      if (!instructorLocation || !instructorLocation.latitude || !instructorLocation.longitude) {
-        toast.error('Unable to verify location. Please try again.');
-        return;
-      }
-
-      const distance = calculateDistance(
-        studentLocation.latitude,
-        studentLocation.longitude,
-        instructorLocation.latitude,
-        instructorLocation.longitude
-      );
-
-      if (distance > 15) {
-        toast.error(`You are too far from the classroom (${Math.round(distance)}m away). Must be within 15m.`);
-        return;
-      }
-
       // Determine status based on time
       const now = new Date();
       const currentTime = now.toTimeString().slice(0, 5);
@@ -353,11 +271,7 @@ const AttendanceOverview: React.FC<AttendanceOverviewProps> = ({ studentData }) 
           session_id: session.id,
           marked_by: studentData.user_id,
           marked_at: new Date().toISOString(),
-          location_verified: true,
           device_info: {
-            latitude: studentLocation.latitude,
-            longitude: studentLocation.longitude,
-            distance: Math.round(distance),
             timestamp: new Date().toISOString(),
             minutes_since_start: elapsedMinutes
           }
@@ -387,66 +301,16 @@ const AttendanceOverview: React.FC<AttendanceOverviewProps> = ({ studentData }) 
       return;
     }
 
-    if (locationPermission !== 'granted') {
-      const granted = await requestLocationPermission();
-      if (!granted) return;
-    }
-
-    try {
-      const location = await getCurrentLocation();
-      await markAttendance(sessionCode, location);
-    } catch (error) {
-      toast.error('Unable to get your location. Please enable location services.');
-    }
+    await markAttendance(sessionCode);
   };
 
   const handleQRScan = async (code: string) => {
-    if (locationPermission !== 'granted') {
-      const granted = await requestLocationPermission();
-      if (!granted) {
-        setScanDialogOpen(false);
-        return;
-      }
-    }
-
-    try {
-      const location = await getCurrentLocation();
-      await markAttendance(code, location);
-    } catch (error) {
-      toast.error('Unable to get your location. Please enable location services.');
-    }
-  };
-
-  const requestLocationPermission = async (): Promise<boolean> => {
-    try {
-      await getCurrentLocation();
-      setLocationPermission('granted');
-      toast.success('Location access granted');
-      return true;
-    } catch (error) {
-      setLocationPermission('denied');
-      toast.error('Location access is required to mark attendance');
-      return false;
-    }
+    await markAttendance(code);
   };
 
   const startScanning = () => {
-    if (locationPermission === 'denied') {
-      toast.error('Please enable location services in your browser settings');
-      return;
-    }
-    
-    if (locationPermission === 'prompt') {
-      requestLocationPermission().then(granted => {
-        if (granted) {
-          setScanDialogOpen(true);
-          setIsScanning(true);
-        }
-      });
-    } else {
-      setScanDialogOpen(true);
-      setIsScanning(true);
-    }
+    setScanDialogOpen(true);
+    setIsScanning(true);
   };
 
   const fetchCourses = async () => {
@@ -660,7 +524,7 @@ const AttendanceOverview: React.FC<AttendanceOverviewProps> = ({ studentData }) 
   }
 
   return (
-    <div className="space-y-4 sm:space-y-6 px-3 sm:px-4 md:px-6 w-full max-w-full">
+    <div className="space-y-4 sm:space-y-6 px-2 sm:px-0 overflow-x-hidden">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4">
         <div className="w-full sm:w-auto">
           <h2 className="text-xl sm:text-2xl md:text-3xl font-bold">Attendance Overview</h2>
@@ -742,25 +606,10 @@ const AttendanceOverview: React.FC<AttendanceOverviewProps> = ({ studentData }) 
         </TabsList>
 
         <TabsContent value="mark" className="space-y-6">
-          <Alert className={locationPermission === 'granted' ? 'border-green-200 bg-green-50' : 'border-yellow-200 bg-yellow-50'}>
-            <MapPin className={`h-4 w-4 ${locationPermission === 'granted' ? 'text-green-600' : 'text-yellow-600'}`} />
-            <AlertDescription>
-              {locationPermission === 'granted' ? (
-                <span className="text-green-800">
-                  Location access enabled • Required for attendance marking
-                </span>
-              ) : (
-                <span className="text-yellow-800">
-                  Location access required • Click "Enable Location" to mark attendance
-                </span>
-              )}
-            </AlertDescription>
-          </Alert>
-
           <Alert>
             <AlertCircle className="h-4 w-4" />
-            <AlertDescription >
-              <strong>Attendance Rules:</strong> Mark within first 10 minutes for full credit (Present). After 10 minutes = Late (0.5x credit). Must be within 15m of instructor.
+            <AlertDescription>
+              <strong>Attendance Rules:</strong> Mark within first 10 minutes for full credit (Present). After 10 minutes = Late (0.5x credit).
             </AlertDescription>
           </Alert>
 
@@ -772,17 +621,6 @@ const AttendanceOverview: React.FC<AttendanceOverviewProps> = ({ studentData }) 
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {locationPermission !== 'granted' && (
-                <Button 
-                  onClick={requestLocationPermission} 
-                  className="w-full"
-                  variant="outline"
-                >
-                  <MapPin className="h-4 w-4 mr-2" />
-                  Enable Location Access
-                </Button>
-              )}
-
               <div className="space-y-3">
                 <div>
                   <label className="text-sm font-medium mb-2 block">
@@ -795,11 +633,11 @@ const AttendanceOverview: React.FC<AttendanceOverviewProps> = ({ studentData }) 
                       onChange={(e) => setSessionCode(e.target.value.toUpperCase())}
                       maxLength={6}
                       className="font-mono text-lg tracking-wider"
-                      disabled={markingLoading || locationPermission !== 'granted'}
+                      disabled={markingLoading}
                     />
                     <Button 
                       onClick={handleManualEntry}
-                      disabled={markingLoading || sessionCode.length !== 6 || locationPermission !== 'granted'}
+                      disabled={markingLoading || sessionCode.length !== 6}
                     >
                       <Hash className="h-4 w-4 mr-2" />
                       Submit
@@ -820,7 +658,7 @@ const AttendanceOverview: React.FC<AttendanceOverviewProps> = ({ studentData }) 
                   onClick={startScanning}
                   className="w-full"
                   variant="outline"
-                  disabled={markingLoading || locationPermission !== 'granted'}
+                  disabled={markingLoading}
                 >
                   <Scan className="h-4 w-4 mr-2" />
                   Scan QR Code
@@ -858,12 +696,6 @@ const AttendanceOverview: React.FC<AttendanceOverviewProps> = ({ studentData }) 
                             <Clock className="h-3 w-3" />
                             {formatTime(session.start_time)} - {formatTime(session.end_time)}
                           </span>
-                          {session.room_location && (
-                            <span className="flex items-center gap-1">
-                              <MapPin className="h-3 w-3" />
-                              {session.room_location}
-                            </span>
-                          )}
                         </div>
                         {session.topic && (
                           <p className="text-sm text-muted-foreground mt-1">{session.topic}</p>
@@ -927,15 +759,6 @@ const AttendanceOverview: React.FC<AttendanceOverviewProps> = ({ studentData }) 
                           <div className="text-xs opacity-70 mt-1">
                             Marked at {new Date(record.marked_at).toLocaleTimeString()}
                           </div>
-                          {record.device_info?.distance && (
-                            <div className="text-xs opacity-70 flex items-center gap-1 mt-1">
-                              <MapPin className="h-3 w-3" />
-                              {record.device_info.distance}m from instructor
-                              {record.location_verified && (
-                                <CheckCircle className="h-3 w-3 text-green-600 ml-1" />
-                              )}
-                            </div>
-                          )}
                           {record.device_info?.minutes_since_start !== undefined && (
                             <div className="text-xs opacity-70 mt-1">
                               {record.device_info.minutes_since_start <= 10 
@@ -993,7 +816,7 @@ const AttendanceOverview: React.FC<AttendanceOverviewProps> = ({ studentData }) 
                 <Alert>
                   <Scan className="h-4 w-4" />
                   <AlertDescription>
-                    Position the QR code within the frame. Make sure you're within 15m of your instructor.
+                    Position the QR code within the frame to mark your attendance.
                   </AlertDescription>
                 </Alert>
               </div>

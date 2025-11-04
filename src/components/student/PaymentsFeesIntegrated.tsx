@@ -300,7 +300,8 @@ const PaymentsFees: React.FC<PaymentsFeesProps> = ({ studentData }) => {
   }
 
   return (
-    <div className="space-y-4 sm:space-y-6 px-3 sm:px-4 md:px-6 w-full max-w-full">
+    <div className="space-y-4 sm:space-y-6 px-2 sm:px-0 overflow-x-hidden">
+      <h2 className="text-lg sm:text-xl md:text-2xl font-bold">Payments And Fees</h2>
       {/* Summary Cards */}
       <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <Card className="w-full">

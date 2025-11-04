@@ -325,7 +325,7 @@ const UserManagement = ({ userProfile, adminRoles }: UserManagementProps) => {
           </div>
 
           {/* Users Table */}
-          <div className="rounded-md border max-h-[350px] sm:max-h-[450px] overflow-auto">
+          <div className="rounded-md border max-h-[350px] sm:max-h-[450px] overflow-auto custom-scrollbar">
             <Table>
               <TableHeader>
                 <TableRow>

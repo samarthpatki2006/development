@@ -20,7 +20,6 @@ import {
   CheckCircle,
   Clock,
   Edit,
-  TrendingUp,
   AlertCircle
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -51,9 +50,6 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
   const [courseAnalytics, setCourseAnalytics] = useState<any[]>([]);
   const [editingStudent, setEditingStudent] = useState<string | null>(null);
   const [minutesSinceStart, setMinutesSinceStart] = useState<number>(0);
-  
-  const [locationPermission, setLocationPermission] = useState<'granted' | 'denied' | 'prompt'>('prompt');
-  const [currentLocation, setCurrentLocation] = useState<{latitude: number, longitude: number} | null>(null);
 
   const [newSchedule, setNewSchedule] = useState({
     course_id: '',
@@ -67,7 +63,6 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
 
   useEffect(() => {
     if (teacherData?.user_id) {
-      checkLocationPermission();
       fetchScheduleData();
       fetchTeacherCourses();
     }
@@ -99,63 +94,6 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
       fetchCourseAnalytics(selectedCourseAnalytics);
     }
   }, [selectedCourseAnalytics]);
-
-  const checkLocationPermission = async () => {
-    if ('geolocation' in navigator) {
-      try {
-        const permission = await navigator.permissions.query({ name: 'geolocation' });
-        setLocationPermission(permission.state);
-        
-        if (permission.state === 'granted') {
-          getCurrentLocation();
-        }
-      } catch (error) {
-        console.error('Permission check error:', error);
-      }
-    }
-  };
-
-  const getCurrentLocation = (): Promise<{latitude: number, longitude: number}> => {
-    return new Promise((resolve, reject) => {
-      if (!('geolocation' in navigator)) {
-        reject(new Error('Geolocation not supported'));
-        return;
-      }
-
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const location = {
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude
-          };
-          setCurrentLocation(location);
-          resolve(location);
-        },
-        (error) => {
-          console.error('Location error:', error);
-          reject(error);
-        },
-        {
-          enableHighAccuracy: true,
-          timeout: 10000,
-          maximumAge: 0
-        }
-      );
-    });
-  };
-
-  const requestLocationPermission = async (): Promise<boolean> => {
-    try {
-      await getCurrentLocation();
-      setLocationPermission('granted');
-      toast.success('Location access granted');
-      return true;
-    } catch (error) {
-      setLocationPermission('denied');
-      toast.error('Location access is required to generate attendance QR codes');
-      return false;
-    }
-  };
 
   const timeToMinutes = (timeStr: string): number => {
     const [hours, minutes] = timeStr.split(':').map(Number);
@@ -411,11 +349,6 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
 
   const generateQRCode = async (classData: any) => {
     try {
-      if (locationPermission !== 'granted') {
-        const granted = await requestLocationPermission();
-        if (!granted) return;
-      }
-
       const now = new Date();
       const currentTime = now.toTimeString().slice(0, 5);
       
@@ -429,13 +362,12 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
         return;
       }
 
-      const location = await getCurrentLocation();
       const today = new Date().toISOString().split('T')[0];
       const sessionDate = classData.scheduled_date || today;
 
       const { data: existingSession } = await supabase
         .from('attendance_sessions')
-        .select('id, qr_code, is_active, instructor_location')
+        .select('id, qr_code, is_active')
         .eq('course_id', classData.course_id)
         .eq('session_date', sessionDate)
         .eq('start_time', classData.start_time)
@@ -451,17 +383,10 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
         
         await supabase
           .from('attendance_sessions')
-          .update({ 
-            is_active: true,
-            instructor_location: {
-              latitude: location.latitude,
-              longitude: location.longitude,
-              timestamp: new Date().toISOString()
-            }
-          })
+          .update({ is_active: true })
           .eq('id', existingSession.id);
         
-        toast.info('Reopening existing session with updated location');
+        toast.info('Reopening existing session');
       } else {
         let sessionCode;
         let isUnique = false;
@@ -491,12 +416,7 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
           topic: classData.title || classData.courses?.course_name,
           qr_code: sessionCode,
           is_active: true,
-          room_location: classData.room_location,
-          instructor_location: {
-            latitude: location.latitude,
-            longitude: location.longitude,
-            timestamp: new Date().toISOString()
-          }
+          room_location: classData.room_location
         };
 
         const { data: newSession, error: sessionError } = await supabase
@@ -579,8 +499,7 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
           status: 'absent',
           session_id: sessionId,
           marked_by: teacherData.user_id,
-          marked_at: new Date().toISOString(),
-          location_verified: false
+          marked_at: new Date().toISOString()
         }));
 
       if (absentStudents.length > 0) {
@@ -610,7 +529,6 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
           marked_at,
           session_id,
           device_info,
-          location_verified,
           user_profiles!attendance_student_id_fkey (
             id,
             first_name,
@@ -648,8 +566,7 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
           status: attendanceRecord?.status || 'waiting',
           marked_at: attendanceRecord?.marked_at || null,
           session_id: currentSessionId,
-          device_info: attendanceRecord?.device_info,
-          location_verified: attendanceRecord?.location_verified
+          device_info: attendanceRecord?.device_info
         };
       });
 
@@ -957,8 +874,8 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
   };
 
   const getClassPosition = (startTime: string, endTime: string) => {
-    const dayStartMinutes = 8 * 60;
-    const dayEndMinutes = 18 * 60;
+    const dayStartMinutes = 0;
+    const dayEndMinutes = 24 * 60;
     const totalMinutes = dayEndMinutes - dayStartMinutes;
     
     const startMinutes = timeToMinutes(startTime);
@@ -970,15 +887,15 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
     
     return {
       top: `${Math.max(0, topPercent)}%`,
-      height: `${Math.max(5, heightPercent)}%`
+      height: `${Math.max(2, heightPercent)}%`
     };
   };
 
   const generateTimeLabels = () => {
     const labels = [];
-    for (let hour = 8; hour <= 18; hour++) {
+    for (let hour = 0; hour < 24; hour++) {
       labels.push({
-        time: `${hour}:00`,
+        time: `${hour.toString().padStart(2, '0')}:00`,
         display: formatTime(`${hour.toString().padStart(2, '0')}:00`)
       });
     }
@@ -999,32 +916,6 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
 
   return (
     <div className="space-y-6">
-      <Alert className={locationPermission === 'granted' ? 'border-green-200 ' : 'border-blue-200'}>
-        <MapPin className={`h-4 w-4 ${locationPermission === 'granted' ? 'text-green-600' : 'text-blue-600'}`} />
-        <AlertDescription>
-          {locationPermission === 'granted' ? (
-            <span className="text-green-800">
-              Location tracking enabled • Students must be within 15m to mark attendance
-            </span>
-          ) : (
-            <span className="text-yellow-800">
-              Location access required • Enable to generate attendance QR codes
-            </span>
-          )}
-        </AlertDescription>
-      </Alert>
-
-      {locationPermission !== 'granted' && (
-        <Card>
-          <CardContent className="pt-6">
-            <Button onClick={requestLocationPermission} className="w-full">
-              <MapPin className="h-4 w-4 mr-2" />
-              Enable Location Tracking
-            </Button>
-          </CardContent>
-        </Card>
-      )}
-
       <Tabs defaultValue="schedule" className="space-y-4">
 
         <TabsContent value="schedule" className="space-y-6">
@@ -1148,10 +1039,6 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
                             <> • Late period (0.5x credit)</>
                           )}
                         </span>
-                        <Badge variant="outline">
-                          <MapPin className="h-3 w-3 mr-1" />
-                          15m radius enforced
-                        </Badge>
                       </div>
                     </AlertDescription>
                   </Alert>
@@ -1170,14 +1057,10 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
                     </p>
                     <div className="flex items-center justify-center gap-2 text-xs">
                       <AlertCircle className="h-3 w-3" />
-                      <span className=" font-medium">
+                      <span className="font-medium">
                         First 10 min = Present | After 10 min = Late (0.5x)
                       </span>
                     </div>
-                    <p className="text-xs font-medium flex items-center justify-center gap-1">
-                      <MapPin className="h-3 w-3" />
-                      Must be within 15 meters of your location
-                    </p>
                     <Button variant="outline" size="sm" onClick={copySessionId}>
                       {copiedSessionId ? <CheckCircle className="h-4 w-4 mr-2" /> : <Copy className="h-4 w-4 mr-2" />}
                       {copiedSessionId ? 'Copied!' : 'Copy Code'}
@@ -1213,15 +1096,6 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
                               <p className="text-xs sm:text-sm text-muted-foreground">
                                 ID: {record.user_profiles?.user_code}
                               </p>
-                              {record.device_info?.distance && (
-                                <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
-                                  <MapPin className="h-3 w-3" />
-                                  {record.device_info.distance}m away
-                                  {record.location_verified && (
-                                    <CheckCircle className="h-3 w-3 ml-1" />
-                                  )}
-                                </p>
-                              )}
                             </div>
                             <div className="text-right space-y-1 flex items-center gap-2 sm:gap-3">
                               {isMarked ? (
@@ -1308,7 +1182,7 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-8 gap-2 min-h-[600px]">
+              <div className="grid grid-cols-8 gap-2 min-h-[800px]">
                 <div className="space-y-0 relative">
                   <div className="h-12"></div>
                   <div className="relative" style={{ height: 'calc(100% - 48px)' }}>
@@ -1336,7 +1210,7 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
                       <div className="text-xs">{date.getDate()}</div>
                     </div>
                     
-                    <div className="relative border rounded-lg" style={{ height: 'calc(100% - 56px)', minHeight: '500px' }}>
+                    <div className="relative border rounded-lg" style={{ height: 'calc(100% - 56px)', minHeight: '700px' }}>
                       {generateTimeLabels().map((_, index) => (
                         <div 
                           key={index}
@@ -1457,7 +1331,7 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
                           <Button 
                             onClick={() => generateQRCode(classItem)}
                             variant="default"
-                            disabled={!canGenerateQRForClass(classItem) || locationPermission !== 'granted'}
+                            disabled={!canGenerateQRForClass(classItem)}
                           >
                             <QrCodeIcon className="h-4 w-4 mr-2" />
                             {canGenerateQRForClass(classItem) ? 'Generate QR' : 'Not Started'}

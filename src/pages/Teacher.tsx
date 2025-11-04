@@ -297,7 +297,7 @@ const Teacher = () => {
     { id: 'communication', label: 'Communication', icon: MessageSquare },
     { id: 'parent-interaction', label: 'Parent Interaction', icon: Users },
     { id: 'absence', label: 'Absence Review', icon: Users },
-    { id: 'documents', label: 'Document Management', icon: FileText },
+    // { id: 'documents', label: 'Document Management', icon: FileText },
     { id: 'recognition', label: 'Recognition & Feedback', icon: Award },
     { id: 'support', label: 'Support & Helpdesk', icon: HelpCircle },
   ];
@@ -328,8 +328,8 @@ const Teacher = () => {
         return <TeacherParentInteraction teacherData={teacherData} />;
       case 'absence':
         return <TeacherCalendarAttendance teacherData={teacherData} />;
-      case 'documents':
-        return <TeacherDocuments teacherData={teacherData} />;
+      // case 'documents':
+      //   return <TeacherDocuments teacherData={teacherData} />;
       case 'recognition':
         return <TeacherRecognition teacherData={teacherData} />;
       case 'support':

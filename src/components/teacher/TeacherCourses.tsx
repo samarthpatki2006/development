@@ -15,7 +15,6 @@ import {
   FileText, 
   Plus, 
   Upload, 
-  Download,
   Edit,
   Eye,
   Calendar,
@@ -25,7 +24,9 @@ import {
   CheckCircle,
   Clock,
   ArrowLeft,
-  RefreshCw
+  RefreshCw,
+  Trash2,
+  ExternalLink
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
@@ -345,6 +346,52 @@ const TeacherCourses = ({ teacherData }: TeacherCoursesProps) => {
     }
   };
 
+  const handleDeleteQuiz = async (quizId: string) => {
+    if (!confirm('Are you sure you want to delete this quiz? This will also delete all submissions and questions.')) {
+      return;
+    }
+
+    try {
+      // Delete quiz questions first
+      const { error: questionsError } = await supabase
+        .from('quiz_questions')
+        .delete()
+        .eq('quiz_id', quizId);
+
+      if (questionsError) throw questionsError;
+
+      // Delete quiz submissions
+      const { error: submissionsError } = await supabase
+        .from('quiz_submissions')
+        .delete()
+        .eq('quiz_id', quizId);
+
+      if (submissionsError) throw submissionsError;
+
+      // Delete the quiz itself
+      const { error: quizError } = await supabase
+        .from('quizzes')
+        .delete()
+        .eq('id', quizId);
+
+      if (quizError) throw quizError;
+
+      toast({
+        title: 'Success',
+        description: 'Quiz deleted successfully'
+      });
+
+      fetchCourseDetails();
+    } catch (error: any) {
+      console.error('Error deleting quiz:', error);
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to delete quiz',
+        variant: 'destructive'
+      });
+    }
+  };
+
   // Quiz grader functions
   const fetchSubmissions = async () => {
     if (!selectedCourse) return;
@@ -386,6 +433,26 @@ const TeacherCourses = ({ teacherData }: TeacherCoursesProps) => {
         .eq('quiz_id', submission.quiz_id)
         .order('order_index');
 
+      // Auto-calculate scores for each question
+      const autoScores = {};
+      questions?.forEach(question => {
+        const studentAnswer = submission.answers?.[question.id];
+        
+        if (question.question_type === 'multiple_choice' || question.question_type === 'true_false') {
+          // Exact match for MC and T/F
+          autoScores[question.id] = studentAnswer === question.correct_answer ? question.marks : 0;
+        } else if (question.question_type === 'short_answer' || question.question_type === 'fill_blank') {
+          // Case-insensitive comparison with trimming for short answer
+          const correctAnswer = question.correct_answer?.toLowerCase().trim();
+          const givenAnswer = studentAnswer?.toLowerCase().trim();
+          autoScores[question.id] = correctAnswer === givenAnswer ? question.marks : 0;
+        } else if (question.question_type === 'essay') {
+          // Essays default to 0, teacher must grade manually
+          autoScores[question.id] = 0;
+        }
+      });
+
+      setScores(autoScores);
       setSubmissionDetails({
         questions: questions || [],
         answers: submission.answers || {},
@@ -397,7 +464,6 @@ const TeacherCourses = ({ teacherData }: TeacherCoursesProps) => {
 
   const selectSubmission = async (submission) => {
     setSelectedSubmission(submission);
-    setScores({});
     await fetchSubmissionDetails(submission);
   };
 
@@ -504,6 +570,51 @@ const TeacherCourses = ({ teacherData }: TeacherCoursesProps) => {
 
   const getTotalMarks = () => {
     return questions.reduce((sum, q) => sum + q.marks, 0);
+  };
+
+  const handleViewMaterial = (fileUrl: string) => {
+    window.open(fileUrl, '_blank');
+  };
+
+  const handleDeleteMaterial = async (materialId: string, fileUrl: string) => {
+    if (!confirm('Are you sure you want to delete this material?')) {
+      return;
+    }
+
+    try {
+      // Extract file path from URL
+      const urlParts = fileUrl.split('/');
+      const filePath = urlParts.slice(urlParts.indexOf('course-materials') + 1).join('/');
+
+      // Delete file from storage
+      const { error: storageError } = await supabase.storage
+        .from('course-materials')
+        .remove([filePath]);
+
+      if (storageError) throw storageError;
+
+      // Delete material record from database
+      const { error: dbError } = await supabase
+        .from('lecture_materials')
+        .delete()
+        .eq('id', materialId);
+
+      if (dbError) throw dbError;
+
+      toast({
+        title: 'Success',
+        description: 'Material deleted successfully'
+      });
+
+      fetchCourseDetails();
+    } catch (error: any) {
+      console.error('Error deleting material:', error);
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to delete material',
+        variant: 'destructive'
+      });
+    }
   };
 
   if (loading) {
@@ -629,8 +740,23 @@ const TeacherCourses = ({ teacherData }: TeacherCoursesProps) => {
                             </p>
                             <div className="flex items-center gap-2 w-full sm:w-auto">
                               <Badge variant="outline" className="text-xs flex-1 sm:flex-initial justify-center">{material.material_type}</Badge>
-                              <Button size="sm" variant="outline" className="flex-shrink-0">
-                                <Download className="h-4 w-4" />
+                              <Button 
+                                size="sm" 
+                                variant="outline" 
+                                className="flex-shrink-0"
+                                onClick={() => handleViewMaterial(material.file_url)}
+                                title="View material"
+                              >
+                                <ExternalLink className="h-4 w-4" />
+                              </Button>
+                              <Button 
+                                size="sm" 
+                                variant="outline" 
+                                className="flex-shrink-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                                onClick={() => handleDeleteMaterial(material.id, material.file_url)}
+                                title="Delete material"
+                              >
+                                <Trash2 className="h-4 w-4" />
                               </Button>
                             </div>
                           </div>
@@ -682,17 +808,20 @@ const TeacherCourses = ({ teacherData }: TeacherCoursesProps) => {
                               <Badge variant="outline" className="text-xs">
                                 {quiz.quiz_questions?.[0]?.count || 0} questions
                               </Badge>
-                              <Badge variant="outline" className="text-xs">
-                                {quiz.quiz_attempts?.[0]?.count || 0} attempts
-                              </Badge>
                             </div>
                             <div className="flex items-center gap-2 justify-end">
                               <Switch
                                 checked={quiz.is_active}
                                 onCheckedChange={(checked) => toggleQuizStatus(quiz.id, checked)}
                               />
-                              <Button size="sm" variant="outline">
-                                <Eye className="h-4 w-4" />
+                              <Button 
+                                size="sm" 
+                                variant="outline"
+                                className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                onClick={() => handleDeleteQuiz(quiz.id)}
+                                title="Delete quiz"
+                              >
+                                <Trash2 className="h-4 w-4" />
                               </Button>
                             </div>
                           </div>
@@ -978,7 +1107,13 @@ const TeacherCourses = ({ teacherData }: TeacherCoursesProps) => {
                       </div>
                     </CardHeader>
                     <CardContent className="space-y-6">
-                      <div className="flex justify-between items-center p-3 sm:p-4 bg-muted rounded-lg">
+                      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 p-3 sm:p-4 bg-muted rounded-lg">
+                        <div className="text-sm">
+                          <p className="font-medium mb-1">Auto-Grading Applied</p>
+                          <p className="text-xs text-muted-foreground">
+                            Scores have been automatically calculated. You can modify them below if needed.
+                          </p>
+                        </div>
                         <Button 
                           onClick={submitGrades} 
                           disabled={isGrading || !submissionDetails}
@@ -1098,10 +1233,26 @@ const TeacherCourses = ({ teacherData }: TeacherCoursesProps) => {
                                 </div>
                               )}
 
+                              {question.question_type === "essay" && (
+                                <div className="space-y-3">
+                                  <div>
+                                    <p className="text-xs sm:text-sm font-medium mb-1">Student's Essay:</p>
+                                    <div className="p-2 sm:p-3 bg-gray-50 border rounded min-h-[100px] text-xs sm:text-sm whitespace-pre-wrap">
+                                      {studentAnswer || <em className="text-muted-foreground">No answer provided</em>}
+                                    </div>
+                                  </div>
+                                  <div className="p-2 bg-yellow-50 border border-yellow-200 rounded">
+                                    <p className="text-xs text-yellow-800">
+                                      <strong>Note:</strong> Essay questions require manual grading. Please assign an appropriate score below.
+                                    </p>
+                                  </div>
+                                </div>
+                              )}
+
                               <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-2 sm:p-3 bg-muted rounded">
                                 <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3 flex-1">
                                   <Label htmlFor={`score-${question.id}`} className="font-medium text-xs sm:text-sm">
-                                    Assign Score:
+                                    {question.question_type === 'essay' ? 'Assign Score (Manual):' : 'Modify Score:'}
                                   </Label>
                                   <div className="flex items-center gap-2 w-full sm:w-auto">
                                     <Input
@@ -1109,7 +1260,7 @@ const TeacherCourses = ({ teacherData }: TeacherCoursesProps) => {
                                       type="number"
                                       min="0"
                                       max={question.marks || 1}
-                                      step="1"
+                                      step="0.5"
                                       value={currentScore}
                                       onChange={(e) => updateQuestionScore(question.id, e.target.value, question.marks || 1)}
                                       className="w-20 text-sm"
@@ -1119,11 +1270,23 @@ const TeacherCourses = ({ teacherData }: TeacherCoursesProps) => {
                                   </div>
                                 </div>
                                 <div className="text-xs sm:text-sm">
-                                  {question.question_type !== "short_answer" && (
+                                  {question.question_type !== "short_answer" && question.question_type !== "essay" && (
                                     <span className={`px-2 py-1 rounded text-xs font-medium ${
                                       isCorrect ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
                                     }`}>
                                       {isCorrect ? "Correct" : "Incorrect"}
+                                    </span>
+                                  )}
+                                  {question.question_type === "short_answer" && (
+                                    <span className={`px-2 py-1 rounded text-xs font-medium ${
+                                      isCorrect ? "bg-green-100 text-green-800" : "bg-yellow-100 text-yellow-800"
+                                    }`}>
+                                      {isCorrect ? "Auto: Correct" : "Auto: Review"}
+                                    </span>
+                                  )}
+                                  {question.question_type === "essay" && (
+                                    <span className="px-2 py-1 rounded text-xs font-medium bg-purple-100 text-purple-800">
+                                      Manual Grading
                                     </span>
                                   )}
                                 </div>

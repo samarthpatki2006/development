@@ -24,7 +24,6 @@ const App = () => (
         <NavigationWrapper>
           <Routes>
             <Route path="/" element={<Index />} />
-            {/* ADD THIS ROUTE - Must be before dashboard routes */}
             <Route path="/first-login" element={<FirstLogin />} />
             <Route path="/admin" element={<Admin />} />
             <Route path="/student" element={<Student />} />

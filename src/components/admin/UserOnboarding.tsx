@@ -3,11 +3,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { UserPlus, Mail, Eye, CheckCircle, XCircle, Clock, RefreshCw, Download, Upload, AlertCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -54,17 +54,21 @@ const UserOnboarding = ({ userProfile }: { userProfile: UserProfile }) => {
   const [activeTab, setActiveTab] = useState('pending');
   const [isAddUserDialogOpen, setIsAddUserDialogOpen] = useState(false);
   const [isBulkImportDialogOpen, setIsBulkImportDialogOpen] = useState(false);
+  const [isViewDetailsOpen, setIsViewDetailsOpen] = useState(false);
+  const [selectedRecord, setSelectedRecord] = useState<UserOnboardingRecord | null>(null);
   const [bulkImportData, setBulkImportData] = useState<BulkImportData>({
     file: null,
     userType: 'student',
     preview: []
   });
   const [isProcessingBulk, setIsProcessingBulk] = useState(false);
+  const [processingAction, setProcessingAction] = useState<string | null>(null);
 
   const [newUserForm, setNewUserForm] = useState({
     first_name: '',
     last_name: '',
     email: '',
+    user_code: '',
     user_type: 'student'
   });
 
@@ -78,17 +82,10 @@ const UserOnboarding = ({ userProfile }: { userProfile: UserProfile }) => {
     return () => clearInterval(interval);
   }, []);
 
-  useEffect(() => {
-    if (onboardingRecords.length > 0) {
-      checkOnboardingStatus();
-    }
-  }, [onboardingRecords.length]);
-
   const loadOnboardingData = async () => {
     try {
       setIsLoading(true);
       
-      // Fetch onboarding records with user profiles
       const { data, error } = await supabase
         .from('user_onboarding')
         .select(`
@@ -127,28 +124,21 @@ const UserOnboarding = ({ userProfile }: { userProfile: UserProfile }) => {
     }
   };
 
-  const generateUserCode = (userType: string): string => {
-    const year = new Date().getFullYear().toString().slice(-2);
-    const typePrefix = {
-      'student': 'S',
-      'teacher': 'T',
-      'staff': 'T',
-      'admin': 'A',
-      'parent': 'P',
-      'alumni': 'L'
-    }[userType] || 'U';
-    
-    const sequence = Math.floor(Math.random() * 9999) + 1;
-    return `${typePrefix}${year}${sequence.toString().padStart(4, '0')}`;
-  };
-
   const generateTempPassword = (): string => {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%';
     let password = '';
-    for (let i = 0; i < 8; i++) {
+    for (let i = 0; i < 12; i++) {
       password += chars.charAt(Math.floor(Math.random() * chars.length));
     }
     return password;
+  };
+
+  const validateUserCode = (userCode: string): boolean => {
+    if (!userCode || userCode.trim().length === 0) {
+      return false;
+    }
+    const regex = /^[A-Za-z0-9_-]{3,20}$/;
+    return regex.test(userCode.trim());
   };
 
   const sendWelcomeEmail = async (
@@ -171,7 +161,6 @@ const UserOnboarding = ({ userProfile }: { userProfile: UserProfile }) => {
         })
         .eq('id', onboardingId);
 
-      console.log('Invoking send-welcome-email edge function...');
       const { data, error } = await supabase.functions.invoke('send-welcome-email', {
         body: {
           email,
@@ -181,8 +170,6 @@ const UserOnboarding = ({ userProfile }: { userProfile: UserProfile }) => {
           onboardingId
         }
       });
-
-      console.log('Edge function response:', { data, error });
 
       if (error) {
         console.error('Error from edge function:', error);
@@ -199,8 +186,6 @@ const UserOnboarding = ({ userProfile }: { userProfile: UserProfile }) => {
       }
 
       if (!data || !data.success) {
-        console.error('Email function returned error:', data);
-        
         await supabase
           .from('user_onboarding')
           .update({
@@ -212,8 +197,6 @@ const UserOnboarding = ({ userProfile }: { userProfile: UserProfile }) => {
         throw new Error(data?.error || 'Email sending failed');
       }
 
-      console.log('Email sent successfully, marking as delivered');
-      
       await supabase
         .from('user_onboarding')
         .update({
@@ -231,25 +214,27 @@ const UserOnboarding = ({ userProfile }: { userProfile: UserProfile }) => {
 
   const handleAddUser = async () => {
     try {
-      if (!newUserForm.first_name || !newUserForm.last_name || !newUserForm.email) {
+      if (!newUserForm.first_name || !newUserForm.last_name || !newUserForm.email || !newUserForm.user_code) {
         toast({
           title: "Error",
-          description: "Please fill in all required fields.",
+          description: "Please fill in all required fields including user code.",
           variant: "destructive",
         });
         return;
       }
 
-      const userCode = generateUserCode(newUserForm.user_type);
-      const tempPassword = generateTempPassword();
+      const userCode = newUserForm.user_code.trim();
+      
+      if (!validateUserCode(userCode)) {
+        toast({
+          title: "Error",
+          description: "User code must be 3-20 characters long and contain only letters, numbers, hyphens, or underscores.",
+          variant: "destructive",
+        });
+        return;
+      }
 
-      console.log('Creating user with data:', {
-        first_name: newUserForm.first_name,
-        last_name: newUserForm.last_name,
-        email: newUserForm.email,
-        user_type: newUserForm.user_type,
-        user_code: userCode
-      });
+      const tempPassword = generateTempPassword();
 
       const { data: createUserData, error: createUserError } = await supabase.functions.invoke('create-user-with-onboarding', {
         body: {
@@ -263,8 +248,6 @@ const UserOnboarding = ({ userProfile }: { userProfile: UserProfile }) => {
         }
       });
 
-      console.log('Edge Function response:', { data: createUserData, error: createUserError });
-
       if (createUserError) {
         console.error('Create user error:', createUserError);
         toast({
@@ -277,7 +260,6 @@ const UserOnboarding = ({ userProfile }: { userProfile: UserProfile }) => {
 
       if (!createUserData || !createUserData.success) {
         const errorMsg = createUserData?.error || "Failed to create user account.";
-        console.error('Create user failed:', errorMsg);
         toast({
           title: "Error",
           description: errorMsg,
@@ -285,8 +267,6 @@ const UserOnboarding = ({ userProfile }: { userProfile: UserProfile }) => {
         });
         return;
       }
-
-      console.log('User created successfully, sending welcome email...');
 
       let emailSuccess = false;
       try {
@@ -298,8 +278,7 @@ const UserOnboarding = ({ userProfile }: { userProfile: UserProfile }) => {
           createUserData.onboarding_id
         );
         emailSuccess = true;
-        console.log('Welcome email sent successfully');
-      } catch (emailError) {
+      } catch (emailError: any) {
         console.error('Email sending error:', emailError);
         toast({
           title: "Warning",
@@ -312,6 +291,7 @@ const UserOnboarding = ({ userProfile }: { userProfile: UserProfile }) => {
         first_name: '',
         last_name: '',
         email: '',
+        user_code: '',
         user_type: 'student'
       });
       setIsAddUserDialogOpen(false);
@@ -324,7 +304,7 @@ const UserOnboarding = ({ userProfile }: { userProfile: UserProfile }) => {
           ? `User created successfully. Welcome email sent to ${newUserForm.email}`
           : `User created successfully, but email failed to send. Click resend to try again.`,
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error creating user:', error);
       toast({
         title: "Error",
@@ -334,8 +314,10 @@ const UserOnboarding = ({ userProfile }: { userProfile: UserProfile }) => {
     }
   };
 
-  const handleSendWelcomeEmail = async (onboardingId: string) => {
+  const handleResendWelcomeEmail = async (recordId: string) => {
     try {
+      setProcessingAction(recordId);
+      
       const { data: record, error } = await supabase
         .from('user_onboarding')
         .select(`
@@ -346,7 +328,7 @@ const UserOnboarding = ({ userProfile }: { userProfile: UserProfile }) => {
             user_code
           )
         `)
-        .eq('id', onboardingId)
+        .eq('id', recordId)
         .single();
 
       if (error || !record) {
@@ -358,34 +340,63 @@ const UserOnboarding = ({ userProfile }: { userProfile: UserProfile }) => {
         record.user_profiles.first_name,
         record.user_profiles.user_code,
         record.temp_password,
-        onboardingId
+        recordId
       );
-    } catch (error) {
-      console.error('Error sending welcome email:', error);
-      throw error;
-    }
-  };
-
-  const handleResendWelcomeEmail = async (recordId: string) => {
-    try {
-      await handleSendWelcomeEmail(recordId);
       
       toast({
         title: "Success",
         description: "Welcome email sent successfully.",
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error resending email:', error);
       toast({
         title: "Error",
-        description: "Failed to resend welcome email.",
+        description: error.message || "Failed to resend welcome email.",
         variant: "destructive",
       });
+    } finally {
+      setProcessingAction(null);
+    }
+  };
+
+  const handleMarkEmailOpened = async (recordId: string) => {
+    try {
+      setProcessingAction(recordId);
+      
+      const { error } = await supabase
+        .from('user_onboarding')
+        .update({
+          welcome_email_opened: true,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', recordId);
+
+      if (error) {
+        throw error;
+      }
+
+      await loadOnboardingData();
+      
+      toast({
+        title: "Success",
+        description: "Email marked as opened.",
+      });
+    } catch (error: any) {
+      console.error('Error marking email as opened:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update email status.",
+        variant: "destructive",
+      });
+    } finally {
+      setProcessingAction(null);
     }
   };
 
   const handleMarkOnboardingCompleted = async (recordId: string) => {
     try {
+      setProcessingAction(recordId);
+      
       const { error } = await supabase
         .from('user_onboarding')
         .update({
@@ -397,13 +408,7 @@ const UserOnboarding = ({ userProfile }: { userProfile: UserProfile }) => {
         .eq('id', recordId);
 
       if (error) {
-        console.error('Error updating onboarding status:', error);
-        toast({
-          title: "Error",
-          description: "Failed to update onboarding status.",
-          variant: "destructive",
-        });
-        return;
+        throw error;
       }
 
       await loadOnboardingData();
@@ -412,35 +417,21 @@ const UserOnboarding = ({ userProfile }: { userProfile: UserProfile }) => {
         title: "Success",
         description: "Onboarding marked as completed.",
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error completing onboarding:', error);
       toast({
         title: "Error",
-        description: "Failed to complete onboarding.",
+        description: error.message || "Failed to complete onboarding.",
         variant: "destructive",
       });
+    } finally {
+      setProcessingAction(null);
     }
   };
 
-  const handleMarkEmailOpened = async (recordId: string) => {
-    try {
-      const { error } = await supabase
-        .from('user_onboarding')
-        .update({
-          welcome_email_opened: true,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', recordId);
-
-      if (error) {
-        console.error('Error updating email opened status:', error);
-        return;
-      }
-
-      await loadOnboardingData();
-    } catch (error) {
-      console.error('Error marking email as opened:', error);
-    }
+  const handleViewDetails = (record: UserOnboardingRecord) => {
+    setSelectedRecord(record);
+    setIsViewDetailsOpen(true);
   };
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -451,16 +442,26 @@ const UserOnboarding = ({ userProfile }: { userProfile: UserProfile }) => {
       Papa.parse(file, {
         header: true,
         skipEmptyLines: true,
-        transformHeader: (header) => header.trim().toLowerCase(),
+        transformHeader: (header) => header.trim().toLowerCase().replace(/\s+/g, '_'),
         complete: (results) => {
           const validRecords = results.data.filter((row: any) => {
-            return row.first_name && row.last_name && row.email;
+            return row.first_name && row.last_name && row.email && row.user_code;
           });
 
           if (validRecords.length === 0) {
             toast({
               title: "Error",
-              description: "No valid records found in CSV. Expected columns: first_name, last_name, email",
+              description: "No valid records found in CSV. Expected columns: first_name, last_name, email, user_code",
+              variant: "destructive",
+            });
+            return;
+          }
+
+          const invalidCodes = validRecords.filter((row: any) => !validateUserCode(row.user_code));
+          if (invalidCodes.length > 0) {
+            toast({
+              title: "Error",
+              description: `${invalidCodes.length} record(s) have invalid user codes. User codes must be 3-20 characters (letters, numbers, hyphens, underscores only).`,
               variant: "destructive",
             });
             return;
@@ -512,10 +513,10 @@ const UserOnboarding = ({ userProfile }: { userProfile: UserProfile }) => {
       Papa.parse(bulkImportData.file, {
         header: true,
         skipEmptyLines: true,
-        transformHeader: (header) => header.trim().toLowerCase(),
+        transformHeader: (header) => header.trim().toLowerCase().replace(/\s+/g, '_'),
         complete: async (results) => {
           const validRecords = results.data.filter((row: any) => {
-            return row.first_name && row.last_name && row.email;
+            return row.first_name && row.last_name && row.email && row.user_code && validateUserCode(row.user_code);
           });
 
           let successCount = 0;
@@ -524,7 +525,7 @@ const UserOnboarding = ({ userProfile }: { userProfile: UserProfile }) => {
 
           for (const row of validRecords) {
             try {
-              const userCode = generateUserCode(bulkImportData.userType);
+              const userCode = row.user_code.trim();
               const tempPassword = generateTempPassword();
 
               const { data: createUserData, error: createUserError } = await supabase.functions.invoke('create-user-with-onboarding', {
@@ -556,7 +557,7 @@ const UserOnboarding = ({ userProfile }: { userProfile: UserProfile }) => {
                   createUserData.onboarding_id
                 );
                 successCount++;
-              } catch (emailError) {
+              } catch (emailError: any) {
                 console.error(`Email failed for ${row.email}:`, emailError);
                 successCount++;
                 errors.push(`${row.email}: User created but email failed - ${emailError.message}`);
@@ -645,16 +646,16 @@ const UserOnboarding = ({ userProfile }: { userProfile: UserProfile }) => {
 
   const getOnboardingStatusBadge = (record: UserOnboardingRecord) => {
     if (record.onboarding_completed) {
-      return <Badge className="bg-green-100 text-green-800">Completed</Badge>;
+      return <Badge className="text-green-800">Completed</Badge>;
     }
     if (record.first_login_completed) {
-      return <Badge className="bg-blue-100 text-blue-800">First Login Done</Badge>;
+      return <Badge className="text-blue-800">First Login Done</Badge>;
     }
     if (record.welcome_email_opened) {
-      return <Badge className="bg-yellow-100 text-yellow-800">Email Opened</Badge>;
+      return <Badge className=" text-yellow-800">Email Opened</Badge>;
     }
     if (record.welcome_email_delivered) {
-      return <Badge className="bg-orange-100 text-orange-800">Awaiting Action</Badge>;
+      return <Badge className=" text-orange-800">Awaiting Action</Badge>;
     }
     return <Badge variant="outline">Pending</Badge>;
   };
@@ -717,20 +718,18 @@ const UserOnboarding = ({ userProfile }: { userProfile: UserProfile }) => {
                     </DialogDescription>
                   </DialogHeader>
                   <div className="space-y-4 py-4">
-                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                      <div className="flex items-start space-x-2">
-                        <AlertCircle className="w-5 h-5 text-blue-600 mt-0.5" />
-                        <div className="text-sm text-blue-800">
-                          <p className="font-semibold mb-1">CSV Format Requirements:</p>
-                          <ul className="list-disc list-inside space-y-1">
-                            <li>Required columns: <code className="bg-blue-100 px-1 rounded">first_name</code>, <code className="bg-blue-100 px-1 rounded">last_name</code>, <code className="bg-blue-100 px-1 rounded">email</code></li>
-                            <li>Column names are case-insensitive</li>
-                            <li>Empty rows will be skipped</li>
-                            <li>Welcome emails will be sent automatically</li>
-                          </ul>
-                        </div>
-                      </div>
-                    </div>
+                    <Alert>
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertDescription>
+                        <p className="font-semibold mb-1">CSV Format Requirements:</p>
+                        <ul className="list-disc list-inside space-y-1 text-sm">
+                          <li>Required columns: first_name, last_name, email, user_code</li>
+                          <li>User codes must be 3-20 characters (letters, numbers, hyphens, underscores)</li>
+                          <li>Column names are case-insensitive</li>
+                          <li>Empty rows will be skipped</li>
+                        </ul>
+                      </AlertDescription>
+                    </Alert>
 
                     <div>
                       <Label htmlFor="csv_file">CSV File *</Label>
@@ -756,7 +755,7 @@ const UserOnboarding = ({ userProfile }: { userProfile: UserProfile }) => {
                         <SelectContent>
                           <SelectItem value="student">Student</SelectItem>
                           <SelectItem value="teacher">Teacher</SelectItem>
-                          <SelectItem value="staff">Staff</SelectItem>
+                          <SelectItem value="admin">Admin</SelectItem>
                           <SelectItem value="parent">Parent</SelectItem>
                           <SelectItem value="alumni">Alumni</SelectItem>
                         </SelectContent>
@@ -766,30 +765,32 @@ const UserOnboarding = ({ userProfile }: { userProfile: UserProfile }) => {
                     {bulkImportData.preview.length > 0 && (
                       <div>
                         <Label className="mb-2 block">Preview (First 5 Records)</Label>
-                        <div className="border rounded-lg overflow-hidden">
-                          <Table>
-                            <TableHeader>
-                              <TableRow>
-                                <TableHead>First Name</TableHead>
-                                <TableHead>Last Name</TableHead>
-                                <TableHead>Email</TableHead>
-                              </TableRow>
-                            </TableHeader>
-                            <TableBody>
+                        <div className="border rounded-lg overflow-auto max-h-64">
+                          <table className="w-full text-sm">
+                            <thead>
+                              <tr>
+                                <th className="px-4 py-2 text-left">First Name</th>
+                                <th className="px-4 py-2 text-left">Last Name</th>
+                                <th className="px-4 py-2 text-left">Email</th>
+                                <th className="px-4 py-2 text-left">User Code</th>
+                              </tr>
+                            </thead>
+                            <tbody>
                               {bulkImportData.preview.map((row: any, index) => (
-                                <TableRow key={index}>
-                                  <TableCell>{row.first_name}</TableCell>
-                                  <TableCell>{row.last_name}</TableCell>
-                                  <TableCell>{row.email}</TableCell>
-                                </TableRow>
+                                <tr key={index} className="border-t">
+                                  <td className="px-4 py-2">{row.first_name}</td>
+                                  <td className="px-4 py-2">{row.last_name}</td>
+                                  <td className="px-4 py-2">{row.email}</td>
+                                  <td className="px-4 py-2 font-mono">{row.user_code}</td>
+                                </tr>
                               ))}
-                            </TableBody>
-                          </Table>
+                            </tbody>
+                          </table>
                         </div>
                       </div>
                     )}
                   </div>
-                  <div className="flex justify-end space-x-2">
+                  <DialogFooter>
                     <Button 
                       variant="outline" 
                       onClick={() => {
@@ -820,7 +821,7 @@ const UserOnboarding = ({ userProfile }: { userProfile: UserProfile }) => {
                         </>
                       )}
                     </Button>
-                  </div>
+                  </DialogFooter>
                 </DialogContent>
               </Dialog>
 
@@ -868,6 +869,19 @@ const UserOnboarding = ({ userProfile }: { userProfile: UserProfile }) => {
                       />
                     </div>
                     <div className="col-span-2">
+                      <Label htmlFor="user_code">User Code *</Label>
+                      <Input
+                        id="user_code"
+                        value={newUserForm.user_code}
+                        onChange={(e) => setNewUserForm({...newUserForm, user_code: e.target.value})}
+                        placeholder="e.g., S240001, T240045"
+                        required
+                      />
+                      <p className="text-xs text-gray-500 mt-1">
+                        3-20 characters: letters, numbers, hyphens, or underscores only
+                      </p>
+                    </div>
+                    <div className="col-span-2">
                       <Label htmlFor="user_type">User Type</Label>
                       <Select value={newUserForm.user_type} onValueChange={(value) => setNewUserForm({...newUserForm, user_type: value})}>
                         <SelectTrigger>
@@ -876,21 +890,21 @@ const UserOnboarding = ({ userProfile }: { userProfile: UserProfile }) => {
                         <SelectContent>
                           <SelectItem value="student">Student</SelectItem>
                           <SelectItem value="faculty">Teacher</SelectItem>
-                          <SelectItem value="staff">Staff</SelectItem>
+                          <SelectItem value="admin">Admin</SelectItem>
                           <SelectItem value="parent">Parent</SelectItem>
                           <SelectItem value="alumni">Alumni</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
                   </div>
-                  <div className="flex justify-end space-x-2">
+                  <DialogFooter>
                     <Button variant="outline" onClick={() => setIsAddUserDialogOpen(false)}>
                       Cancel
                     </Button>
                     <Button onClick={handleAddUser}>
                       Create User & Send Welcome Email
                     </Button>
-                  </div>
+                  </DialogFooter>
                 </DialogContent>
               </Dialog>
             </div>
@@ -916,21 +930,21 @@ const UserOnboarding = ({ userProfile }: { userProfile: UserProfile }) => {
             {['pending', 'completed', 'failed'].map((status) => (
               <TabsContent key={status} value={status}>
                 <div className="rounded-md border max-h-[350px] sm:max-h-[450px] overflow-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>User Details</TableHead>
-                        <TableHead>User Code</TableHead>
-                        <TableHead>Email Status</TableHead>
-                        <TableHead>Onboarding Status</TableHead>
-                        <TableHead>Created</TableHead>
-                        <TableHead>Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
+                  <table className="w-full text-sm">
+                    <thead className="top-0">
+                      <tr>
+                        <th className="px-4 py-3 text-left font-medium">User Details</th>
+                        <th className="px-4 py-3 text-left font-medium">User Code</th>
+                        <th className="px-4 py-3 text-left font-medium">Email Status</th>
+                        <th className="px-4 py-3 text-left font-medium">Onboarding Status</th>
+                        <th className="px-4 py-3 text-left font-medium">Created</th>
+                        <th className="px-4 py-3 text-left font-medium">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
                       {filteredRecords(status).map((record) => (
-                        <TableRow key={record.id}>
-                          <TableCell>
+                        <tr key={record.id} className="border-t">
+                          <td className="px-4 py-3">
                             <div>
                               <div className="font-medium">
                                 {record.user_profiles?.first_name} {record.user_profiles?.last_name}
@@ -940,11 +954,11 @@ const UserOnboarding = ({ userProfile }: { userProfile: UserProfile }) => {
                                 {record.user_profiles?.user_type}
                               </Badge>
                             </div>
-                          </TableCell>
-                          <TableCell className="font-mono text-sm">
+                          </td>
+                          <td className="px-4 py-3 font-mono text-sm">
                             {record.user_profiles?.user_code}
-                          </TableCell>
-                          <TableCell>
+                          </td>
+                          <td className="px-4 py-3">
                             <div className="space-y-1">
                               {getEmailStatusBadge(record)}
                               <div className="flex items-center space-x-1 text-xs text-gray-500">
@@ -952,14 +966,14 @@ const UserOnboarding = ({ userProfile }: { userProfile: UserProfile }) => {
                                 {record.welcome_email_opened && <Eye className="w-3 h-3" />}
                               </div>
                             </div>
-                          </TableCell>
-                          <TableCell>
+                          </td>
+                          <td className="px-4 py-3">
                             {getOnboardingStatusBadge(record)}
-                          </TableCell>
-                          <TableCell className="text-sm">
+                          </td>
+                          <td className="px-4 py-3 text-sm">
                             {new Date(record.created_at).toLocaleDateString()}
-                          </TableCell>
-                          <TableCell>
+                          </td>
+                          <td className="px-4 py-3">
                             <div className="flex items-center space-x-2">
                               {(!record.welcome_email_sent || record.welcome_email_failed) && (
                                 <Button
@@ -967,8 +981,13 @@ const UserOnboarding = ({ userProfile }: { userProfile: UserProfile }) => {
                                   variant="outline"
                                   onClick={() => handleResendWelcomeEmail(record.id)}
                                   title="Resend Welcome Email"
+                                  disabled={processingAction === record.id}
                                 >
-                                  <RefreshCw className="w-3 h-3" />
+                                  {processingAction === record.id ? (
+                                    <RefreshCw className="w-3 h-3 animate-spin" />
+                                  ) : (
+                                    <RefreshCw className="w-3 h-3" />
+                                  )}
                                 </Button>
                               )}
                               
@@ -978,8 +997,13 @@ const UserOnboarding = ({ userProfile }: { userProfile: UserProfile }) => {
                                   variant="outline"
                                   onClick={() => handleMarkEmailOpened(record.id)}
                                   title="Mark Email as Opened"
+                                  disabled={processingAction === record.id}
                                 >
-                                  <Mail className="w-3 h-3" />
+                                  {processingAction === record.id ? (
+                                    <RefreshCw className="w-3 h-3 animate-spin" />
+                                  ) : (
+                                    <Mail className="w-3 h-3" />
+                                  )}
                                 </Button>
                               )}
                               
@@ -989,8 +1013,13 @@ const UserOnboarding = ({ userProfile }: { userProfile: UserProfile }) => {
                                   variant="default"
                                   onClick={() => handleMarkOnboardingCompleted(record.id)}
                                   title="Mark Onboarding as Completed"
+                                  disabled={processingAction === record.id}
                                 >
-                                  <CheckCircle className="w-3 h-3" />
+                                  {processingAction === record.id ? (
+                                    <RefreshCw className="w-3 h-3 animate-spin" />
+                                  ) : (
+                                    <CheckCircle className="w-3 h-3" />
+                                  )}
                                 </Button>
                               )}
                               
@@ -998,15 +1027,16 @@ const UserOnboarding = ({ userProfile }: { userProfile: UserProfile }) => {
                                 size="sm" 
                                 variant="outline"
                                 title="View Details"
+                                onClick={() => handleViewDetails(record)}
                               >
                                 <Eye className="w-3 h-3" />
                               </Button>
                             </div>
-                          </TableCell>
-                        </TableRow>
+                          </td>
+                        </tr>
                       ))}
-                    </TableBody>
-                  </Table>
+                    </tbody>
+                  </table>
                 </div>
 
                 {filteredRecords(status).length === 0 && (
@@ -1019,6 +1049,134 @@ const UserOnboarding = ({ userProfile }: { userProfile: UserProfile }) => {
           </Tabs>
         </CardContent>
       </Card>
+
+      {/* View Details Dialog */}
+      {selectedRecord && (
+        <Dialog open={isViewDetailsOpen} onOpenChange={setIsViewDetailsOpen}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Onboarding Details</DialogTitle>
+              <DialogDescription>
+                Complete onboarding information for {selectedRecord.user_profiles?.first_name} {selectedRecord.user_profiles?.last_name}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-6 py-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-sm font-medium text-gray-500">Name</Label>
+                  <p className="text-sm mt-1">
+                    {selectedRecord.user_profiles?.first_name} {selectedRecord.user_profiles?.last_name}
+                  </p>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-gray-500">Email</Label>
+                  <p className="text-sm mt-1">{selectedRecord.user_profiles?.email}</p>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-gray-500">User Code</Label>
+                  <p className="text-sm mt-1 font-mono">{selectedRecord.user_profiles?.user_code}</p>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-gray-500">User Type</Label>
+                  <Badge variant="outline" className="mt-1 capitalize">
+                    {selectedRecord.user_profiles?.user_type}
+                  </Badge>
+                </div>
+              </div>
+
+              <div className="border-t pt-4">
+                <Label className="text-sm font-medium text-gray-700 mb-3 block">Email Status</Label>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="flex items-center space-x-2">
+                    {selectedRecord.welcome_email_sent ? (
+                      <CheckCircle className="w-4 h-4 text-green-600" />
+                    ) : (
+                      <XCircle className="w-4 h-4 text-gray-400" />
+                    )}
+                    <span className="text-sm">Email Sent</span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    {selectedRecord.welcome_email_delivered ? (
+                      <CheckCircle className="w-4 h-4 text-green-600" />
+                    ) : (
+                      <XCircle className="w-4 h-4 text-gray-400" />
+                    )}
+                    <span className="text-sm">Email Delivered</span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    {selectedRecord.welcome_email_opened ? (
+                      <CheckCircle className="w-4 h-4 text-green-600" />
+                    ) : (
+                      <XCircle className="w-4 h-4 text-gray-400" />
+                    )}
+                    <span className="text-sm">Email Opened</span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    {selectedRecord.welcome_email_failed ? (
+                      <XCircle className="w-4 h-4 text-red-600" />
+                    ) : (
+                      <CheckCircle className="w-4 h-4 text-green-600" />
+                    )}
+                    <span className="text-sm">No Failures</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="border-t pt-4">
+                <Label className="text-sm font-medium text-gray-700 mb-3 block">Onboarding Progress</Label>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="flex items-center space-x-2">
+                    {selectedRecord.first_login_completed ? (
+                      <CheckCircle className="w-4 h-4 text-green-600" />
+                    ) : (
+                      <XCircle className="w-4 h-4 text-gray-400" />
+                    )}
+                    <span className="text-sm">First Login</span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    {!selectedRecord.password_reset_required ? (
+                      <CheckCircle className="w-4 h-4 text-green-600" />
+                    ) : (
+                      <Clock className="w-4 h-4 text-orange-500" />
+                    )}
+                    <span className="text-sm">Password Reset</span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    {selectedRecord.onboarding_completed ? (
+                      <CheckCircle className="w-4 h-4 text-green-600" />
+                    ) : (
+                      <Clock className="w-4 h-4 text-orange-500" />
+                    )}
+                    <span className="text-sm">Onboarding Complete</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="border-t pt-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-sm font-medium text-gray-500">Created At</Label>
+                    <p className="text-sm mt-1">
+                      {new Date(selectedRecord.created_at).toLocaleString()}
+                    </p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium text-gray-500">Last Updated</Label>
+                    <p className="text-sm mt-1">
+                      {new Date(selectedRecord.updated_at).toLocaleString()}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsViewDetailsOpen(false)}>
+                Close
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 };

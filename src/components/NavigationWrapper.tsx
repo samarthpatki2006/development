@@ -26,10 +26,24 @@ const NavigationWrapper = ({ children }: NavigationWrapperProps) => {
   const isNavigatingRef = useRef(false);
 
   useEffect(() => {
+    // Clear session on tab/window close
+    const handleBeforeUnload = () => {
+      sessionStorage.removeItem('colcord_user');
+    };
+    
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         setSession(session);
+        
+        // Clear session storage on sign out
+        if (event === 'SIGNED_OUT') {
+          sessionStorage.removeItem('colcord_user');
+          navigate('/');
+        }
+        
         handleAuthStateChange(session);
       }
     );
@@ -40,7 +54,10 @@ const NavigationWrapper = ({ children }: NavigationWrapperProps) => {
       handleAuthStateChange(session);
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      subscription.unsubscribe();
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
   }, []); // Empty dependency array - only run once on mount
 
   const handleAuthStateChange = async (session: Session | null) => {
@@ -55,10 +72,9 @@ const NavigationWrapper = ({ children }: NavigationWrapperProps) => {
 
       const currentPath = location.pathname;
 
-      // FIXED: Clear any stale localStorage data if no valid session
+      // Clear any session data if no valid session
       if (!session) {
-        // Remove any mock/demo user data
-        localStorage.removeItem('colcord_user');
+        sessionStorage.removeItem('colcord_user');
         
         // Redirect to login if not already there
         if (currentPath !== '/') {
@@ -69,7 +85,7 @@ const NavigationWrapper = ({ children }: NavigationWrapperProps) => {
         return;
       }
 
-      // Handle authenticated users - verify session is still valid
+      // Handle authenticated users
       if (session) {
         try {
           // Get user profile to determine their type and route
@@ -82,7 +98,7 @@ const NavigationWrapper = ({ children }: NavigationWrapperProps) => {
           if (profileError || !profile) {
             console.error('Error fetching user profile:', profileError);
             // Clear invalid session data
-            localStorage.removeItem('colcord_user');
+            sessionStorage.removeItem('colcord_user');
             await supabase.auth.signOut();
             if (currentPath !== '/') {
               navigate('/');
@@ -91,7 +107,7 @@ const NavigationWrapper = ({ children }: NavigationWrapperProps) => {
             return;
           }
 
-          // FIXED: Store valid user data in localStorage (sync with session)
+          // Store valid user data in sessionStorage (will clear on tab close)
           const validUserData = {
             user_id: profile.id,
             user_type: profile.user_type,
@@ -101,10 +117,10 @@ const NavigationWrapper = ({ children }: NavigationWrapperProps) => {
             user_code: profile.user_code,
             email: profile.email
           };
-          localStorage.setItem('colcord_user', JSON.stringify(validUserData));
+          sessionStorage.setItem('colcord_user', JSON.stringify(validUserData));
 
           // Check onboarding status for first login
-          const { data: onboarding, error: onboardingError } = await supabase
+          const { data: onboarding } = await supabase
             .from('user_onboarding')
             .select('password_reset_required, first_login_completed, onboarding_completed')
             .eq('user_id', session.user.id)
@@ -112,15 +128,10 @@ const NavigationWrapper = ({ children }: NavigationWrapperProps) => {
 
           // If user needs to reset password, redirect to first-login
           if (onboarding && onboarding.password_reset_required) {
-            // Allow access to first-login page
-            if (currentPath === '/first-login') {
-              setIsChecking(false);
-              return;
+            if (currentPath !== '/first-login') {
+              console.log('Password reset required, redirecting to /first-login');
+              navigate('/first-login');
             }
-            
-            // Redirect from any other page to first-login
-            console.log('Password reset required, redirecting to /first-login');
-            navigate('/first-login');
             setIsChecking(false);
             return;
           }
@@ -129,7 +140,7 @@ const NavigationWrapper = ({ children }: NavigationWrapperProps) => {
           if (currentPath === '/first-login' && onboarding && !onboarding.password_reset_required) {
             const correctRoute = USER_ROUTE_MAP[profile.user_type as keyof typeof USER_ROUTE_MAP];
             console.log('Password already changed, redirecting to dashboard');
-            if (correctRoute && currentPath !== correctRoute) {
+            if (correctRoute) {
               navigate(correctRoute);
             }
             setIsChecking(false);
@@ -140,7 +151,7 @@ const NavigationWrapper = ({ children }: NavigationWrapperProps) => {
           if (currentPath === '/first-login' && !onboarding) {
             const correctRoute = USER_ROUTE_MAP[profile.user_type as keyof typeof USER_ROUTE_MAP];
             console.log('No onboarding record, redirecting to dashboard');
-            if (correctRoute && currentPath !== correctRoute) {
+            if (correctRoute) {
               navigate(correctRoute);
             }
             setIsChecking(false);
@@ -151,7 +162,7 @@ const NavigationWrapper = ({ children }: NavigationWrapperProps) => {
           
           if (!correctRoute) {
             console.error('Invalid user type:', profile.user_type);
-            localStorage.removeItem('colcord_user');
+            sessionStorage.removeItem('colcord_user');
             await supabase.auth.signOut();
             if (currentPath !== '/') {
               navigate('/');
@@ -160,20 +171,22 @@ const NavigationWrapper = ({ children }: NavigationWrapperProps) => {
             return;
           }
 
-          // Redirect from login page to user's dashboard (only if password is changed)
+          // Redirect from login page to user's dashboard
           if (currentPath === '/') {
             navigate(correctRoute);
             setIsChecking(false);
             return;
           }
           
-          // Redirect if user is on wrong route (but allow first-login)
-          if (currentPath !== correctRoute && currentPath !== '/first-login') {
+          // Allow users to navigate freely within their session
+          // Only redirect if they're on completely wrong routes
+          const validPaths = [correctRoute, '/first-login', '/settings', '/profile'];
+          if (!validPaths.some(path => currentPath.startsWith(path))) {
             navigate(correctRoute);
           }
         } catch (error) {
           console.error('Error validating session:', error);
-          localStorage.removeItem('colcord_user');
+          sessionStorage.removeItem('colcord_user');
           await supabase.auth.signOut();
           if (currentPath !== '/') {
             navigate('/');
@@ -182,8 +195,7 @@ const NavigationWrapper = ({ children }: NavigationWrapperProps) => {
       }
     } catch (error) {
       console.error('Error handling auth state change:', error);
-      // Clear any stale data
-      localStorage.removeItem('colcord_user');
+      sessionStorage.removeItem('colcord_user');
       if (session) {
         await supabase.auth.signOut();
       }

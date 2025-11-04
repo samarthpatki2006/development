@@ -45,6 +45,7 @@ interface UserTag {
   color: string;
   icon: string;
   is_active: boolean;
+  base_user_type: string | null;
 }
 
 interface RoleManagementProps {
@@ -207,6 +208,34 @@ const RoleManagement = ({ userProfile, adminRoles }: RoleManagementProps) => {
     }
 
     try {
+      // Get the selected user's details
+      const selectedUserData = availableUsers.find(u => u.id === selectedUser);
+      const selectedTagData = availableTags.find(t => t.id === selectedTag);
+
+      if (!selectedUserData || !selectedTagData) {
+        toast({
+          title: "Error",
+          description: "Selected user or tag not found.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Validate that the tag's base_user_type matches the user's user_type
+      if (selectedTagData.base_user_type) {
+        const userType = selectedUserData.user_type.toLowerCase();
+        const tagBaseType = selectedTagData.base_user_type.toLowerCase();
+        
+        if (userType !== tagBaseType) {
+          toast({
+            title: "Invalid Assignment",
+            description: `Cannot assign a ${tagBaseType} role to a ${userType}. Please select a tag that matches the user's type.`,
+            variant: "destructive",
+          });
+          return;
+        }
+      }
+
       // Check if user already has this tag
       const { data: existing, error: checkError } = await supabase
         .from('user_tag_assignments')
@@ -249,9 +278,6 @@ const RoleManagement = ({ userProfile, adminRoles }: RoleManagementProps) => {
         });
       } else {
         // Log the assignment in audit
-        const selectedTagData = availableTags.find(t => t.id === selectedTag);
-        const selectedUserData = availableUsers.find(u => u.id === selectedUser);
-        
         await supabase.from('tag_assignment_audit').insert([{
           user_id: selectedUser,
           tag_id: selectedTag,
@@ -426,7 +452,13 @@ const RoleManagement = ({ userProfile, adminRoles }: RoleManagementProps) => {
                 <div className="space-y-4 py-4">
                   <div className="space-y-2">
                     <Label className="text-sm">Select User</Label>
-                    <Select value={selectedUser} onValueChange={setSelectedUser}>
+                    <Select 
+                      value={selectedUser} 
+                      onValueChange={(value) => {
+                        setSelectedUser(value);
+                        setSelectedTag(''); // Reset tag when user changes
+                      }}
+                    >
                       <SelectTrigger className="text-sm">
                         <SelectValue placeholder="Choose a user" />
                       </SelectTrigger>
@@ -452,7 +484,18 @@ const RoleManagement = ({ userProfile, adminRoles }: RoleManagementProps) => {
                         <SelectValue placeholder="Choose a tag" />
                       </SelectTrigger>
                       <SelectContent>
-                        {availableTags.map((tag) => (
+                        {availableTags
+                          .filter(tag => {
+                            // If a user is selected, only show tags matching their user_type
+                            if (selectedUser) {
+                              const user = availableUsers.find(u => u.id === selectedUser);
+                              if (user && tag.base_user_type) {
+                                return user.user_type.toLowerCase() === tag.base_user_type.toLowerCase();
+                              }
+                            }
+                            return true;
+                          })
+                          .map((tag) => (
                           <SelectItem key={tag.id} value={tag.id}>
                             <div className="flex items-center space-x-2">
                               <Badge className={getCategoryColor(tag.tag_category)}>
@@ -467,6 +510,17 @@ const RoleManagement = ({ userProfile, adminRoles }: RoleManagementProps) => {
                         ))}
                       </SelectContent>
                     </Select>
+                    {selectedUser && availableTags.filter(tag => {
+                      const user = availableUsers.find(u => u.id === selectedUser);
+                      if (user && tag.base_user_type) {
+                        return user.user_type.toLowerCase() === tag.base_user_type.toLowerCase();
+                      }
+                      return true;
+                    }).length === 0 && (
+                      <p className="text-xs text-yellow-600">
+                        No tags available for the selected user's type.
+                      </p>
+                    )}
                   </div>
 
                   <div className="space-y-2">
@@ -639,12 +693,10 @@ const RoleManagement = ({ userProfile, adminRoles }: RoleManagementProps) => {
         </CardHeader>
         <CardContent className="p-4 sm:p-6 sm:pt-0">
           <Tabs defaultValue="admin_role">
-            <TabsList className="grid grid-cols-5 w-full">
+            <TabsList className="grid grid-cols-3 w-full">
               <TabsTrigger value="admin_role">Admin</TabsTrigger>
               <TabsTrigger value="faculty_role">Faculty</TabsTrigger>
               <TabsTrigger value="student_role">Student</TabsTrigger>
-              <TabsTrigger value="club">Clubs</TabsTrigger>
-              <TabsTrigger value="committee">Committees</TabsTrigger>
             </TabsList>
             
             {['admin_role', 'faculty_role', 'student_role', 'club', 'committee'].map((category) => (
@@ -673,6 +725,11 @@ const RoleManagement = ({ userProfile, adminRoles }: RoleManagementProps) => {
                             {tag.is_active ? "Active" : "Inactive"}
                           </Badge>
                         </div>
+                        {tag.base_user_type && (
+                          <div className="mt-2 text-xs text-blue-600">
+                            For: {tag.base_user_type}
+                          </div>
+                        )}
                       </div>
                     ))}
                 </div>

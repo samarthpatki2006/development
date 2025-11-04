@@ -44,24 +44,43 @@ const MultiStepLogin = () => {
 
   // Set up auth state listener
   useEffect(() => {
-    // Set up auth state listener FIRST
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-  async (event, session) => {
-    setSession(session);
-    setUser(session?.user ?? null);
-    
-    // If user is authenticated, fetch their profile and redirect
-    if (session?.user && event === 'SIGNED_IN') {
-      await handleAuthenticatedUser(session.user);
-    }
-  }
-);
+    // Check for existing session first
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (session) {
+        // User is already logged in, handle redirect
+        setSession(session);
+        setUser(session.user);
+        await handleAuthenticatedUser(session.user);
+      } else {
+        // No session, ensure we're on step 1
+        setSession(null);
+        setUser(null);
+        setStep(1);
+      }
+    };
 
-    // THEN check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-    });
+    checkSession();
+
+    // Set up auth state listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        setSession(session);
+        setUser(session?.user ?? null);
+        
+        // If user is authenticated, fetch their profile and redirect
+        if (session?.user && event === 'SIGNED_IN') {
+          await handleAuthenticatedUser(session.user);
+        }
+        
+        // If user signed out, reset to step 1
+        if (event === 'SIGNED_OUT') {
+          setStep(1);
+          resetForm();
+        }
+      }
+    );
 
     return () => subscription.unsubscribe();
   }, []);
@@ -85,7 +104,7 @@ const MultiStepLogin = () => {
         return;
       }
 
-      // Store user data for legacy compatibility
+      // Store user data in sessionStorage (will clear on tab close)
       const userData = {
         user_id: profile.id,
         user_type: profile.user_type,
@@ -96,7 +115,7 @@ const MultiStepLogin = () => {
         email: profile.email
       };
 
-      localStorage.setItem('colcord_user', JSON.stringify(userData));
+      sessionStorage.setItem('colcord_user', JSON.stringify(userData));
 
       // Redirect based on user type
       const userRoutes = {
@@ -386,21 +405,7 @@ const MultiStepLogin = () => {
         
         // Reset form and switch to login mode
         setIsSignUp(false);
-        setStep(1);
-        setSignupData({
-          firstName: '',
-          lastName: '',
-          email: '',
-          userType: 'student',
-          customUserCode: '',
-          generatePassword: '',
-          confirmPassword: ''
-        });
-        setCollegeCode('');
-        setUserCode('');
-        setPassword('');
-        setCollegeData(null);
-        setUserEmail('');
+        resetForm();
       }
     } catch (error) {
       console.error('Unexpected signup error:', error);
@@ -449,8 +454,8 @@ const MultiStepLogin = () => {
       email: `${role}@example.com`
     };
 
-    // Store mock user data
-    localStorage.setItem('colcord_user', JSON.stringify(mockUserData));
+    // Store mock user data in sessionStorage
+    sessionStorage.setItem('colcord_user', JSON.stringify(mockUserData));
 
     // Navigate to appropriate dashboard
     const routes = {
@@ -472,7 +477,7 @@ const MultiStepLogin = () => {
       {/* Background Grid Pattern */}
       <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.05)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.05)_1px,transparent_1px)] bg-[size:20px_20px]"></div>
       
-      <div className="elative z-10 w-full max-w-md mx-auto px-4 sm:px-6 md:px-0">
+      <div className="relative z-10 w-full max-w-md mx-auto px-4 sm:px-6 md:px-0">
         {/* Hero Section - Compact for mobile */}
         <div className="text-center mb-4 sm:mb-6 animate-fade-in-up">
           <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground mb-2 sm:mb-3 break-words px-2">
@@ -605,204 +610,10 @@ const MultiStepLogin = () => {
                 </Button>
               </div>
             )}
-
-            {/* Signup Flow */}
-            {/* {isSignUp && step === 1 && (
-              <div className="space-y-4 animate-fade-in">
-                <div className="space-y-2">
-                  <Label htmlFor="signupCollegeCode" className="text-sm font-medium text-foreground">
-                    College Code
-                  </Label>
-                  <Input
-                    id="signupCollegeCode"
-                    placeholder="Enter your college code"
-                    type="text"
-                    value={collegeCode}
-                    onChange={(e) => setCollegeCode(e.target.value)}
-                    className="bg-input border-border text-foreground placeholder:text-muted-foreground focus-ring"
-                  />
-                </div>
-                <Button 
-                  onClick={handleCollegeCodeSubmit} 
-                  disabled={isLoading}
-                  className="w-full h-12 bg-primary text-primary-foreground hover:bg-primary/90 font-medium transition-all duration-300 hover-scale focus-ring"
-                >
-                  {isLoading ? (
-                    <div className="flex items-center space-x-2">
-                      <div className="h-4 w-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin"></div>
-                      <span>Validating...</span>
-                    </div>
-                  ) : 'Continue'}
-                </Button>
-              </div>
-            )}
-
-            {isSignUp && step === 2 && (
-              <div className="space-y-4 animate-fade-in">
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-2">
-                    <Label htmlFor="firstName" className="text-sm font-medium text-foreground">
-                      First Name
-                    </Label>
-                    <Input
-                      id="firstName"
-                      placeholder="First name"
-                      type="text"
-                      value={signupData.firstName}
-                      onChange={(e) => setSignupData({...signupData, firstName: e.target.value})}
-                      className="bg-input border-border text-foreground placeholder:text-muted-foreground focus-ring"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="lastName" className="text-sm font-medium text-foreground">
-                      Last Name
-                    </Label>
-                    <Input
-                      id="lastName"
-                      placeholder="Last name"
-                      type="text"
-                      value={signupData.lastName}
-                      onChange={(e) => setSignupData({...signupData, lastName: e.target.value})}
-                      className="bg-input border-border text-foreground placeholder:text-muted-foreground focus-ring"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="email" className="text-sm font-medium text-foreground">
-                    Email Address
-                  </Label>
-                  <Input
-                    id="email"
-                    placeholder="your.email@example.com"
-                    type="email"
-                    value={signupData.email}
-                    onChange={(e) => setSignupData({...signupData, email: e.target.value})}
-                    className="bg-input border-border text-foreground placeholder:text-muted-foreground focus-ring"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="userType" className="text-sm font-medium text-foreground">
-                    User Type
-                  </Label>
-                  <Select value={signupData.userType} onValueChange={(value: any) => setSignupData({...signupData, userType: value})}>
-                    <SelectTrigger className="bg-input border-border text-foreground focus-ring">
-                      <SelectValue placeholder="Select your role" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="student">Student</SelectItem>
-                      <SelectItem value="faculty">Faculty</SelectItem>
-                      <SelectItem value="parent">Parent</SelectItem>
-                      <SelectItem value="alumni">Alumni</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="customUserCode" className="text-sm font-medium text-foreground">
-                    Custom User Code
-                  </Label>
-                  <Input
-                    id="customUserCode"
-                    placeholder="Choose your user code (e.g., JOHN2024)"
-                    type="text"
-                    value={signupData.customUserCode}
-                    onChange={(e) => setSignupData({...signupData, customUserCode: e.target.value.toUpperCase()})}
-                    className="bg-input border-border text-foreground placeholder:text-muted-foreground focus-ring"
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-2">
-                    <Label htmlFor="generatePassword" className="text-sm font-medium text-foreground">
-                      Password
-                    </Label>
-                    <Input
-                      id="generatePassword"
-                      placeholder="Password"
-                      type="password"
-                      value={signupData.generatePassword}
-                      onChange={(e) => setSignupData({...signupData, generatePassword: e.target.value})}
-                      className="bg-input border-border text-foreground placeholder:text-muted-foreground focus-ring"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="confirmPassword" className="text-sm font-medium text-foreground">
-                      Confirm Password
-                    </Label>
-                    <Input
-                      id="confirmPassword"
-                      placeholder="Confirm password"
-                      type="password"
-                      value={signupData.confirmPassword}
-                      onChange={(e) => setSignupData({...signupData, confirmPassword: e.target.value})}
-                      className="bg-input border-border text-foreground placeholder:text-muted-foreground focus-ring"
-                    />
-                  </div>
-                </div>
-
-                <Button 
-                  onClick={handleSignupSubmit} 
-                  disabled={isLoading}
-                  className="w-full h-12 bg-primary text-primary-foreground hover:bg-primary/90 font-medium transition-all duration-300 hover-scale focus-ring"
-                >
-                  {isLoading ? (
-                    <div className="flex items-center space-x-2">
-                      <div className="h-4 w-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin"></div>
-                      <span>Creating Account...</span>
-                    </div>
-                  ) : 'Create Account'}
-                </Button>
-              </div>
-            )} */}
           </CardContent>
           
           {/* Footer section with fixed height */}
           <div className="px-4 sm:px-5 md:px-6 pb-4 sm:pb-5 md:pb-6 space-y-3 sm:space-y-4 flex-shrink-0">
-            {/* Skip Login Buttons for Development */}
-            {/* <div className="space-y-3">
-              <div className="text-center">
-                <p className="text-xs text-muted-foreground mb-3">Development Mode - Skip Login</p>
-                <div className="flex gap-2 justify-center">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleSkipLogin('admin')}
-                    className="text-xs"
-                  >
-                    Skip as Admin
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleSkipLogin('teacher')}
-                    className="text-xs"
-                  >
-                    Skip as Teacher
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleSkipLogin('student')}
-                    className="text-xs"
-                  >
-                    Skip as Student
-                  </Button>
-                </div>
-              </div>
-              
-              <div className="text-center">
-                <Button
-                  variant="ghost"
-                  onClick={toggleMode}
-                  className="text-sm text-muted-foreground hover:text-foreground underline-offset-4 hover:underline"
-                >
-                  {isSignUp ? 'Already have an account? Login' : "Don't have an account? Sign up"}
-                </Button>
-              </div>
-            </div>
-             */}
             <div className="text-center">
               <a 
                 href="https://colcord.co.in/contact" 

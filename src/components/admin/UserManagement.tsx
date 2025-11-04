@@ -4,10 +4,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
-import { Users, Search, Plus, Edit, Trash2, Eye } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Users, Search, Edit, Trash2, Eye, AlertTriangle, XCircle, UserX } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 
@@ -46,6 +47,19 @@ const UserManagement = ({ userProfile, adminRoles }: UserManagementProps) => {
   const [isLoading, setIsLoading] = useState(true);
   const [selectedUser, setSelectedUser] = useState<ExtendedUserProfile | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [deleteAction, setDeleteAction] = useState<'deactivate' | 'delete'>('deactivate');
+  const [userToDelete, setUserToDelete] = useState<ExtendedUserProfile | null>(null);
+
+  // Edit form state
+  const [editForm, setEditForm] = useState({
+    first_name: '',
+    last_name: '',
+    email: '',
+    user_code: '',
+    user_type: 'student' as const,
+    is_active: true
+  });
 
   useEffect(() => {
     loadUsers();
@@ -56,6 +70,7 @@ const UserManagement = ({ userProfile, adminRoles }: UserManagementProps) => {
       'super_admin': 'super_admin',
       'admin': 'admin',
       'teacher': 'teacher',
+      'faculty': 'teacher',
       'student': 'student',
       'staff': 'staff',
       'parent': 'parent',
@@ -80,7 +95,6 @@ const UserManagement = ({ userProfile, adminRoles }: UserManagementProps) => {
           variant: "destructive",
         });
       } else {
-        // Map users and add hierarchy_level based on user_type
         const usersWithHierarchy: ExtendedUserProfile[] = (data || []).map(user => ({
           ...user,
           user_type: user.user_type === 'faculty' ? 'teacher' : user.user_type,
@@ -107,10 +121,8 @@ const UserManagement = ({ userProfile, adminRoles }: UserManagementProps) => {
   };
 
   const canManageUser = (user: ExtendedUserProfile): boolean => {
-    // Super admin can manage everyone
     if (isSuperAdmin()) return true;
     
-    // Regular admins can only manage users below their hierarchy level
     const hierarchyLevels: Record<string, number> = {
       'super_admin': 1,
       'admin': 2,
@@ -153,30 +165,106 @@ const UserManagement = ({ userProfile, adminRoles }: UserManagementProps) => {
     return colors[level] || 'bg-gray-100 text-gray-800';
   };
 
-  const handleUserAction = async (action: string, user: ExtendedUserProfile) => {
-    try {
-      if (action === 'deactivate') {
-        const { error } = await supabase
-          .from('user_profiles')
-          .update({ is_active: false })
-          .eq('id', user.id);
+  const handleViewUser = (user: ExtendedUserProfile) => {
+    setSelectedUser(user);
+  };
 
-        if (error) {
-          throw error;
-        }
-      }
+  const handleEditUser = (user: ExtendedUserProfile) => {
+    setEditForm({
+      first_name: user.first_name || '',
+      last_name: user.last_name || '',
+      email: user.email || '',
+      user_code: user.user_code,
+      user_type: user.user_type,
+      is_active: user.is_active ?? true
+    });
+    setSelectedUser(user);
+    setIsEditDialogOpen(true);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!selectedUser) return;
+
+    try {
+      const { error } = await supabase
+        .from('user_profiles')
+        .update({
+          first_name: editForm.first_name,
+          last_name: editForm.last_name,
+          email: editForm.email,
+          user_type: editForm.user_type,
+          is_active: editForm.is_active,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', selectedUser.id);
+
+      if (error) throw error;
 
       toast({
         title: "Success",
-        description: `User ${action} completed successfully.`,
+        description: "User updated successfully.",
       });
 
-      loadUsers(); // Reload the users list
+      setIsEditDialogOpen(false);
+      setSelectedUser(null);
+      loadUsers();
     } catch (error) {
-      console.error('Error performing user action:', error);
+      console.error('Error updating user:', error);
       toast({
         title: "Error",
-        description: `Failed to ${action} user.`,
+        description: "Failed to update user.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDeleteClick = (user: ExtendedUserProfile) => {
+    setUserToDelete(user);
+    setDeleteAction('deactivate');
+    setIsDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!userToDelete) return;
+
+    try {
+      if (deleteAction === 'deactivate') {
+        // Deactivate user
+        const { error } = await supabase
+          .from('user_profiles')
+          .update({ 
+            is_active: false,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', userToDelete.id);
+
+        if (error) throw error;
+
+        toast({
+          title: "Success",
+          description: "User deactivated successfully.",
+        });
+      } else {
+        // Permanent delete
+        // First, delete from auth.users (this will cascade to user_profiles due to FK constraint)
+        const { error: authError } = await supabase.auth.admin.deleteUser(userToDelete.id);
+
+        if (authError) throw authError;
+
+        toast({
+          title: "Success",
+          description: "User permanently deleted.",
+        });
+      }
+
+      setIsDeleteDialogOpen(false);
+      setUserToDelete(null);
+      loadUsers();
+    } catch (error) {
+      console.error('Error performing delete action:', error);
+      toast({
+        title: "Error",
+        description: `Failed to ${deleteAction === 'deactivate' ? 'deactivate' : 'delete'} user.`,
         variant: "destructive",
       });
     }
@@ -281,7 +369,8 @@ const UserManagement = ({ userProfile, adminRoles }: UserManagementProps) => {
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => setSelectedUser(user)}
+                          onClick={() => handleViewUser(user)}
+                          title="View Details"
                         >
                           <Eye className="w-3 h-3" />
                         </Button>
@@ -290,10 +379,8 @@ const UserManagement = ({ userProfile, adminRoles }: UserManagementProps) => {
                             <Button
                               size="sm"
                               variant="outline"
-                              onClick={() => {
-                                setSelectedUser(user);
-                                setIsEditDialogOpen(true);
-                              }}
+                              onClick={() => handleEditUser(user)}
+                              title="Edit User"
                             >
                               <Edit className="w-3 h-3" />
                             </Button>
@@ -301,8 +388,9 @@ const UserManagement = ({ userProfile, adminRoles }: UserManagementProps) => {
                               <Button
                                 size="sm"
                                 variant="outline"
-                                className="text-red-600 hover:text-red-700"
-                                onClick={() => handleUserAction('deactivate', user)}
+                                className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                onClick={() => handleDeleteClick(user)}
+                                title="Delete/Deactivate User"
                               >
                                 <Trash2 className="w-3 h-3" />
                               </Button>
@@ -325,9 +413,9 @@ const UserManagement = ({ userProfile, adminRoles }: UserManagementProps) => {
         </CardContent>
       </Card>
 
-      {/* User Details Dialog */}
-      {selectedUser && (
-        <Dialog open={!!selectedUser} onOpenChange={() => setSelectedUser(null)}>
+      {/* View User Details Dialog */}
+      {selectedUser && !isEditDialogOpen && (
+        <Dialog open={!!selectedUser && !isEditDialogOpen} onOpenChange={() => setSelectedUser(null)}>
           <DialogContent className="max-w-2xl">
             <DialogHeader>
               <DialogTitle>User Details</DialogTitle>
@@ -375,6 +463,159 @@ const UserManagement = ({ userProfile, adminRoles }: UserManagementProps) => {
                 </p>
               </div>
             </div>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Edit User Dialog */}
+      {isEditDialogOpen && selectedUser && (
+        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Edit User</DialogTitle>
+              <DialogDescription>
+                Update user information for {selectedUser.first_name} {selectedUser.last_name}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid grid-cols-2 gap-4 py-4">
+              <div>
+                <Label htmlFor="edit_first_name">First Name</Label>
+                <Input
+                  id="edit_first_name"
+                  value={editForm.first_name}
+                  onChange={(e) => setEditForm({...editForm, first_name: e.target.value})}
+                />
+              </div>
+              <div>
+                <Label htmlFor="edit_last_name">Last Name</Label>
+                <Input
+                  id="edit_last_name"
+                  value={editForm.last_name}
+                  onChange={(e) => setEditForm({...editForm, last_name: e.target.value})}
+                />
+              </div>
+              <div className="col-span-2">
+                <Label htmlFor="edit_email">Email</Label>
+                <Input
+                  id="edit_email"
+                  type="email"
+                  value={editForm.email}
+                  onChange={(e) => setEditForm({...editForm, email: e.target.value})}
+                />
+              </div>
+              <div>
+                <Label htmlFor="edit_user_type">User Type</Label>
+                <Select value={editForm.user_type} onValueChange={(value: any) => setEditForm({...editForm, user_type: value})}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="student">Student</SelectItem>
+                    <SelectItem value="teacher">Teacher</SelectItem>
+                    <SelectItem value="admin">Admin</SelectItem>
+                    <SelectItem value="parent">Parent</SelectItem>
+                    <SelectItem value="alumni">Alumni</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="edit_status">Status</Label>
+                <Select value={editForm.is_active ? "active" : "inactive"} onValueChange={(value) => setEditForm({...editForm, is_active: value === "active"})}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="inactive">Inactive</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleSaveEdit}>
+                Save Changes
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Delete Confirmation Dialog */}
+      {isDeleteDialogOpen && userToDelete && (
+        <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center space-x-2">
+                <AlertTriangle className="w-5 h-5 text-orange-600" />
+                <span>Delete User</span>
+              </DialogTitle>
+              <DialogDescription>
+                Choose how you want to handle {userToDelete.first_name} {userToDelete.last_name}
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="space-y-4 py-4">
+              <Alert>
+                <AlertDescription className="text-sm">
+                  <strong>User:</strong> {userToDelete.first_name} {userToDelete.last_name} ({userToDelete.email})
+                </AlertDescription>
+              </Alert>
+
+              <div className="space-y-3">
+                <button
+                  onClick={() => setDeleteAction('deactivate')}
+                  className={`w-full p-4 border-2 rounded-lg text-left transition-colors ${
+                    deleteAction === 'deactivate' 
+                      ? 'border-blue-300' 
+                      : 'hover:border-gray-300'
+                  }`}
+                >
+                  <div className="flex items-start space-x-3">
+                    <UserX className="w-5 h-5 mt-0.5 text-orange-600" />
+                    <div>
+                      <div className="font-medium">Deactivate User</div>
+                      <div className="text-sm mt-1">
+                        User will be marked as inactive but all data will be preserved. Can be reactivated later.
+                      </div>
+                    </div>
+                  </div>
+                </button>
+
+                <button
+                  onClick={() => setDeleteAction('delete')}
+                  className={`w-full p-4 border-2 rounded-lg text-left transition-colors ${
+                    deleteAction === 'delete' 
+                      ? 'border-red-500' 
+                      : 'hover:border-gray-300'
+                  }`}
+                >
+                  <div className="flex items-start space-x-3">
+                    <XCircle className="w-5 h-5 mt-0.5 text-red-600" />
+                    <div>
+                      <div className="font-medium text-red-700">Permanently Delete</div>
+                      <div className="text-sm mt-1">
+                        User and all associated data will be permanently deleted. This action cannot be undone.
+                      </div>
+                    </div>
+                  </div>
+                </button>
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button 
+                variant={deleteAction === 'delete' ? "destructive" : "default"}
+                onClick={handleDeleteConfirm}
+              >
+                {deleteAction === 'deactivate' ? 'Deactivate User' : 'Permanently Delete'}
+              </Button>
+            </DialogFooter>
           </DialogContent>
         </Dialog>
       )}

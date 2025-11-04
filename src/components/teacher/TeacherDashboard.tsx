@@ -439,7 +439,7 @@ const TeacherDashboard = ({ teacherData, onNavigate }: TeacherDashboardProps) =>
             <span>Welcome, Prof. {teacherData.first_name} {teacherData.last_name}!</span>
           </CardTitle>
           <CardDescription>
-            Teacher ID: {teacherData.user_code} | Department: Computer Science
+            Teacher ID: {teacherData.user_code} | Department:
           </CardDescription>
           <Badge className="bg-blue-600/30 text-blue-100 border border-blue-300/40 font-bold px-5 py-1.5 w-fit self-start md:self-auto rounded-full hover:bg-blue-600/40 hover:border-blue-300/60 hover:cursor-pointer hover:shadow-[0_0_20px_rgba(59,130,246,0.4)] transition-all duration-300 mt-4">
             FACULTY

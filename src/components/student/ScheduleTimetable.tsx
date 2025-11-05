@@ -20,6 +20,10 @@ const ScheduleTimetable: React.FC<ScheduleTimetableProps> = ({ studentData }) =>
   const [currentWeek, setCurrentWeek] = useState(new Date());
   const [currentMobileDay, setCurrentMobileDay] = useState(new Date());
   const [loading, setLoading] = useState(true);
+  const [hoveredClass, setHoveredClass] = useState<any>(null);
+  const [hoverPosition, setHoverPosition] = useState<{ x: number; y: number; showBelow?: boolean } | null>(null);
+  const hoverTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
+  const isHoveringRef = React.useRef<boolean>(false);
   const { toast } = useToast();
 
   const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thur', 'Fri', 'Sat'];
@@ -252,6 +256,12 @@ const ScheduleTimetable: React.FC<ScheduleTimetableProps> = ({ studentData }) =>
     return date.toDateString() === today.toDateString();
   };
 
+  const isClassActive = (classItem: any) => {
+    const now = new Date();
+    const currentTime = now.toTimeString().slice(0, 5);
+    return currentTime >= classItem.start_time && currentTime <= classItem.end_time;
+  };
+
   const getClassTypeStyle = (cls: any) => {
     if (!cls.is_extra_class) {
       return 'bg-primary/10 text-primary border-primary/20 hover:bg-primary/20';
@@ -300,6 +310,78 @@ const ScheduleTimetable: React.FC<ScheduleTimetableProps> = ({ studentData }) =>
     return labels;
   };
 
+  const handleClassHover = (cls: any, event: React.MouseEvent) => {
+    // If already hovering the same class, don't recalculate
+    if (isHoveringRef.current && hoveredClass?.id === cls.id) {
+      return;
+    }
+    
+    // Mark that we're hovering
+    isHoveringRef.current = true;
+    
+    // Clear any existing timeout
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current);
+      hoverTimeoutRef.current = null;
+    }
+    
+    const rect = event.currentTarget.getBoundingClientRect();
+    const viewportWidth = window.innerWidth;
+    const cardWidth = 320;
+    const cardHeight = 240;
+    
+    // Calculate horizontal position
+    let xPos = rect.left + rect.width / 2;
+    
+    // Prevent card from going off screen on the left
+    if (xPos - cardWidth / 2 < 10) {
+      xPos = cardWidth / 2 + 10;
+    }
+    
+    // Prevent card from going off screen on the right
+    if (xPos + cardWidth / 2 > viewportWidth - 10) {
+      xPos = viewportWidth - cardWidth / 2 - 10;
+    }
+    
+    // Calculate vertical position - show below if not enough space above
+    let yPos = rect.top;
+    let showBelow = false;
+    
+    // Add extra padding to prevent card from triggering leave events
+    if (rect.top < cardHeight + 40) {
+      // Not enough space above, show below
+      yPos = rect.bottom;
+      showBelow = true;
+    }
+    
+    // Set immediately without delay to prevent flickering
+    setHoveredClass(cls);
+    setHoverPosition({
+      x: xPos,
+      y: yPos,
+      showBelow: showBelow
+    });
+  };
+
+  const handleClassLeave = () => {
+    // Mark that we're not hovering anymore
+    isHoveringRef.current = false;
+    
+    // Clear timeout if exists
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current);
+    }
+    
+    // Add delay before hiding
+    hoverTimeoutRef.current = setTimeout(() => {
+      // Only hide if we're still not hovering
+      if (!isHoveringRef.current) {
+        setHoveredClass(null);
+        setHoverPosition(null);
+      }
+    }, 200);
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-8">
@@ -310,7 +392,87 @@ const ScheduleTimetable: React.FC<ScheduleTimetableProps> = ({ studentData }) =>
 
   return (
     <PermissionWrapper permission="view_attendance">
-      <div className="space-y-4 sm:space-y-6 px-2 sm:px-0">
+      <div className="space-y-4 sm:space-y-6 px-2 sm:px-0 relative">
+        {/* Hover Card */}
+        {hoveredClass && hoverPosition && (
+          <div
+            className="fixed z-[9999]"
+            style={{
+              left: `${hoverPosition.x}px`,
+              top: `${hoverPosition.y}px`,
+              transform: hoverPosition.showBelow 
+                ? 'translate(-50%, 15px)' 
+                : 'translate(-50%, calc(-100% - 10px))',
+              pointerEvents: 'none',
+              willChange: 'transform',
+              isolation: 'isolate'
+            }}
+            onMouseEnter={() => {
+              isHoveringRef.current = true;
+              if (hoverTimeoutRef.current) {
+                clearTimeout(hoverTimeoutRef.current);
+                hoverTimeoutRef.current = null;
+              }
+            }}
+          >
+            <div className="bg-black border-1 border-primary shadow-xl rounded-lg p-2 w-80">
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  {hoveredClass.is_extra_class && (
+                    <Star className="h-4 w-4 flex-shrink-0" />
+                  )}
+                  <h4 className="font-bold text-sm text-primary truncate">
+                    {hoveredClass.course_code}
+                  </h4>
+                  {isClassActive(hoveredClass) && (
+                    <Badge variant="default" className="text-xs flex-shrink-0">
+                      Active
+                    </Badge>
+                  )}
+                </div>
+                <p className="text-sm font-medium line-clamp-2">
+                  {hoveredClass.course_name}
+                </p>
+                {hoveredClass.is_extra_class && hoveredClass.title && (
+                  <p className="text-xs font-medium text-blue-600 line-clamp-1">
+                    {hoveredClass.title}
+                  </p>
+                )}
+                {hoveredClass.description && (
+                  <p className="text-xs text-gray-600 line-clamp-2">
+                    {hoveredClass.description}
+                  </p>
+                )}
+                <div className="space-y-1 text-xs text-gray-600">
+                  <div className="flex items-center gap-1">
+                    <Clock className="h-3 w-3 flex-shrink-0" />
+                    <span className="font-medium">
+                      {formatTime(hoveredClass.start_time)} - {formatTime(hoveredClass.end_time)}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <MapPin className="h-3 w-3 flex-shrink-0" />
+                    <span className="truncate">{hoveredClass.room_location || 'Room TBD'}</span>
+                  </div>
+                  {hoveredClass.instructor_name && (
+                    <div className="flex items-center gap-1">
+                      <User className="h-3 w-3 flex-shrink-0" />
+                      <span className="truncate">{hoveredClass.instructor_name}</span>
+                    </div>
+                  )}
+                  {hoveredClass.is_extra_class && (
+                    <div className="flex items-center gap-1 capitalize">
+                      <Badge variant="outline" className="text-xs">
+                        {hoveredClass.class_type}
+                      </Badge>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
           <div>
             <h2 className="text-2xl font-bold">Class Schedule</h2>
@@ -371,7 +533,7 @@ const ScheduleTimetable: React.FC<ScheduleTimetableProps> = ({ studentData }) =>
                   </div>
                 </div>
               </CardHeader>
-              <CardContent>
+              <CardContent className="overflow-visible">
                 {/* Desktop View - Timeline */}
                 <div className="hidden lg:grid grid-cols-8 gap-2 min-h-[800px]">
                   <div className="space-y-0 relative">
@@ -401,7 +563,7 @@ const ScheduleTimetable: React.FC<ScheduleTimetableProps> = ({ studentData }) =>
                         <div className="text-xs">{date.getDate()}</div>
                       </div>
                       
-                      <div className="relative border rounded-lg" style={{ height: 'calc(100% - 56px)', minHeight: '700px' }}>
+                      <div className="relative border rounded-lg overflow-visible" style={{ height: 'calc(100% - 56px)', minHeight: '700px' }}>
                         {generateTimeLabels().map((_, index) => (
                           <div 
                             key={index}
@@ -412,27 +574,43 @@ const ScheduleTimetable: React.FC<ScheduleTimetableProps> = ({ studentData }) =>
                         
                         {getClassesForDay(dayIndex, date).map((cls, clsIndex) => {
                           const position = getClassPosition(cls.start_time, cls.end_time);
+                          const active = isClassActive(cls);
                           return (
                             <div 
                               key={clsIndex}
-                              className={`absolute left-1 right-1 p-2 rounded text-xs border overflow-hidden ${getClassTypeStyle(cls)}`}
+                              className={`absolute left-1 right-1 p-2 rounded text-xs border cursor-pointer transition-colors duration-150 ${getClassTypeStyle(cls)} ${
+                                active ? 'ring-2 ring-offset-1' : ''
+                              }`}
                               style={position}
+                              onMouseEnter={(e) => {
+                                e.stopPropagation();
+                                handleClassHover(cls, e);
+                              }}
+                              onMouseLeave={(e) => {
+                                e.stopPropagation();
+                                handleClassLeave();
+                              }}
                             >
-                              <div className="font-medium truncate flex items-center">
+                              <div className="font-medium truncate flex items-center pointer-events-none">
                                 {cls.is_extra_class && (
                                   <Star className="h-2 w-2 mr-1 flex-shrink-0" />
                                 )}
                                 <span className="truncate">{cls.course_code}</span>
                               </div>
-                              <div className="text-xs opacity-80 truncate">
+                              <div className="text-xs opacity-80 truncate pointer-events-none">
                                 {formatTime(cls.start_time)}
                               </div>
-                              <div className="text-xs opacity-80 truncate">
+                              <div className="text-xs opacity-80 truncate pointer-events-none">
                                 {cls.room_location}
                               </div>
                               {cls.is_extra_class && (
-                                <div className="text-xs opacity-70 truncate capitalize">
+                                <div className="text-xs opacity-70 truncate capitalize pointer-events-none">
                                   {cls.class_type}
+                                </div>
+                              )}
+                              {active && (
+                                <div className="text-xs font-semibold text-green-600 mt-1 pointer-events-none">
+                                  ACTIVE
                                 </div>
                               )}
                             </div>
@@ -472,51 +650,62 @@ const ScheduleTimetable: React.FC<ScheduleTimetableProps> = ({ studentData }) =>
 
                     return (
                       <div className="space-y-3">
-                        {dayClasses.map((cls, clsIndex) => (
-                          <div 
-                            key={clsIndex}
-                            className={`p-4 rounded-lg border ${getClassTypeStyle(cls)}`}
-                          >
-                            <div className="flex items-start justify-between gap-3">
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2 mb-2">
-                                  {cls.is_extra_class && (
-                                    <Star className="h-4 w-4 flex-shrink-0" />
+                        {dayClasses.map((cls, clsIndex) => {
+                          const active = isClassActive(cls);
+                          return (
+                            <div 
+                              key={clsIndex}
+                              className={`p-4 rounded-lg border ${getClassTypeStyle(cls)} ${
+                                active ? 'ring-2 ring-primary' : ''
+                              }`}
+                            >
+                              <div className="flex items-start justify-between gap-3">
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2 mb-2">
+                                    {cls.is_extra_class && (
+                                      <Star className="h-4 w-4 flex-shrink-0" />
+                                    )}
+                                    <span className="font-bold text-base truncate">{cls.course_code}</span>
+                                    {active && (
+                                      <Badge className="text-xs" variant="default">
+                                        <Clock className="h-3 w-3 mr-1" />
+                                        Active
+                                      </Badge>
+                                    )}
+                                  </div>
+                                  <div className="text-sm font-medium truncate mb-3">{cls.course_name}</div>
+                                  {cls.is_extra_class && cls.title && (
+                                    <div className="text-sm font-medium mb-2 truncate">{cls.title}</div>
                                   )}
-                                  <span className="font-bold text-base truncate">{cls.course_code}</span>
-                                </div>
-                                <div className="text-sm font-medium truncate mb-3">{cls.course_name}</div>
-                                {cls.is_extra_class && cls.title && (
-                                  <div className="text-sm font-medium mb-2 truncate">{cls.title}</div>
-                                )}
-                                {cls.description && (
-                                  <p className="text-xs opacity-70 mb-3 line-clamp-2">{cls.description}</p>
-                                )}
-                                <div className="space-y-2 text-sm">
-                                  <div className="flex items-center gap-2">
-                                    <Clock className="h-4 w-4 opacity-70" />
-                                    <span className="font-medium">{formatTime(cls.start_time)} - {formatTime(cls.end_time)}</span>
-                                  </div>
-                                  <div className="flex items-center gap-2">
-                                    <MapPin className="h-4 w-4 opacity-70" />
-                                    <span>{cls.room_location || 'Room TBD'}</span>
-                                  </div>
-                                  {cls.instructor_name && (
+                                  {cls.description && (
+                                    <p className="text-xs opacity-70 mb-3 line-clamp-2">{cls.description}</p>
+                                  )}
+                                  <div className="space-y-2 text-sm">
                                     <div className="flex items-center gap-2">
-                                      <User className="h-4 w-4 opacity-70" />
-                                      <span>{cls.instructor_name}</span>
+                                      <Clock className="h-4 w-4 opacity-70" />
+                                      <span className="font-medium">{formatTime(cls.start_time)} - {formatTime(cls.end_time)}</span>
                                     </div>
-                                  )}
-                                  {cls.is_extra_class && (
-                                    <div className="text-xs mt-2 opacity-70 capitalize font-medium">
-                                      📚 {cls.class_type} class
+                                    <div className="flex items-center gap-2">
+                                      <MapPin className="h-4 w-4 opacity-70" />
+                                      <span>{cls.room_location || 'Room TBD'}</span>
                                     </div>
-                                  )}
+                                    {cls.instructor_name && (
+                                      <div className="flex items-center gap-2">
+                                        <User className="h-4 w-4 opacity-70" />
+                                        <span>{cls.instructor_name}</span>
+                                      </div>
+                                    )}
+                                    {cls.is_extra_class && (
+                                      <div className="text-xs mt-2 opacity-70 capitalize font-medium">
+                                        📚 {cls.class_type} class
+                                      </div>
+                                    )}
+                                  </div>
                                 </div>
                               </div>
                             </div>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     );
                   })()}
@@ -595,96 +784,6 @@ const ScheduleTimetable: React.FC<ScheduleTimetableProps> = ({ studentData }) =>
               </CardContent>
             </Card>
           </TabsContent>
-
-          {/* Calendar View */}
-          {/* <TabsContent value="calendar" className="space-y-4">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <Card className="lg:col-span-1">
-                <CardHeader>
-                  <CardTitle>Select Date</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <Calendar
-                    mode="single"
-                    selected={selectedDate}
-                    onSelect={(date) => date && setSelectedDate(date)}
-                    className="rounded-md border"
-                  />
-                </CardContent>
-              </Card>
-
-              <Card className="lg:col-span-2">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base sm:text-lg">
-                    {selectedDate.toLocaleDateString('en-US', { 
-                      weekday: 'long', 
-                      month: 'short', 
-                      day: 'numeric',
-                      year: 'numeric'
-                    })}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  {getClassesForDay(selectedDate.getDay(), selectedDate).length === 0 ? (
-                    <div className="text-center py-8 text-muted-foreground text-sm">
-                      No classes scheduled for this day
-                    </div>
-                  ) : (
-                    getClassesForDay(selectedDate.getDay(), selectedDate)
-                      .sort((a, b) => a.start_time.localeCompare(b.start_time))
-                      .map((cls, index) => (
-                      <div key={index} className={`flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 p-3 sm:p-4 border rounded-lg ${
-                        cls.is_extra_class ? 'border-l-4 border-l-blue-500' : ''
-                      }`}>
-                        <div className="flex-shrink-0 flex gap-2">
-                          <Badge variant={cls.is_extra_class ? "secondary" : "outline"} className="text-xs">
-                            {cls.course_code}
-                          </Badge>
-                          {cls.is_extra_class && (
-                            <Badge variant="outline" className="text-xs capitalize">
-                              {cls.class_type}
-                            </Badge>
-                          )}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <h4 className="font-medium text-sm sm:text-base">{cls.course_name}</h4>
-                            {cls.is_extra_class && (
-                              <Star className="h-4 w-4 text-blue-500 flex-shrink-0" />
-                            )}
-                          </div>
-                          {cls.is_extra_class && cls.title && (
-                            <p className="text-xs sm:text-sm text-blue-600 font-medium">{cls.title}</p>
-                          )}
-                          {cls.description && (
-                            <p className="text-xs sm:text-sm text-muted-foreground mt-1 line-clamp-2">{cls.description}</p>
-                          )}
-                          <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-4 mt-2 text-xs sm:text-sm text-muted-foreground gap-1 sm:gap-0">
-                            <span className="flex items-center">
-                              <Clock className="h-3 w-3 mr-1 flex-shrink-0" />
-                              <span className="truncate">{formatTime(cls.start_time)} - {formatTime(cls.end_time)}</span>
-                            </span>
-                            {cls.room_location && (
-                              <span className="flex items-center">
-                                <MapPin className="h-3 w-3 mr-1 flex-shrink-0" />
-                                <span className="truncate">{cls.room_location}</span>
-                              </span>
-                            )}
-                            {cls.instructor_name && (
-                              <span className="flex items-center">
-                                <User className="h-3 w-3 mr-1 flex-shrink-0" />
-                                <span className="truncate">{cls.instructor_name}</span>
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent> */}
         </Tabs>
       </div>
     </PermissionWrapper>

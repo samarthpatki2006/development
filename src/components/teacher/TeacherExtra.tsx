@@ -372,9 +372,6 @@ const TeacherExtra = ({ teacherData }: TeacherEventsProps) => {
     <PermissionWrapper permission="mark_attendance">
       <div className="space-y-6">
         <Tabs defaultValue="schedule" className="w-full">
-          <TabsList className="grid w-full grid-cols-1">
-            <TabsTrigger value="schedule">Schedule Classes</TabsTrigger>
-          </TabsList>
 
           {/* Schedule Classes */}
           <TabsContent value="schedule" className="space-y-4">

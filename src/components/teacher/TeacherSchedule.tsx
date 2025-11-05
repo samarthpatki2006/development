@@ -47,6 +47,10 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
   const [editingStudent, setEditingStudent] = useState<string | null>(null);
   const [minutesSinceStart, setMinutesSinceStart] = useState<number>(0);
   const [teacherCourseIds, setTeacherCourseIds] = useState<string[]>([]);
+  const [hoveredClass, setHoveredClass] = useState<any>(null);
+  const [hoverPosition, setHoverPosition] = useState<{ x: number; y: number; showBelow?: boolean } | null>(null);
+  const hoverTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
+  const isHoveringRef = React.useRef<boolean>(false);
 
   const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thur', 'Fri', 'Sat'];
 
@@ -832,6 +836,78 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
     return labels;
   };
 
+  const handleClassHover = (cls: any, event: React.MouseEvent) => {
+    // If already hovering the same class, don't recalculate
+    if (isHoveringRef.current && hoveredClass?.id === cls.id) {
+      return;
+    }
+    
+    // Mark that we're hovering
+    isHoveringRef.current = true;
+    
+    // Clear any existing timeout
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current);
+      hoverTimeoutRef.current = null;
+    }
+    
+    const rect = event.currentTarget.getBoundingClientRect();
+    const viewportWidth = window.innerWidth;
+    const cardWidth = 320;
+    const cardHeight = 220;
+    
+    // Calculate horizontal position
+    let xPos = rect.left + rect.width / 2;
+    
+    // Prevent card from going off screen on the left
+    if (xPos - cardWidth / 2 < 10) {
+      xPos = cardWidth / 2 + 10;
+    }
+    
+    // Prevent card from going off screen on the right
+    if (xPos + cardWidth / 2 > viewportWidth - 10) {
+      xPos = viewportWidth - cardWidth / 2 - 10;
+    }
+    
+    // Calculate vertical position - show below if not enough space above
+    let yPos = rect.top;
+    let showBelow = false;
+    
+    // Add extra padding to prevent card from triggering leave events
+    if (rect.top < cardHeight + 40) {
+      // Not enough space above, show below
+      yPos = rect.bottom;
+      showBelow = true;
+    }
+    
+    // Set immediately without delay to prevent flickering
+    setHoveredClass(cls);
+    setHoverPosition({
+      x: xPos,
+      y: yPos,
+      showBelow: showBelow
+    });
+  };
+
+  const handleClassLeave = () => {
+    // Mark that we're not hovering anymore
+    isHoveringRef.current = false;
+    
+    // Clear timeout if exists
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current);
+    }
+    
+    // Add delay before hiding
+    hoverTimeoutRef.current = setTimeout(() => {
+      // Only hide if we're still not hovering
+      if (!isHoveringRef.current) {
+        setHoveredClass(null);
+        setHoverPosition(null);
+      }
+    }, 200);
+  };
+
   const hasNoCourses = courses.length === 0 && !loading;
 
   if (loading && courses.length === 0) {
@@ -847,7 +923,7 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 relative">
       {hasNoCourses && (
         <Alert>
           <AlertCircle className="h-4 w-4 text-blue-600" />
@@ -855,6 +931,80 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
             You don't have any courses assigned yet. Once courses are assigned to you, they will appear here.
           </AlertDescription>
         </Alert>
+      )}
+      
+      {/* Hover Card */}
+      {hoveredClass && hoverPosition && (
+        <div
+          className="fixed z-[9999]"
+          style={{
+            left: `${hoverPosition.x}px`,
+            top: `${hoverPosition.y}px`,
+            transform: hoverPosition.showBelow 
+              ? 'translate(-50%, 15px)' 
+              : 'translate(-50%, calc(-100% - 10px))',
+            pointerEvents: 'none',
+            willChange: 'transform',
+            isolation: 'isolate'
+          }}
+          onMouseEnter={() => {
+            isHoveringRef.current = true;
+            if (hoverTimeoutRef.current) {
+              clearTimeout(hoverTimeoutRef.current);
+              hoverTimeoutRef.current = null;
+            }
+          }}
+        >
+          <div className="bg-black border-1 border-primary shadow-xl rounded-lg p-2 w-80">
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                {hoveredClass.is_extra_class && (
+                  <Star className="h-4 w-4 flex-shrink-0" />
+                )}
+                <h4 className="font-bold text-sm text-primary truncate">
+                  {hoveredClass.courses?.course_code}
+                </h4>
+                {isClassActive(hoveredClass) && (
+                  <Badge variant="default" className="text-xs flex-shrink-0">
+                    Active
+                  </Badge>
+                )}
+              </div>
+              <p className="text-sm font-medium line-clamp-2">
+                {hoveredClass.courses?.course_name}
+              </p>
+              <div className="space-y-1 text-xs text-gray-600">
+                <div className="flex items-center gap-1">
+                  <Clock className="h-3 w-3 flex-shrink-0" />
+                  <span className="font-medium">
+                    {formatTime(hoveredClass.start_time)} - {formatTime(hoveredClass.end_time)}
+                  </span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <MapPin className="h-3 w-3 flex-shrink-0" />
+                  <span className="truncate">{hoveredClass.room_location || 'Room TBD'}</span>
+                </div>
+                {hoveredClass.is_extra_class && (
+                  <div className="flex items-center gap-1 capitalize">
+                    <Badge variant="outline" className="text-xs">
+                      {hoveredClass.class_type}
+                    </Badge>
+                  </div>
+                )}
+                {!hoveredClass.is_extra_class && hoveredClass.courses?.enrollments?.[0]?.count > 0 && (
+                  <div className="flex items-center gap-1">
+                    <Users className="h-3 w-3 flex-shrink-0" />
+                    <span>{hoveredClass.courses.enrollments[0].count} students</span>
+                  </div>
+                )}
+              </div>
+              <div className="pt-1 border-t text-xs text-gray-500 flex items-center gap-1">
+                <QrCodeIcon className="h-3 w-3 flex-shrink-0" />
+                <span>Click to generate QR</span>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
       
       <Tabs defaultValue="schedule" className="space-y-4">
@@ -1052,7 +1202,7 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
                 </div>
               </div>
             </CardHeader>
-            <CardContent>
+            <CardContent className="overflow-visible">
               {hasNoCourses ? (
                 <div className="text-center py-12 text-muted-foreground">
                   <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
@@ -1090,7 +1240,7 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
                           <div className="text-xs">{date.getDate()}</div>
                         </div>
                         
-                        <div className="relative border rounded-lg" style={{ height: 'calc(100% - 56px)', minHeight: '700px' }}>
+                        <div className="relative border rounded-lg overflow-visible" style={{ height: 'calc(100% - 56px)', minHeight: '700px' }}>
                           {generateTimeLabels().map((_, index) => (
                             <div 
                               key={index}
@@ -1105,35 +1255,43 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
                             return (
                               <div 
                                 key={clsIndex}
-                                className={`absolute left-1 right-1 p-2 rounded text-xs border overflow-hidden cursor-pointer transition-all ${getClassTypeStyle(cls)} ${
+                                className={`absolute left-1 right-1 p-2 rounded text-xs border cursor-pointer transition-colors duration-150 ${getClassTypeStyle(cls)} ${
                                   active ? 'ring-2 ring-offset-1' : ''
                                 }`}
                                 style={position}
                                 onClick={() => generateQRCode(cls)}
+                                onMouseEnter={(e) => {
+                                  e.stopPropagation();
+                                  handleClassHover(cls, e);
+                                }}
+                                onMouseLeave={(e) => {
+                                  e.stopPropagation();
+                                  handleClassLeave();
+                                }}
                               >
-                                <div className="font-medium truncate flex items-center">
+                                <div className="font-medium truncate flex items-center pointer-events-none">
                                   {cls.is_extra_class && (
                                     <Star className="h-2 w-2 mr-1 flex-shrink-0" />
                                   )}
                                   <span className="truncate">{cls.courses?.course_code}</span>
                                 </div>
-                                <div className="text-xs opacity-80 truncate">
+                                <div className="text-xs opacity-80 truncate pointer-events-none">
                                   {formatTime(cls.start_time)}
                                 </div>
-                                <div className="text-xs opacity-80 truncate">
+                                <div className="text-xs opacity-80 truncate pointer-events-none">
                                   {cls.room_location}
                                 </div>
                                 {cls.is_extra_class && (
-                                  <div className="text-xs opacity-70 truncate capitalize">
+                                  <div className="text-xs opacity-70 truncate capitalize pointer-events-none">
                                     {cls.class_type}
                                   </div>
                                 )}
                                 {active && (
-                                  <div className="text-xs font-semibold text-green-600 mt-1">
+                                  <div className="text-xs font-semibold text-green-600 mt-1 pointer-events-none">
                                     ACTIVE
                                   </div>
                                 )}
-                                <div className="text-xs opacity-70 truncate flex items-center mt-1">
+                                <div className="text-xs opacity-70 truncate flex items-center mt-1 pointer-events-none">
                                   <QrCodeIcon className="h-2 w-2 mr-1" />
                                   Click for QR
                                 </div>

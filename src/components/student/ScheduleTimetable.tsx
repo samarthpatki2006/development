@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Clock, MapPin, User, BookOpen, ChevronLeft, ChevronRight, Star, BookOpenText, CalendarPlus,CalendarDays } from 'lucide-react';
+import { Clock, MapPin, User, BookOpen, ChevronLeft, ChevronRight, Star, CalendarDays } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import PermissionWrapper from '@/components/PermissionWrapper';
@@ -18,6 +18,7 @@ const ScheduleTimetable: React.FC<ScheduleTimetableProps> = ({ studentData }) =>
   const [weeklySchedule, setWeeklySchedule] = useState<any[]>([]);
   const [todayClasses, setTodayClasses] = useState<any[]>([]);
   const [currentWeek, setCurrentWeek] = useState(new Date());
+  const [currentMobileDay, setCurrentMobileDay] = useState(new Date());
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
@@ -25,7 +26,7 @@ const ScheduleTimetable: React.FC<ScheduleTimetableProps> = ({ studentData }) =>
 
   useEffect(() => {
     fetchScheduleData();
-  }, [studentData, currentWeek]);
+  }, [studentData, currentWeek, currentMobileDay]);
 
   const fetchScheduleData = async () => {
     if (!studentData?.user_id) return;
@@ -90,6 +91,15 @@ const ScheduleTimetable: React.FC<ScheduleTimetableProps> = ({ studentData }) =>
         const weekEnd = new Date(weekStart);
         weekEnd.setDate(weekStart.getDate() + 6);
 
+        // Mobile day range
+        const mobileStart = new Date(currentMobileDay);
+        mobileStart.setDate(mobileStart.getDate() - 3);
+        const mobileEnd = new Date(currentMobileDay);
+        mobileEnd.setDate(mobileEnd.getDate() + 3);
+
+        const earliestDate = weekStart < mobileStart ? weekStart : mobileStart;
+        const latestDate = weekEnd > mobileEnd ? weekEnd : mobileEnd;
+
         // Get extra classes for the current week
         const { data: extraClasses, error: extraError } = await supabase
           .from('extra_class_schedule')
@@ -112,8 +122,8 @@ const ScheduleTimetable: React.FC<ScheduleTimetableProps> = ({ studentData }) =>
           `)
           .in('course_id', enrolledCourseIds)
           .eq('status', 'scheduled')
-          .gte('scheduled_date', weekStart.toISOString().split('T')[0])
-          .lte('scheduled_date', weekEnd.toISOString().split('T')[0]);
+          .gte('scheduled_date', earliestDate.toISOString().split('T')[0])
+          .lte('scheduled_date', latestDate.toISOString().split('T')[0]);
 
         // If we have extra classes, get teacher information separately
         let teacherProfiles = {};
@@ -190,7 +200,7 @@ const ScheduleTimetable: React.FC<ScheduleTimetableProps> = ({ studentData }) =>
   const getWeekDays = (startDate: Date) => {
     const week = [];
     const start = new Date(startDate);
-    start.setDate(start.getDate() - start.getDay()); // Start from Sunday
+    start.setDate(start.getDate() - start.getDay());
 
     for (let i = 0; i < 7; i++) {
       const day = new Date(start);
@@ -204,6 +214,12 @@ const ScheduleTimetable: React.FC<ScheduleTimetableProps> = ({ studentData }) =>
     const newWeek = new Date(currentWeek);
     newWeek.setDate(currentWeek.getDate() + (direction === 'next' ? 7 : -7));
     setCurrentWeek(newWeek);
+  };
+
+  const navigateMobileDay = (direction: 'prev' | 'next') => {
+    const newDay = new Date(currentMobileDay);
+    newDay.setDate(currentMobileDay.getDate() + (direction === 'next' ? 1 : -1));
+    setCurrentMobileDay(newDay);
   };
 
   const formatTime = (timeString: string) => {
@@ -238,20 +254,20 @@ const ScheduleTimetable: React.FC<ScheduleTimetableProps> = ({ studentData }) =>
 
   const getClassTypeStyle = (cls: any) => {
     if (!cls.is_extra_class) {
-      return 'bg-primary/10 text-primary border-primary/20';
+      return 'bg-primary/10 text-primary border-primary/20 hover:bg-primary/20';
     }
     
     switch (cls.class_type) {
       case 'extra':
-        return 'bg-blue-50 text-blue-700 border-blue-200';
+        return 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100';
       case 'remedial':
-        return 'bg-orange-50 text-orange-700 border-orange-200';
+        return 'bg-orange-50 text-orange-700 border-orange-200 hover:bg-orange-100';
       case 'makeup':
-        return 'bg-purple-50 text-purple-700 border-purple-200';
+        return 'bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100';
       case 'special':
-        return 'bg-green-50 text-green-700 border-green-200';
+        return 'bg-green-50 text-green-700 border-green-200 hover:bg-green-100';
       default:
-        return 'bg-blue-50 text-blue-700 border-blue-200';
+        return 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100';
     }
   };
 
@@ -269,7 +285,7 @@ const ScheduleTimetable: React.FC<ScheduleTimetableProps> = ({ studentData }) =>
     
     return {
       top: `${Math.max(0, topPercent)}%`,
-      height: `${Math.max(2, heightPercent)}%`
+      height: `${Math.max(3, heightPercent)}%`
     };
   };
 
@@ -302,24 +318,30 @@ const ScheduleTimetable: React.FC<ScheduleTimetableProps> = ({ studentData }) =>
           </div>
         </div>
 
-        <Tabs defaultValue="weekly" className="space-y-4">
+        <Tabs defaultValue="schedule" className="space-y-4">
           <TabsList className="w-full sm:w-auto grid grid-cols-3">
+            <TabsTrigger value="schedule" className="text-xs sm:text-sm">Schedule</TabsTrigger>
             <TabsTrigger value="daily" className="text-xs sm:text-sm">Daily</TabsTrigger>
-            <TabsTrigger value="weekly" className="text-xs sm:text-sm">Weekly</TabsTrigger>
             <TabsTrigger value="calendar" className="text-xs sm:text-sm">Calendar</TabsTrigger>
           </TabsList>
 
-          {/* Weekly View */}
-          <TabsContent value="weekly" className="space-y-4">
+          {/* Weekly/Daily Schedule View */}
+          <TabsContent value="schedule" className="space-y-4">
             <Card>
               <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle>Weekly Schedule</CardTitle>
-                  <div className="flex items-center space-x-2">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                  <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                    <CalendarDays className="h-4 w-4 sm:h-5 sm:w-5" />
+                    <span className="hidden lg:inline">Weekly Schedule Timeline</span>
+                    <span className="lg:hidden">Daily Schedule</span>
+                  </CardTitle>
+                  
+                  {/* Desktop Week Navigation */}
+                  <div className="hidden lg:flex items-center space-x-2">
                     <Button variant="outline" size="sm" onClick={() => navigateWeek('prev')}>
                       <ChevronLeft className="h-4 w-4" />
                     </Button>
-                    <span className="text-sm font-medium">
+                    <span className="text-xs sm:text-sm font-medium min-w-[100px] sm:min-w-[140px] text-center">
                       {currentWeek.toLocaleDateString('en-US', { 
                         month: 'long', 
                         day: 'numeric', 
@@ -330,10 +352,29 @@ const ScheduleTimetable: React.FC<ScheduleTimetableProps> = ({ studentData }) =>
                       <ChevronRight className="h-4 w-4" />
                     </Button>
                   </div>
+
+                  {/* Mobile Day Navigation */}
+                  <div className="flex lg:hidden items-center space-x-2">
+                    <Button variant="outline" size="sm" onClick={() => navigateMobileDay('prev')}>
+                      <ChevronLeft className="h-4 w-4" />
+                    </Button>
+                    <span className="text-xs font-medium min-w-[140px] text-center">
+                      {currentMobileDay.toLocaleDateString('en-US', { 
+                        weekday: 'short',
+                        month: 'short', 
+                        day: 'numeric',
+                        year: 'numeric' 
+                      })}
+                    </span>
+                    <Button variant="outline" size="sm" onClick={() => navigateMobileDay('next')}>
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-8 gap-2 min-h-[800px]">
+                {/* Desktop View - Timeline */}
+                <div className="hidden lg:grid grid-cols-8 gap-2 min-h-[800px]">
                   <div className="space-y-0 relative">
                     <div className="h-12"></div>
                     <div className="relative" style={{ height: 'calc(100% - 48px)' }}>
@@ -401,6 +442,85 @@ const ScheduleTimetable: React.FC<ScheduleTimetableProps> = ({ studentData }) =>
                       </div>
                     </div>
                   ))}
+                </div>
+
+                {/* Mobile View - Daily List Format */}
+                <div className="lg:hidden space-y-3">
+                  <div className={`p-4 rounded-lg ${
+                    isToday(currentMobileDay) ? 'bg-primary text-primary-foreground' : 'bg-muted'
+                  }`}>
+                    <div className="text-lg font-semibold">
+                      {currentMobileDay.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
+                    </div>
+                    {isToday(currentMobileDay) && (
+                      <div className="text-sm opacity-90 mt-1">Today</div>
+                    )}
+                  </div>
+                  
+                  {(() => {
+                    const mobileDayOfWeek = currentMobileDay.getDay();
+                    const dayClasses = getClassesForDay(mobileDayOfWeek, currentMobileDay);
+                    
+                    if (dayClasses.length === 0) {
+                      return (
+                        <div className="text-center py-12 text-muted-foreground">
+                          <CalendarDays className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                          <p className="font-medium">No classes scheduled</p>
+                          <p className="text-sm mt-1">You have no classes on this day</p>
+                        </div>
+                      );
+                    }
+
+                    return (
+                      <div className="space-y-3">
+                        {dayClasses.map((cls, clsIndex) => (
+                          <div 
+                            key={clsIndex}
+                            className={`p-4 rounded-lg border ${getClassTypeStyle(cls)}`}
+                          >
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 mb-2">
+                                  {cls.is_extra_class && (
+                                    <Star className="h-4 w-4 flex-shrink-0" />
+                                  )}
+                                  <span className="font-bold text-base truncate">{cls.course_code}</span>
+                                </div>
+                                <div className="text-sm font-medium truncate mb-3">{cls.course_name}</div>
+                                {cls.is_extra_class && cls.title && (
+                                  <div className="text-sm font-medium mb-2 truncate">{cls.title}</div>
+                                )}
+                                {cls.description && (
+                                  <p className="text-xs opacity-70 mb-3 line-clamp-2">{cls.description}</p>
+                                )}
+                                <div className="space-y-2 text-sm">
+                                  <div className="flex items-center gap-2">
+                                    <Clock className="h-4 w-4 opacity-70" />
+                                    <span className="font-medium">{formatTime(cls.start_time)} - {formatTime(cls.end_time)}</span>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <MapPin className="h-4 w-4 opacity-70" />
+                                    <span>{cls.room_location || 'Room TBD'}</span>
+                                  </div>
+                                  {cls.instructor_name && (
+                                    <div className="flex items-center gap-2">
+                                      <User className="h-4 w-4 opacity-70" />
+                                      <span>{cls.instructor_name}</span>
+                                    </div>
+                                  )}
+                                  {cls.is_extra_class && (
+                                    <div className="text-xs mt-2 opacity-70 capitalize font-medium">
+                                      📚 {cls.class_type} class
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })()}
                 </div>
               </CardContent>
             </Card>

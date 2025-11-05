@@ -2,8 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import QRCode from 'qrcode';
@@ -11,7 +10,6 @@ import {
   Calendar, 
   MapPin, 
   Users, 
-  Plus,
   ChevronLeft,
   ChevronRight,
   Star,
@@ -34,8 +32,8 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
   const [todayClasses, setTodayClasses] = useState<any[]>([]);
   const [courses, setCourses] = useState<any[]>([]);
   const [currentWeek, setCurrentWeek] = useState(new Date());
+  const [currentMobileDay, setCurrentMobileDay] = useState(new Date());
   const [loading, setLoading] = useState(true);
-  const [isScheduleDialogOpen, setIsScheduleDialogOpen] = useState(false);
   const [selectedClass, setSelectedClass] = useState<any>(null);
   const [qrCode, setQrCode] = useState<string>('');
   const [sessionId, setSessionId] = useState<string>('');
@@ -46,19 +44,9 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
   const [timeRemaining, setTimeRemaining] = useState<number>(0);
   const [canGenerateQR, setCanGenerateQR] = useState<boolean>(false);
   const [currentSessionId, setCurrentSessionId] = useState<string>('');
-  const [selectedCourseAnalytics, setSelectedCourseAnalytics] = useState<string>('');
-  const [courseAnalytics, setCourseAnalytics] = useState<any[]>([]);
   const [editingStudent, setEditingStudent] = useState<string | null>(null);
   const [minutesSinceStart, setMinutesSinceStart] = useState<number>(0);
   const [teacherCourseIds, setTeacherCourseIds] = useState<string[]>([]);
-
-  const [newSchedule, setNewSchedule] = useState({
-    course_id: '',
-    day_of_week: 0,
-    start_time: '',
-    end_time: '',
-    room_location: ''
-  });
 
   const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thur', 'Fri', 'Sat'];
 
@@ -72,7 +60,7 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
     if (teacherData?.user_id) {
       fetchScheduleData();
     }
-  }, [teacherData, currentWeek, teacherCourseIds]);
+  }, [teacherData, currentWeek, currentMobileDay, teacherCourseIds]);
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -94,12 +82,6 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
 
     return () => clearInterval(interval);
   }, [isQRDialogOpen, selectedClass]);
-
-  useEffect(() => {
-    if (selectedCourseAnalytics) {
-      fetchCourseAnalytics(selectedCourseAnalytics);
-    }
-  }, [selectedCourseAnalytics]);
 
   const timeToMinutes = (timeStr: string): number => {
     const [hours, minutes] = timeStr.split(':').map(Number);
@@ -219,6 +201,14 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
       const weekEnd = new Date(weekStart);
       weekEnd.setDate(weekStart.getDate() + 6);
 
+      const mobileStart = new Date(currentMobileDay);
+      mobileStart.setDate(mobileStart.getDate() - 3);
+      const mobileEnd = new Date(currentMobileDay);
+      mobileEnd.setDate(mobileEnd.getDate() + 3);
+
+      const earliestDate = weekStart < mobileStart ? weekStart : mobileStart;
+      const latestDate = weekEnd > mobileEnd ? weekEnd : mobileEnd;
+
       const { data: extraClasses, error: extraError } = await supabase
         .from('extra_class_schedule')
         .select(`
@@ -241,8 +231,8 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
         `)
         .eq('teacher_id', teacherData.user_id)
         .eq('status', 'scheduled')
-        .gte('scheduled_date', weekStart.toISOString().split('T')[0])
-        .lte('scheduled_date', weekEnd.toISOString().split('T')[0]);
+        .gte('scheduled_date', earliestDate.toISOString().split('T')[0])
+        .lte('scheduled_date', latestDate.toISOString().split('T')[0]);
 
       if (!extraError && extraClasses && extraClasses.length > 0) {
         const extraScheduleData = extraClasses.map(extraClass => {
@@ -380,7 +370,6 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
 
   const generateQRCode = async (classData: any) => {
     try {
-      // Verify teacher owns this course
       if (!teacherCourseIds.includes(classData.course_id)) {
         toast.error('You are not authorized to generate QR code for this course');
         return;
@@ -663,75 +652,6 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
     }
   };
 
-  const fetchCourseAnalytics = async (courseId: string) => {
-    try {
-      // Verify teacher owns this course
-      if (!teacherCourseIds.includes(courseId)) {
-        toast.error('You are not authorized to view analytics for this course');
-        return;
-      }
-
-      const { data: enrollments, error: enrollError } = await supabase
-        .from('enrollments')
-        .select(`
-          student_id,
-          user_profiles (
-            id,
-            first_name,
-            last_name,
-            user_code
-          )
-        `)
-        .eq('course_id', courseId)
-        .eq('status', 'enrolled');
-
-      if (enrollError) throw enrollError;
-
-      const { data: attendanceData, error: attError } = await supabase
-        .from('attendance')
-        .select('student_id, status')
-        .eq('course_id', courseId);
-
-      if (attError) throw attError;
-
-      const statsMap = new Map();
-
-      (enrollments || []).forEach(enrollment => {
-        statsMap.set(enrollment.student_id, {
-          student_id: enrollment.student_id,
-          user_profiles: enrollment.user_profiles,
-          present: 0,
-          late: 0,
-          absent: 0,
-          total: 0
-        });
-      });
-
-      (attendanceData || []).forEach(record => {
-        if (statsMap.has(record.student_id)) {
-          const stats = statsMap.get(record.student_id);
-          stats.total += 1;
-          if (record.status === 'present') stats.present += 1;
-          else if (record.status === 'late') stats.late += 1;
-          else if (record.status === 'absent') stats.absent += 1;
-        }
-      });
-
-      const analytics = Array.from(statsMap.values()).map(stats => {
-        const effectivePresent = stats.present + (stats.late * 0.5);
-        return {
-          ...stats,
-          percentage: stats.total > 0 ? ((effectivePresent / stats.total) * 100).toFixed(1) : '0.0'
-        };
-      }).sort((a, b) => parseFloat(b.percentage) - parseFloat(a.percentage));
-
-      setCourseAnalytics(analytics);
-    } catch (error) {
-      console.error('Error fetching course analytics:', error);
-      toast.error('Failed to load analytics');
-    }
-  };
-
   const updateStudentAttendance = async (studentId: string, newStatus: 'late') => {
     if (!currentSessionId) return;
 
@@ -818,6 +738,12 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
     setCurrentWeek(newWeek);
   };
 
+  const navigateMobileDay = (direction: 'prev' | 'next') => {
+    const newDay = new Date(currentMobileDay);
+    newDay.setDate(currentMobileDay.getDate() + (direction === 'next' ? 1 : -1));
+    setCurrentMobileDay(newDay);
+  };
+
   const formatTime = (timeString: string) => {
     if (!timeString) return '';
     const [hours, minutes] = timeString.split(':');
@@ -867,57 +793,7 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
     return currentTime >= classItem.start_time && currentTime <= classItem.end_time;
   };
 
-  const createSchedule = async () => {
-    try {
-      if (!newSchedule.course_id || !newSchedule.start_time || !newSchedule.end_time) {
-        toast.error('Please fill in all required fields');
-        return;
-      }
-
-      // Verify teacher owns this course
-      if (!teacherCourseIds.includes(newSchedule.course_id)) {
-        toast.error('You can only schedule classes for your assigned courses');
-        return;
-      }
-
-      if (newSchedule.start_time >= newSchedule.end_time) {
-        toast.error('End time must be after start time');
-        return;
-      }
-
-      const { error } = await supabase
-        .from('class_schedule')
-        .insert([{
-          course_id: newSchedule.course_id,
-          day_of_week: parseInt(newSchedule.day_of_week.toString()),
-          start_time: newSchedule.start_time,
-          end_time: newSchedule.end_time,
-          room_location: newSchedule.room_location || null
-        }]);
-
-      if (error) throw error;
-
-      toast.success('Class scheduled successfully');
-
-      setNewSchedule({
-        course_id: '',
-        day_of_week: 0,
-        start_time: '',
-        end_time: '',
-        room_location: ''
-      });
-
-      setIsScheduleDialogOpen(false);
-      await fetchScheduleData();
-
-    } catch (error) {
-      console.error('Error creating schedule:', error);
-      toast.error('Failed to schedule class. Please try again.');
-    }
-  };
-
   const canGenerateQRForClass = (classItem: any) => {
-    // Verify teacher owns this course
     if (!teacherCourseIds.includes(classItem.course_id)) {
       return false;
     }
@@ -982,7 +858,6 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
       )}
       
       <Tabs defaultValue="schedule" className="space-y-4">
-
         <TabsContent value="schedule" className="space-y-6">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <h2 className="text-xl sm:text-2xl font-bold">My Schedule</h2>
@@ -1137,9 +1012,12 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
                   <Calendar className="h-4 w-4 sm:h-5 sm:w-5" />
-                  Weekly Schedule Timeline
+                  <span className="hidden lg:inline">Weekly Schedule Timeline</span>
+                  <span className="lg:hidden">Daily Schedule</span>
                 </CardTitle>
-                <div className="flex items-center space-x-2">
+                
+                {/* Desktop Week Navigation */}
+                <div className="hidden lg:flex items-center space-x-2">
                   <Button variant="outline" size="sm" onClick={() => navigateWeek('prev')}>
                     <ChevronLeft className="h-4 w-4" />
                   </Button>
@@ -1154,6 +1032,24 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
                     <ChevronRight className="h-4 w-4" />
                   </Button>
                 </div>
+
+                {/* Mobile Day Navigation */}
+                <div className="flex lg:hidden items-center space-x-2">
+                  <Button variant="outline" size="sm" onClick={() => navigateMobileDay('prev')}>
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  <span className="text-xs font-medium min-w-[140px] text-center">
+                    {currentMobileDay.toLocaleDateString('en-US', { 
+                      weekday: 'short',
+                      month: 'short', 
+                      day: 'numeric',
+                      year: 'numeric' 
+                    })}
+                  </span>
+                  <Button variant="outline" size="sm" onClick={() => navigateMobileDay('next')}>
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
             </CardHeader>
             <CardContent>
@@ -1164,88 +1060,174 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
                   <p className="text-sm">Your schedule will appear here once courses are assigned to you.</p>
                 </div>
               ) : (
-                <div className="grid grid-cols-8 gap-2 min-h-[800px]">
-                  <div className="space-y-0 relative">
-                    <div className="h-12"></div>
-                    <div className="relative" style={{ height: 'calc(100% - 48px)' }}>
-                      {generateTimeLabels().map((label, index) => (
-                        <div 
-                          key={label.time}
-                          className="absolute text-xs text-muted-foreground w-full pr-2 text-right"
-                          style={{ 
-                            top: `${(index / (generateTimeLabels().length - 1)) * 100}%`,
-                            transform: 'translateY(-50%)'
-                          }}
-                        >
-                          {label.display}
-                        </div>
-                      ))}
+                <>
+                  {/* Desktop View - Timeline */}
+                  <div className="hidden lg:grid grid-cols-8 gap-2 min-h-[800px]">
+                    <div className="space-y-0 relative">
+                      <div className="h-12"></div>
+                      <div className="relative" style={{ height: 'calc(100% - 48px)' }}>
+                        {generateTimeLabels().map((label, index) => (
+                          <div 
+                            key={label.time}
+                            className="absolute text-xs text-muted-foreground w-full pr-2 text-right"
+                            style={{ 
+                              top: `${(index / (generateTimeLabels().length - 1)) * 100}%`,
+                              transform: 'translateY(-50%)'
+                            }}
+                          >
+                            {label.display}
+                          </div>
+                        ))}
+                      </div>
                     </div>
+
+                    {getWeekDays(currentWeek).map((date, dayIndex) => (
+                      <div key={dayIndex} className="space-y-2">
+                        <div className={`h-12 text-center p-2 rounded-lg ${
+                          isToday(date) ? 'bg-primary text-primary-foreground' : 'bg-muted'
+                        }`}>
+                          <div className="text-sm font-medium">{daysOfWeek[dayIndex]}</div>
+                          <div className="text-xs">{date.getDate()}</div>
+                        </div>
+                        
+                        <div className="relative border rounded-lg" style={{ height: 'calc(100% - 56px)', minHeight: '700px' }}>
+                          {generateTimeLabels().map((_, index) => (
+                            <div 
+                              key={index}
+                              className="absolute w-full border-t border-muted"
+                              style={{ top: `${(index / (generateTimeLabels().length - 1)) * 100}%` }}
+                            />
+                          ))}
+                          
+                          {getClassesForDay(dayIndex, date).map((cls, clsIndex) => {
+                            const position = getClassPosition(cls.start_time, cls.end_time);
+                            const active = isClassActive(cls);
+                            return (
+                              <div 
+                                key={clsIndex}
+                                className={`absolute left-1 right-1 p-2 rounded text-xs border overflow-hidden cursor-pointer transition-all ${getClassTypeStyle(cls)} ${
+                                  active ? 'ring-2 ring-offset-1' : ''
+                                }`}
+                                style={position}
+                                onClick={() => generateQRCode(cls)}
+                              >
+                                <div className="font-medium truncate flex items-center">
+                                  {cls.is_extra_class && (
+                                    <Star className="h-2 w-2 mr-1 flex-shrink-0" />
+                                  )}
+                                  <span className="truncate">{cls.courses?.course_code}</span>
+                                </div>
+                                <div className="text-xs opacity-80 truncate">
+                                  {formatTime(cls.start_time)}
+                                </div>
+                                <div className="text-xs opacity-80 truncate">
+                                  {cls.room_location}
+                                </div>
+                                {cls.is_extra_class && (
+                                  <div className="text-xs opacity-70 truncate capitalize">
+                                    {cls.class_type}
+                                  </div>
+                                )}
+                                {active && (
+                                  <div className="text-xs font-semibold text-green-600 mt-1">
+                                    ACTIVE
+                                  </div>
+                                )}
+                                <div className="text-xs opacity-70 truncate flex items-center mt-1">
+                                  <QrCodeIcon className="h-2 w-2 mr-1" />
+                                  Click for QR
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ))}
                   </div>
 
-                  {getWeekDays(currentWeek).map((date, dayIndex) => (
-                    <div key={dayIndex} className="space-y-2">
-                      <div className={`h-12 text-center p-2 rounded-lg ${
-                        isToday(date) ? 'bg-primary text-primary-foreground' : 'bg-muted'
-                      }`}>
-                        <div className="text-sm font-medium">{daysOfWeek[dayIndex]}</div>
-                        <div className="text-xs">{date.getDate()}</div>
+                  {/* Mobile View - Daily List Format */}
+                  <div className="lg:hidden space-y-3">
+                    <div className={`p-4 rounded-lg ${
+                      isToday(currentMobileDay) ? 'bg-primary text-primary-foreground' : 'bg-muted'
+                    }`}>
+                      <div className="text-lg font-semibold">
+                        {currentMobileDay.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
                       </div>
-                      
-                      <div className="relative border rounded-lg" style={{ height: 'calc(100% - 56px)', minHeight: '700px' }}>
-                        {generateTimeLabels().map((_, index) => (
-                          <div 
-                            key={index}
-                            className="absolute w-full border-t border-muted"
-                            style={{ top: `${(index / (generateTimeLabels().length - 1)) * 100}%` }}
-                          />
-                        ))}
-                        
-                        {getClassesForDay(dayIndex, date).map((cls, clsIndex) => {
-                          const position = getClassPosition(cls.start_time, cls.end_time);
-                          const active = isClassActive(cls);
-                          return (
-                            <div 
-                              key={clsIndex}
-                              className={`absolute left-1 right-1 p-2 rounded text-xs border overflow-hidden cursor-pointer transition-all ${getClassTypeStyle(cls)} ${
-                                active ? 'ring-2 ring-offset-1' : ''
-                              }`}
-                              style={position}
-                              onClick={() => generateQRCode(cls)}
-                            >
-                              <div className="font-medium truncate flex items-center">
-                                {cls.is_extra_class && (
-                                  <Star className="h-2 w-2 mr-1 flex-shrink-0" />
-                                )}
-                                <span className="truncate">{cls.courses?.course_code}</span>
-                              </div>
-                              <div className="text-xs opacity-80 truncate">
-                                {formatTime(cls.start_time)}
-                              </div>
-                              <div className="text-xs opacity-80 truncate">
-                                {cls.room_location}
-                              </div>
-                              {cls.is_extra_class && (
-                                <div className="text-xs opacity-70 truncate capitalize">
-                                  {cls.class_type}
-                                </div>
-                              )}
-                              {active && (
-                                <div className="text-xs font-semibold text-green-600 mt-1">
-                                  ACTIVE
-                                </div>
-                              )}
-                              <div className="text-xs opacity-70 truncate flex items-center mt-1">
-                                <QrCodeIcon className="h-2 w-2 mr-1" />
-                                Click for QR
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
+                      {isToday(currentMobileDay) && (
+                        <div className="text-sm opacity-90 mt-1">Today</div>
+                      )}
                     </div>
-                  ))}
-                </div>
+                    
+                    {(() => {
+                      const mobileDayOfWeek = currentMobileDay.getDay();
+                      const dayClasses = getClassesForDay(mobileDayOfWeek, currentMobileDay);
+                      
+                      if (dayClasses.length === 0) {
+                        return (
+                          <div className="text-center py-12 text-muted-foreground">
+                            <Calendar className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                            <p className="font-medium">No classes scheduled</p>
+                            <p className="text-sm mt-1">You have no classes on this day</p>
+                          </div>
+                        );
+                      }
+
+                      return (
+                        <div className="space-y-3">
+                          {dayClasses.map((cls, clsIndex) => {
+                            const active = isClassActive(cls);
+                            return (
+                              <div 
+                                key={clsIndex}
+                                className={`p-4 rounded-lg border cursor-pointer transition-all ${getClassTypeStyle(cls)} ${
+                                  active ? 'ring-2 ring-primary' : ''
+                                }`}
+                                onClick={() => generateQRCode(cls)}
+                              >
+                                <div className="flex items-start justify-between gap-3">
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-2 mb-2">
+                                      {cls.is_extra_class && (
+                                        <Star className="h-4 w-4 flex-shrink-0" />
+                                      )}
+                                      <span className="font-bold text-base truncate">{cls.courses?.course_code}</span>
+                                      {active && (
+                                        <Badge className="text-xs" variant="default">
+                                          <Clock className="h-3 w-3 mr-1" />
+                                          Active
+                                        </Badge>
+                                      )}
+                                    </div>
+                                    <div className="text-sm font-medium truncate mb-3">{cls.courses?.course_name}</div>
+                                    <div className="space-y-2 text-sm">
+                                      <div className="flex items-center gap-2">
+                                        <Clock className="h-4 w-4 opacity-70" />
+                                        <span className="font-medium">{formatTime(cls.start_time)} - {formatTime(cls.end_time)}</span>
+                                      </div>
+                                      <div className="flex items-center gap-2">
+                                        <MapPin className="h-4 w-4 opacity-70" />
+                                        <span>{cls.room_location || 'Room TBD'}</span>
+                                      </div>
+                                      {cls.is_extra_class && (
+                                        <div className="text-xs mt-2 opacity-70 capitalize font-medium">
+                                          📚 {cls.class_type} class
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                  <div className="flex flex-col items-center gap-2">
+                                    <QrCodeIcon className="h-6 w-6 opacity-50" />
+                                    <span className="text-xs opacity-70">Tap for QR</span>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      );
+                    })()}
+                  </div>
+                </>
               )}
             </CardContent>
           </Card>

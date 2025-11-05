@@ -142,14 +142,12 @@ const Student = () => {
         return;
       }
 
-      console.log('User tag assignments:', data); 
 
       // Check if any tag has category 'club'
       const hasClubTags = data?.some(
         assignment => assignment.user_tags?.tag_category === 'student_role'
       );
 
-      console.log('Has club access:', hasClubTags); // Debug log
       setHasClubAccess(hasClubTags || false);
     } catch (error) {
       console.error('Error checking club access:', error);

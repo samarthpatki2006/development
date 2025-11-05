@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { 
   BookOpen, 
   Users, 
@@ -26,7 +27,8 @@ import {
   ArrowLeft,
   RefreshCw,
   Trash2,
-  ExternalLink
+  ExternalLink,
+  AlertCircle
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
@@ -617,14 +619,42 @@ const TeacherCourses = ({ teacherData }: TeacherCoursesProps) => {
     }
   };
 
+  const hasNoCourses = courses.length === 0 && !loading;
+
   if (loading) {
     return (
       <div className="space-y-6">
         <div className="animate-pulse space-y-4">
           {[1, 2, 3].map(i => (
-            <div key={i} className="h-32 bg-gray-200 rounded-lg"></div>
+            <div key={i} className="h-32 rounded-lg"></div>
           ))}
         </div>
+      </div>
+    );
+  }
+
+  if (hasNoCourses) {
+    return (
+      <div className="space-y-6">
+        <Alert>
+          <AlertCircle className="h-4 w-4 text-blue-600" />
+          <AlertDescription>
+            You don't have any courses assigned yet. Once courses are assigned to you, they will appear here and you can start managing course materials, quizzes, and students.
+          </AlertDescription>
+        </Alert>
+
+        <Card>
+          <CardContent className="p-12 text-center">
+            <BookOpen className="h-16 w-16 mx-auto mb-4 text-muted-foreground opacity-50" />
+            <h3 className="text-xl font-semibold mb-2">No Courses Available</h3>
+            <p className="text-muted-foreground mb-4">
+              Your courses will appear here once they are assigned by the administration.
+            </p>
+            <p className="text-sm text-muted-foreground">
+              You'll be able to upload materials, create quizzes, and manage students once your courses are ready.
+            </p>
+          </CardContent>
+        </Card>
       </div>
     );
   }
@@ -723,112 +753,128 @@ const TeacherCourses = ({ teacherData }: TeacherCoursesProps) => {
                 </div>
 
                 <div className="grid gap-4">
-                  {materials.map((material) => (
-                    <Card key={material.id}>
-                      <CardContent className="p-3 sm:p-4">
-                        <div className="space-y-3">
-                          <div className="flex items-start gap-3">
-                            <FileText className="h-5 w-5 flex-shrink-0 mt-0.5" />
-                            <div className="flex-1 min-w-0">
-                              <p className="font-medium text-sm sm:text-base">{material.title}</p>
-                              <p className="text-xs sm:text-sm mt-1">{material.description}</p>
+                  {materials.length === 0 ? (
+                    <div className="text-center py-12 text-muted-foreground">
+                      <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                      <p className="text-lg font-medium mb-2">No Materials Uploaded Yet</p>
+                      <p className="text-sm">Upload your first course material to get started.</p>
+                    </div>
+                  ) : (
+                    materials.map((material) => (
+                      <Card key={material.id}>
+                        <CardContent className="p-3 sm:p-4">
+                          <div className="space-y-3">
+                            <div className="flex items-start gap-3">
+                              <FileText className="h-5 w-5 flex-shrink-0 mt-0.5" />
+                              <div className="flex-1 min-w-0">
+                                <p className="font-medium text-sm sm:text-base">{material.title}</p>
+                                <p className="text-xs sm:text-sm mt-1">{material.description}</p>
+                              </div>
+                            </div>
+                            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 pt-2 border-t">
+                              <p className="text-xs text-muted-foreground">
+                                Uploaded {new Date(material.uploaded_at).toLocaleDateString()}
+                              </p>
+                              <div className="flex items-center gap-2 w-full sm:w-auto">
+                                <Badge variant="outline" className="text-xs flex-1 sm:flex-initial justify-center">{material.material_type}</Badge>
+                                <Button 
+                                  size="sm" 
+                                  variant="outline" 
+                                  className="flex-shrink-0"
+                                  onClick={() => handleViewMaterial(material.file_url)}
+                                  title="View material"
+                                >
+                                  <ExternalLink className="h-4 w-4" />
+                                </Button>
+                                <Button 
+                                  size="sm" 
+                                  variant="outline" 
+                                  className="flex-shrink-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                                  onClick={() => handleDeleteMaterial(material.id, material.file_url)}
+                                  title="Delete material"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
                             </div>
                           </div>
-                          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 pt-2 border-t">
-                            <p className="text-xs text-muted-foreground">
-                              Uploaded {new Date(material.uploaded_at).toLocaleDateString()}
-                            </p>
-                            <div className="flex items-center gap-2 w-full sm:w-auto">
-                              <Badge variant="outline" className="text-xs flex-1 sm:flex-initial justify-center">{material.material_type}</Badge>
-                              <Button 
-                                size="sm" 
-                                variant="outline" 
-                                className="flex-shrink-0"
-                                onClick={() => handleViewMaterial(material.file_url)}
-                                title="View material"
-                              >
-                                <ExternalLink className="h-4 w-4" />
-                              </Button>
-                              <Button 
-                                size="sm" 
-                                variant="outline" 
-                                className="flex-shrink-0 text-red-600 hover:text-red-700 hover:bg-red-50"
-                                onClick={() => handleDeleteMaterial(material.id, material.file_url)}
-                                title="Delete material"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
+                        </CardContent>
+                      </Card>
+                    ))
+                  )}
                 </div>
               </TabsContent>
 
-              {/* Quiz List Tab */}
+              {/* Quiz List Tab - continuing in next message due to length */}
               <TabsContent value="quizzes" className="space-y-4 mt-4">
                 <h3 className="text-base sm:text-lg font-semibold">Course Quizzes</h3>
                 <div className="grid gap-4">
-                  {quizzes.map((quiz) => (
-                    <Card key={quiz.id}>
-                      <CardContent className="p-3 sm:p-4">
-                        <div className="space-y-3">
-                          <div className="flex items-start gap-3">
-                            <FileText className="h-5 w-5 flex-shrink-0 mt-0.5" />
-                            <div className="flex-1 min-w-0">
-                              <p className="font-medium text-sm sm:text-base">{quiz.quiz_name}</p>
-                              <p className="text-xs sm:text-sm mt-1 line-clamp-2">{quiz.description}</p>
-                            </div>
-                          </div>
-                          
-                          <div className="space-y-2">
-                            <div className="flex flex-wrap gap-2 text-xs">
-                              {quiz.time_limit_minutes && (
-                                <span className="px-2 py-1 bg-muted rounded">
-                                  {quiz.time_limit_minutes} min
-                                </span>
-                              )}
-                              <span className="px-2 py-1 bg-muted rounded">
-                                {quiz.attempts_allowed} attempt(s)
-                              </span>
-                              <span className="px-2 py-1 bg-muted rounded">
-                                Pass: {quiz.pass_percentage}%
-                              </span>
+                  {quizzes.length === 0 ? (
+                    <div className="text-center py-12 text-muted-foreground">
+                      <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                      <p className="text-lg font-medium mb-2">No Quizzes Created Yet</p>
+                      <p className="text-sm">Create your first quiz in the "Create Quiz" tab.</p>
+                    </div>
+                  ) : (
+                    quizzes.map((quiz) => (
+                      <Card key={quiz.id}>
+                        <CardContent className="p-3 sm:p-4">
+                          <div className="space-y-3">
+                            <div className="flex items-start gap-3">
+                              <FileText className="h-5 w-5 flex-shrink-0 mt-0.5" />
+                              <div className="flex-1 min-w-0">
+                                <p className="font-medium text-sm sm:text-base">{quiz.quiz_name}</p>
+                                <p className="text-xs sm:text-sm mt-1 line-clamp-2">{quiz.description}</p>
+                              </div>
                             </div>
                             
-                            <p className="text-xs text-muted-foreground">
-                              Created: {new Date(quiz.created_at).toLocaleDateString()}
-                            </p>
-                          </div>
-                          
-                          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 pt-2 border-t">
-                            <div className="flex flex-wrap gap-2 flex-1">
-                              <Badge variant="outline" className="text-xs">
-                                {quiz.quiz_questions?.[0]?.count || 0} questions
-                              </Badge>
+                            <div className="space-y-2">
+                              <div className="flex flex-wrap gap-2 text-xs">
+                                {quiz.time_limit_minutes && (
+                                  <span className="px-2 py-1 bg-muted rounded">
+                                    {quiz.time_limit_minutes} min
+                                  </span>
+                                )}
+                                <span className="px-2 py-1 bg-muted rounded">
+                                  {quiz.attempts_allowed} attempt(s)
+                                </span>
+                                <span className="px-2 py-1 bg-muted rounded">
+                                  Pass: {quiz.pass_percentage}%
+                                </span>
+                              </div>
+                              
+                              <p className="text-xs text-muted-foreground">
+                                Created: {new Date(quiz.created_at).toLocaleDateString()}
+                              </p>
                             </div>
-                            <div className="flex items-center gap-2 justify-end">
-                              <Switch
-                                checked={quiz.is_active}
-                                onCheckedChange={(checked) => toggleQuizStatus(quiz.id, checked)}
-                              />
-                              <Button 
-                                size="sm" 
-                                variant="outline"
-                                className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                                onClick={() => handleDeleteQuiz(quiz.id)}
-                                title="Delete quiz"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
+                            
+                            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 pt-2 border-t">
+                              <div className="flex flex-wrap gap-2 flex-1">
+                                <Badge variant="outline" className="text-xs">
+                                  {quiz.quiz_questions?.[0]?.count || 0} questions
+                                </Badge>
+                              </div>
+                              <div className="flex items-center gap-2 justify-end">
+                                <Switch
+                                  checked={quiz.is_active}
+                                  onCheckedChange={(checked) => toggleQuizStatus(quiz.id, checked)}
+                                />
+                                <Button 
+                                  size="sm" 
+                                  variant="outline"
+                                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                  onClick={() => handleDeleteQuiz(quiz.id)}
+                                  title="Delete quiz"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
+                        </CardContent>
+                      </Card>
+                    ))
+                  )}
                 </div>
               </TabsContent>
 

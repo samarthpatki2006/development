@@ -69,7 +69,7 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
   }, [teacherData]);
 
   useEffect(() => {
-    if (teacherData?.user_id && teacherCourseIds.length > 0) {
+    if (teacherData?.user_id) {
       fetchScheduleData();
     }
   }, [teacherData, currentWeek, teacherCourseIds]);
@@ -956,7 +956,9 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
     return labels;
   };
 
-  if (loading) {
+  const hasNoCourses = courses.length === 0 && !loading;
+
+  if (loading && courses.length === 0) {
     return (
       <div className="space-y-6">
         <div className="animate-pulse space-y-4">
@@ -970,101 +972,20 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
 
   return (
     <div className="space-y-6">
+      {hasNoCourses && (
+        <Alert>
+          <AlertCircle className="h-4 w-4 text-blue-600" />
+          <AlertDescription>
+            You don't have any courses assigned yet. Once courses are assigned to you, they will appear here.
+          </AlertDescription>
+        </Alert>
+      )}
+      
       <Tabs defaultValue="schedule" className="space-y-4">
 
         <TabsContent value="schedule" className="space-y-6">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <h2 className="text-xl sm:text-2xl font-bold">My Schedule</h2>
-            {/* <Dialog open={isScheduleDialogOpen} onOpenChange={setIsScheduleDialogOpen}>
-              <DialogTrigger asChild>
-                <Button className="flex items-center gap-2 w-full sm:w-auto">
-                  <Plus className="h-4 w-4" />
-                  Schedule Class
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-md">
-                <DialogHeader>
-                  <DialogTitle>Schedule New Class</DialogTitle>
-                </DialogHeader>
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Course *</label>
-                    <select
-                      className="w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary bg-background"
-                      value={newSchedule.course_id}
-                      onChange={(e) => setNewSchedule({...newSchedule, course_id: e.target.value})}
-                    >
-                      <option value="">Select a course</option>
-                      {courses.map((course) => (
-                        <option key={course.id} value={course.id}>
-                          {course.course_code} - {course.course_name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Day of Week *</label>
-                    <select
-                      className="w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary bg-background"
-                      value={newSchedule.day_of_week}
-                      onChange={(e) => setNewSchedule({...newSchedule, day_of_week: parseInt(e.target.value)})}
-                    >
-                      {daysOfWeek.map((day, index) => (
-                        <option key={index} value={index}>
-                          {day}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium mb-2">Start Time *</label>
-                      <Input
-                        type="time"
-                        value={newSchedule.start_time}
-                        onChange={(e) => setNewSchedule({...newSchedule, start_time: e.target.value})}
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-2">End Time *</label>
-                      <Input
-                        type="time"
-                        value={newSchedule.end_time}
-                        onChange={(e) => setNewSchedule({...newSchedule, end_time: e.target.value})}
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Room Location</label>
-                    <Input
-                      placeholder="e.g., Room 101, Lab A"
-                      value={newSchedule.room_location}
-                      onChange={(e) => setNewSchedule({...newSchedule, room_location: e.target.value})}
-                    />
-                  </div>
-
-                  <div className="flex flex-col sm:flex-row gap-3 pt-4">
-                    <Button 
-                      onClick={createSchedule} 
-                      className="flex-1"
-                      disabled={!newSchedule.course_id || !newSchedule.start_time || !newSchedule.end_time}
-                    >
-                      <Calendar className="h-4 w-4 mr-2" />
-                      Schedule Class
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      onClick={() => setIsScheduleDialogOpen(false)}
-                    >
-                      Cancel
-                    </Button>
-                  </div>
-                </div>
-              </DialogContent>
-            </Dialog> */}
           </div>
 
           <Dialog open={isQRDialogOpen} onOpenChange={setIsQRDialogOpen}>
@@ -1236,88 +1157,96 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-8 gap-2 min-h-[800px]">
-                <div className="space-y-0 relative">
-                  <div className="h-12"></div>
-                  <div className="relative" style={{ height: 'calc(100% - 48px)' }}>
-                    {generateTimeLabels().map((label, index) => (
-                      <div 
-                        key={label.time}
-                        className="absolute text-xs text-muted-foreground w-full pr-2 text-right"
-                        style={{ 
-                          top: `${(index / (generateTimeLabels().length - 1)) * 100}%`,
-                          transform: 'translateY(-50%)'
-                        }}
-                      >
-                        {label.display}
-                      </div>
-                    ))}
-                  </div>
+              {hasNoCourses ? (
+                <div className="text-center py-12 text-muted-foreground">
+                  <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p className="text-lg font-medium mb-2">No Schedule Available</p>
+                  <p className="text-sm">Your schedule will appear here once courses are assigned to you.</p>
                 </div>
-
-                {getWeekDays(currentWeek).map((date, dayIndex) => (
-                  <div key={dayIndex} className="space-y-2">
-                    <div className={`h-12 text-center p-2 rounded-lg ${
-                      isToday(date) ? 'bg-primary text-primary-foreground' : 'bg-muted'
-                    }`}>
-                      <div className="text-sm font-medium">{daysOfWeek[dayIndex]}</div>
-                      <div className="text-xs">{date.getDate()}</div>
-                    </div>
-                    
-                    <div className="relative border rounded-lg" style={{ height: 'calc(100% - 56px)', minHeight: '700px' }}>
-                      {generateTimeLabels().map((_, index) => (
+              ) : (
+                <div className="grid grid-cols-8 gap-2 min-h-[800px]">
+                  <div className="space-y-0 relative">
+                    <div className="h-12"></div>
+                    <div className="relative" style={{ height: 'calc(100% - 48px)' }}>
+                      {generateTimeLabels().map((label, index) => (
                         <div 
-                          key={index}
-                          className="absolute w-full border-t border-muted"
-                          style={{ top: `${(index / (generateTimeLabels().length - 1)) * 100}%` }}
-                        />
+                          key={label.time}
+                          className="absolute text-xs text-muted-foreground w-full pr-2 text-right"
+                          style={{ 
+                            top: `${(index / (generateTimeLabels().length - 1)) * 100}%`,
+                            transform: 'translateY(-50%)'
+                          }}
+                        >
+                          {label.display}
+                        </div>
                       ))}
-                      
-                      {getClassesForDay(dayIndex, date).map((cls, clsIndex) => {
-                        const position = getClassPosition(cls.start_time, cls.end_time);
-                        const active = isClassActive(cls);
-                        return (
-                          <div 
-                            key={clsIndex}
-                            className={`absolute left-1 right-1 p-2 rounded text-xs border overflow-hidden cursor-pointer transition-all ${getClassTypeStyle(cls)} ${
-                              active ? 'ring-2 ring-offset-1' : ''
-                            }`}
-                            style={position}
-                            onClick={() => generateQRCode(cls)}
-                          >
-                            <div className="font-medium truncate flex items-center">
-                              {cls.is_extra_class && (
-                                <Star className="h-2 w-2 mr-1 flex-shrink-0" />
-                              )}
-                              <span className="truncate">{cls.courses?.course_code}</span>
-                            </div>
-                            <div className="text-xs opacity-80 truncate">
-                              {formatTime(cls.start_time)}
-                            </div>
-                            <div className="text-xs opacity-80 truncate">
-                              {cls.room_location}
-                            </div>
-                            {cls.is_extra_class && (
-                              <div className="text-xs opacity-70 truncate capitalize">
-                                {cls.class_type}
-                              </div>
-                            )}
-                            {active && (
-                              <div className="text-xs font-semibold text-green-600 mt-1">
-                                ACTIVE
-                              </div>
-                            )}
-                            <div className="text-xs opacity-70 truncate flex items-center mt-1">
-                              <QrCodeIcon className="h-2 w-2 mr-1" />
-                              Click for QR
-                            </div>
-                          </div>
-                        );
-                      })}
                     </div>
                   </div>
-                ))}
-              </div>
+
+                  {getWeekDays(currentWeek).map((date, dayIndex) => (
+                    <div key={dayIndex} className="space-y-2">
+                      <div className={`h-12 text-center p-2 rounded-lg ${
+                        isToday(date) ? 'bg-primary text-primary-foreground' : 'bg-muted'
+                      }`}>
+                        <div className="text-sm font-medium">{daysOfWeek[dayIndex]}</div>
+                        <div className="text-xs">{date.getDate()}</div>
+                      </div>
+                      
+                      <div className="relative border rounded-lg" style={{ height: 'calc(100% - 56px)', minHeight: '700px' }}>
+                        {generateTimeLabels().map((_, index) => (
+                          <div 
+                            key={index}
+                            className="absolute w-full border-t border-muted"
+                            style={{ top: `${(index / (generateTimeLabels().length - 1)) * 100}%` }}
+                          />
+                        ))}
+                        
+                        {getClassesForDay(dayIndex, date).map((cls, clsIndex) => {
+                          const position = getClassPosition(cls.start_time, cls.end_time);
+                          const active = isClassActive(cls);
+                          return (
+                            <div 
+                              key={clsIndex}
+                              className={`absolute left-1 right-1 p-2 rounded text-xs border overflow-hidden cursor-pointer transition-all ${getClassTypeStyle(cls)} ${
+                                active ? 'ring-2 ring-offset-1' : ''
+                              }`}
+                              style={position}
+                              onClick={() => generateQRCode(cls)}
+                            >
+                              <div className="font-medium truncate flex items-center">
+                                {cls.is_extra_class && (
+                                  <Star className="h-2 w-2 mr-1 flex-shrink-0" />
+                                )}
+                                <span className="truncate">{cls.courses?.course_code}</span>
+                              </div>
+                              <div className="text-xs opacity-80 truncate">
+                                {formatTime(cls.start_time)}
+                              </div>
+                              <div className="text-xs opacity-80 truncate">
+                                {cls.room_location}
+                              </div>
+                              {cls.is_extra_class && (
+                                <div className="text-xs opacity-70 truncate capitalize">
+                                  {cls.class_type}
+                                </div>
+                              )}
+                              {active && (
+                                <div className="text-xs font-semibold text-green-600 mt-1">
+                                  ACTIVE
+                                </div>
+                              )}
+                              <div className="text-xs opacity-70 truncate flex items-center mt-1">
+                                <QrCodeIcon className="h-2 w-2 mr-1" />
+                                Click for QR
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -1330,7 +1259,9 @@ const TeacherSchedule = ({ teacherData }: TeacherScheduleProps) => {
             </CardHeader>
             <CardContent>
               {todayClasses.length === 0 ? (
-                <p className="text-muted-foreground text-center py-8">No classes scheduled for today</p>
+                <p className="text-muted-foreground text-center py-8">
+                  {hasNoCourses ? 'No courses assigned yet' : 'No classes scheduled for today'}
+                </p>
               ) : (
                 <div className="space-y-4">
                   {todayClasses.map((classItem) => {

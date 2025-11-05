@@ -25,26 +25,16 @@ interface WelcomeEmailRequest {
 }
 
 serve(async (req) => {
-  console.log('🚀 SEND-WELCOME-EMAIL FUNCTION INVOKED')
   console.log('Request method:', req.method)
   console.log('Timestamp:', new Date().toISOString())
 
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    console.log('✅ CORS preflight - returning OK')
     return new Response('ok', { headers: corsHeaders })
   }
 
   try {
-    console.log('📥 Parsing request body...')
     const requestBody: WelcomeEmailRequest = await req.json()
-    console.log('Request data received:', {
-      email: requestBody.email,
-      firstName: requestBody.firstName,
-      userCode: requestBody.userCode,
-      onboardingId: requestBody.onboardingId,
-      tempPassword: '***hidden***'
-    })
 
     const { email, firstName, userCode, tempPassword, onboardingId } = requestBody
 
@@ -57,19 +47,14 @@ serve(async (req) => {
       if (!tempPassword) missing.push('tempPassword')
       if (!onboardingId) missing.push('onboardingId')
       
-      console.error('❌ Missing required fields:', missing.join(', '))
       throw new Error(`Missing required fields: ${missing.join(', ')}`)
     }
 
-    console.log('✅ All required fields present')
 
     // Initialize Supabase client
-    console.log('🔧 Initializing Supabase client...')
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
-    console.log('✅ Supabase client initialized')
 
     // Prepare email data
-    console.log('📧 Preparing email data for Brevo...')
     const emailData = {
       sender: {
         email: FROM_EMAIL,
@@ -172,12 +157,6 @@ serve(async (req) => {
       `
     }
 
-    console.log('✅ Email data prepared')
-    console.log('📤 Sending email via Brevo API...')
-    console.log('From:', FROM_EMAIL)
-    console.log('To:', email)
-    console.log('API Key:', BREVO_API_KEY.substring(0, 20) + '...')
-
     const res = await fetch('https://api.brevo.com/v3/smtp/email', {
       method: 'POST',
       headers: {
@@ -187,24 +166,20 @@ serve(async (req) => {
       body: JSON.stringify(emailData),
     })
 
-    console.log('📬 Brevo API response status:', res.status)
-    console.log('Response OK?', res.ok)
-
     if (!res.ok) {
       const errorText = await res.text()
-      console.error('❌ Brevo API error response:', errorText)
+      console.error('Brevo API error response:', errorText)
       
       // Try to parse as JSON
       let errorDetails
       try {
         errorDetails = JSON.parse(errorText)
-        console.error('❌ Brevo API error details:', errorDetails)
+        console.error('Brevo API error details:', errorDetails)
       } catch {
-        console.error('❌ Brevo API raw error:', errorText)
+        console.error('Brevo API raw error:', errorText)
       }
       
       // Mark email as failed in database
-      console.log('📝 Marking email as failed in database...')
       await supabase
         .from('user_onboarding')
         .update({
@@ -217,12 +192,8 @@ serve(async (req) => {
     }
 
     const responseData = await res.json()
-    console.log('✅ Email sent successfully via Brevo!')
-    console.log('Message ID:', responseData.messageId)
-    console.log('Response data:', responseData)
 
     // Update onboarding record - email delivered
-    console.log('📝 Updating database (email delivered)...')
     const { error: updateError } = await supabase
       .from('user_onboarding')
       .update({
@@ -233,12 +204,11 @@ serve(async (req) => {
       .eq('id', onboardingId)
 
     if (updateError) {
-      console.error('⚠️ Database update error:', updateError)
+      console.error('Database update error:', updateError)
     } else {
-      console.log('✅ Database updated successfully')
+      console.log('Database updated successfully')
     }
 
-    console.log('EMAIL FUNCTION COMPLETED SUCCESSFULLY')
 
     return new Response(
       JSON.stringify({ 

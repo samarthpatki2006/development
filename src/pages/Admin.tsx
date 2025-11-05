@@ -196,7 +196,6 @@ const Admin = () => {
   };
 
   const buildFeaturesFromTags = (tags: string[]) => {
-    console.log('Building features from tags:', tags);
     
     const featuresMap = new Map<string, TagFeature>();
     
@@ -213,7 +212,6 @@ const Admin = () => {
     tags.forEach(tag => {
       const tagFeatures = TAG_FEATURE_MAP[tag];
       if (tagFeatures) {
-        console.log(`Adding features for tag: ${tag}`, tagFeatures);
         tagFeatures.forEach(feature => {
           if (!featuresMap.has(feature.feature_key)) {
             featuresMap.set(feature.feature_key, feature);
@@ -226,8 +224,6 @@ const Admin = () => {
     const features = Array.from(featuresMap.values()).sort(
       (a, b) => a.display_order - b.display_order
     );
-
-    console.log('Final available features:', features);
     return features;
   };
 
@@ -271,7 +267,6 @@ const Admin = () => {
 
           // Fetch user's tags
           const tags = await fetchUserTags(profile.id);
-          console.log('User tags fetched:', tags);
           setUserTags(tags);
 
           // Fetch tag assignments for display

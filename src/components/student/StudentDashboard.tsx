@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { BookOpen, Calendar, DollarSign, Award, Home, Users } from 'lucide-react';
+import { BookOpen, Calendar, Award, Home, Users, Bell } from 'lucide-react';
 import PermissionWrapper from '@/components/PermissionWrapper';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -16,7 +16,7 @@ const StudentDashboard = ({ studentData, onNavigate }: StudentDashboardProps) =>
     enrolledCourses: 0,
     upcomingAssignments: 0,
     cgpa: 0,
-    pendingFees: 0
+    upcomingEvents: 0
   });
   const [courses, setCourses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -119,19 +119,19 @@ const StudentDashboard = ({ studentData, onNavigate }: StudentDashboardProps) =>
         console.error('Academic records error:', academicError);
       }
 
-      // Fetch pending fees
-      const { data: feeTransactions, error: feesError } = await supabase
-        .from('fee_transactions')
-        .select('amount')
-        .eq('student_id', studentData.user_id)
-        .eq('transaction_status', 'pending');
+      // Fetch upcoming events
+      const { data: events, error: eventsError } = await supabase
+        .from('events')
+        .select('*')
+        .eq('college_id', studentData.college_id)
+        .gte('event_date', new Date().toISOString())
+        .order('event_date', { ascending: true });
 
-      if (feesError) {
-        console.error('Fee transactions error:', feesError);
-        throw feesError;
+      if (eventsError) {
+        console.error('Events error:', eventsError);
       }
 
-      const totalPendingFees = feeTransactions?.reduce((sum, fee) => sum + Number(fee.amount), 0) || 0;
+      const upcomingEventsCount = events?.length || 0;
 
       // Fetch course progress for enrolled courses
       const coursesWithProgress = await Promise.all(
@@ -167,7 +167,7 @@ const StudentDashboard = ({ studentData, onNavigate }: StudentDashboardProps) =>
         enrolledCourses: enrollments?.length || 0,
         upcomingAssignments: upcomingAssignments.length,
         cgpa: academicRecords?.cgpa || 0,
-        pendingFees: totalPendingFees
+        upcomingEvents: upcomingEventsCount
       });
 
       setCourses(coursesWithProgress);
@@ -202,11 +202,11 @@ const StudentDashboard = ({ studentData, onNavigate }: StudentDashboardProps) =>
       permission: 'view_grades' as const
     },
     {
-      title: 'Pending Fees',
-      value: `₹${stats.pendingFees.toLocaleString()}`,
-      icon: DollarSign,
-      color: 'text-red-600',
-      permission: 'view_fees' as const
+      title: 'Upcoming Events',
+      value: stats.upcomingEvents.toString(),
+      icon: Bell,
+      color: 'text-green-600',
+      permission: 'view_submit_assignments' as const
     }
   ];
 
@@ -264,6 +264,9 @@ const StudentDashboard = ({ studentData, onNavigate }: StudentDashboardProps) =>
           break;
         case 'Current CGPA':
           onNavigate('gradebook');
+          break;
+        case 'Upcoming Events':
+          onNavigate('events');
           break;
         default:
           break;

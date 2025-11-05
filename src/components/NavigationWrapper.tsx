@@ -42,7 +42,6 @@ const NavigationWrapper = ({ children }: NavigationWrapperProps) => {
           sessionStorage.removeItem('colcord_user');
           navigate('/');
         }
-        console.log('Auth state changed:', event);
         
         handleAuthStateChange(session);
       }

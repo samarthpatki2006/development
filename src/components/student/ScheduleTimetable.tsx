@@ -319,10 +319,9 @@ const ScheduleTimetable: React.FC<ScheduleTimetableProps> = ({ studentData }) =>
         </div>
 
         <Tabs defaultValue="schedule" className="space-y-4">
-          <TabsList className="w-full sm:w-auto grid grid-cols-3">
+          <TabsList className="w-full sm:w-auto grid grid-cols-2">
             <TabsTrigger value="schedule" className="text-xs sm:text-sm">Schedule</TabsTrigger>
             <TabsTrigger value="daily" className="text-xs sm:text-sm">Daily</TabsTrigger>
-            <TabsTrigger value="calendar" className="text-xs sm:text-sm">Calendar</TabsTrigger>
           </TabsList>
 
           {/* Weekly/Daily Schedule View */}
@@ -598,7 +597,7 @@ const ScheduleTimetable: React.FC<ScheduleTimetableProps> = ({ studentData }) =>
           </TabsContent>
 
           {/* Calendar View */}
-          <TabsContent value="calendar" className="space-y-4">
+          {/* <TabsContent value="calendar" className="space-y-4">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <Card className="lg:col-span-1">
                 <CardHeader>
@@ -685,7 +684,7 @@ const ScheduleTimetable: React.FC<ScheduleTimetableProps> = ({ studentData }) =>
                 </CardContent>
               </Card>
             </div>
-          </TabsContent>
+          </TabsContent> */}
         </Tabs>
       </div>
     </PermissionWrapper>

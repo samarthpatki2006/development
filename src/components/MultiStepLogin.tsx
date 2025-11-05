@@ -529,6 +529,7 @@ const MultiStepLogin = () => {
                     type="text"
                     value={collegeCode}
                     onChange={(e) => setCollegeCode(e.target.value)}
+                    autoFocus
                     onKeyPress={(e) => e.key === 'Enter' && handleCollegeCodeSubmit()}
                     className="bg-input border-border text-foreground placeholder:text-muted-foreground focus-ring h-10 sm:h-11 text-sm sm:text-base w-full"
                   />
@@ -560,6 +561,7 @@ const MultiStepLogin = () => {
                     type="text"
                     value={userCode}
                     onChange={(e) => setUserCode(e.target.value)}
+                    autoFocus
                     onKeyPress={(e) => e.key === 'Enter' && handleUserCodeSubmit()}
                     className="bg-input border-border text-foreground placeholder:text-muted-foreground focus-ring h-10 sm:h-11 text-sm sm:text-base w-full"
                   />
@@ -591,6 +593,7 @@ const MultiStepLogin = () => {
                     type="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
+                    autoFocus
                     onKeyPress={(e) => e.key === 'Enter' && handleLogin()}
                     className="bg-input border-border text-foreground placeholder:text-muted-foreground focus-ring h-10 sm:h-11 text-sm sm:text-base w-full"
                   />

@@ -245,11 +245,43 @@ const UserManagement = ({ userProfile, adminRoles }: UserManagementProps) => {
           description: "User deactivated successfully.",
         });
       } else {
-        // Permanent delete
-        // First, delete from auth.users (this will cascade to user_profiles due to FK constraint)
-        const { error: authError } = await supabase.auth.admin.deleteUser(userToDelete.id);
+        // Permanent delete 
+        const userIdToDelete = userToDelete.id; 
+        
+        const { data, error: rpcError } = await supabase.rpc('delete_user_completely', {
+          user_id_to_delete: userIdToDelete
+        });
 
-        if (authError) throw authError;
+        console.log('Delete RPC response:', { data, error: rpcError });
+
+        if (rpcError) {
+          console.error('RPC Delete error:', rpcError);
+          
+          // If RPC fails, show detailed error
+          if (rpcError.code === '23503') {
+            throw new Error('Cannot delete user: User has related records (enrollments, assignments, etc.). Please deactivate instead.');
+          } else if (rpcError.code === '42883') {
+            throw new Error('Delete function not found. Please contact system administrator to set up the delete_user_completely function.');
+          } else {
+            throw new Error(rpcError.message || 'Failed to delete user. User may have related records.');
+          }
+        }
+
+        // Check if the function returned success
+        if (data && typeof data === 'object' && 'success' in data && !data.success) {
+          throw new Error(data.message || 'Failed to delete user.');
+        }
+
+        // Verify the user is actually deleted
+        const { data: checkUser, error: checkError } = await supabase
+          .from('user_profiles')
+          .select('id')
+          .eq('id', userIdToDelete)
+          .maybeSingle();
+
+        if (checkUser) {
+          throw new Error('User deletion failed - user still exists in database.');
+        }
 
         toast({
           title: "Success",
@@ -259,12 +291,17 @@ const UserManagement = ({ userProfile, adminRoles }: UserManagementProps) => {
 
       setIsDeleteDialogOpen(false);
       setUserToDelete(null);
-      loadUsers();
+      
+      // Force reload with a slight delay to ensure database updates are reflected
+      setTimeout(() => {
+        loadUsers();
+      }, 500);
     } catch (error) {
       console.error('Error performing delete action:', error);
+      const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred.';
       toast({
         title: "Error",
-        description: `Failed to ${deleteAction === 'deactivate' ? 'deactivate' : 'delete'} user.`,
+        description: errorMessage,
         variant: "destructive",
       });
     }
@@ -316,8 +353,6 @@ const UserManagement = ({ userProfile, adminRoles }: UserManagementProps) => {
                 <SelectItem value="student">Students</SelectItem>
                 <SelectItem value="teacher">Teachers</SelectItem>
                 <SelectItem value="admin">Admins</SelectItem>
-                <SelectItem value="super_admin">Super Admins</SelectItem>
-                <SelectItem value="staff">Staff</SelectItem>
                 <SelectItem value="parent">Parents</SelectItem>
                 <SelectItem value="alumni">Alumni</SelectItem>
               </SelectContent>

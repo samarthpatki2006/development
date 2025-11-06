@@ -4,11 +4,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { BookOpen, Plus, Edit, Users, Calendar, Search, AlertCircle, Mail, Phone, X } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { BookOpen, Plus, Edit, Users, Search, AlertCircle, Mail, Phone, X, Trash2, AlertTriangle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 
@@ -58,9 +59,11 @@ const CourseManagement = ({ userProfile }: { userProfile: UserProfile }) => {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isStudentsDialogOpen, setIsStudentsDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [instructors, setInstructors] = useState<any[]>([]);
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
+  const [courseToDelete, setCourseToDelete] = useState<Course | null>(null);
   const [enrolledStudents, setEnrolledStudents] = useState<EnrolledStudent[]>([]);
   const [isLoadingStudents, setIsLoadingStudents] = useState(false);
 
@@ -331,6 +334,51 @@ const CourseManagement = ({ userProfile }: { userProfile: UserProfile }) => {
     }
   };
 
+  const handleDeleteClick = (course: Course) => {
+    setCourseToDelete(course);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!courseToDelete) return;
+
+    setIsSubmitting(true);
+    try {
+      // Call the RPC function to delete the course and all related data
+      const { data, error } = await supabase
+        .rpc('delete_course_cascade', {
+          course_id_param: courseToDelete.id
+        });
+
+      if (error) throw error;
+
+      // Check if the operation was successful
+      if (!data?.success) {
+        throw new Error(data?.message || 'Failed to delete course');
+      }
+
+      const enrollmentCount = data.enrollment_count || 0;
+
+      setCourses(courses.filter(c => c.id !== courseToDelete.id));
+      setIsDeleteDialogOpen(false);
+      setCourseToDelete(null);
+
+      toast({
+        title: "Success",
+        description: `Course deleted successfully. ${enrollmentCount > 0 ? `${enrollmentCount} student(s) unenrolled.` : ''}`,
+      });
+    } catch (error) {
+      console.error('Error deleting course:', error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to delete course.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const handleViewStudents = (course: Course) => {
     setSelectedCourse(course);
     loadEnrolledStudents(course.id);
@@ -534,7 +582,7 @@ const CourseManagement = ({ userProfile }: { userProfile: UserProfile }) => {
 
           {/* Courses Table */}
           {filteredCourses.length > 0 ? (
-            <div className="rounded-md border  max-h-[350px] sm:max-h-[450px] overflow-auto custom-scrollbar">
+            <div className="rounded-md border max-h-[350px] sm:max-h-[450px] overflow-auto custom-scrollbar">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -596,6 +644,15 @@ const CourseManagement = ({ userProfile }: { userProfile: UserProfile }) => {
                             title="View enrolled students"
                           >
                             <Users className="w-3 h-3" />
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                            onClick={() => handleDeleteClick(course)}
+                            title="Delete course"
+                          >
+                            <Trash2 className="w-3 h-3" />
                           </Button>
                         </div>
                       </TableCell>
@@ -737,6 +794,54 @@ const CourseManagement = ({ userProfile }: { userProfile: UserProfile }) => {
               {isSubmitting ? 'Updating...' : 'Update Course'}
             </Button>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center space-x-2">
+              <AlertTriangle className="w-5 h-5 text-red-600" />
+              <span>Delete Course</span>
+            </DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this course? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          
+          {courseToDelete && (
+            <div className="py-4">
+              <Alert>
+                <AlertDescription className="text-sm">
+                  <strong>Course:</strong> {courseToDelete.course_code} - {courseToDelete.course_name}
+                </AlertDescription>
+              </Alert>
+              
+              <div className="mt-4 p-4 border border-yellow-200 rounded-lg">
+                <p className="text-sm text-yellow-800">
+                  <strong>Warning:</strong> Deleting this course will automatically unenroll all students and remove all associated assignments, quizzes, lecture materials, grades, and schedules. This action cannot be undone.
+                </p>
+              </div>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => setIsDeleteDialogOpen(false)}
+              disabled={isSubmitting}
+            >
+              Cancel
+            </Button>
+            <Button 
+              variant="destructive"
+              onClick={handleDeleteConfirm}
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? 'Deleting...' : 'Delete Course'}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 

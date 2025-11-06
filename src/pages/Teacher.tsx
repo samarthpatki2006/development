@@ -26,7 +26,8 @@ import {
   UserCircle,
   PlusCircle,
   PlusCircleIcon,
-  Menu
+  Menu,
+  Building2Icon
 } from 'lucide-react';
 import SidebarNavigation from '@/components/layout/SidebarNavigation';
 import TeacherDashboard from '@/components/teacher/TeacherDashboard';
@@ -41,6 +42,7 @@ import TeacherPerformance from '@/components/teacher/TeacherPerformance';
 import TeacherRecognition from '@/components/teacher/TeacherRecognition';
 import TeacherEvents from '@/components/teacher/TeacherEvents';
 import TeacherParentInteraction from '@/components/teacher/TeacherParentInteraction';
+import TeacherDepartment from '@/components/teacher/TeacherDepartment';
 import TeacherSupport from '@/components/teacher/TeacherSupport';
 import { supabase } from '@/integrations/supabase/client';
 import GradeManager from '@/components/teacher/GradeManager';
@@ -170,15 +172,15 @@ const Teacher = () => {
             return;
           }
 
-          if (profile.user_type !== 'faculty') {
-            toast({
-              title: 'Access Denied',
-              description: 'This area is for teachers only.',
-              variant: 'destructive',
-            });
-            navigate('/');
-            return;
-          }
+          // if (profile.user_type !== 'faculty') {
+          //   toast({
+          //     title: 'Access Denied',
+          //     description: 'This area is for teachers only.',
+          //     variant: 'destructive',
+          //   });
+          //   navigate('/');
+          //   return;
+          // }
 
           setTeacherData({
             user_id: profile.id,
@@ -302,6 +304,7 @@ const Teacher = () => {
     { id: 'absence', label: 'Absence Review', icon: Users },
     // { id: 'documents', label: 'Document Management', icon: FileText },
     { id: 'recognition', label: 'Recognition & Feedback', icon: Award },
+    { id: 'department', label: 'Department', icon: Building2Icon},
     { id: 'support', label: 'Support & Helpdesk', icon: HelpCircle },
   ];
 
@@ -337,6 +340,8 @@ const Teacher = () => {
       //   return <TeacherDocuments teacherData={teacherData} />;
       case 'recognition':
         return <TeacherRecognition teacherData={teacherData} />;
+      case 'department':
+        return <TeacherDepartment teacherData={teacherData}/>;
       case 'support':
         return <TeacherSupport teacherData={teacherData} />;
       default:

@@ -179,10 +179,10 @@ const NavigationWrapper = ({ children }: NavigationWrapperProps) => {
           
           // Allow users to navigate freely within their session
           // Only redirect if they're on completely wrong routes
-          // const validPaths = [correctRoute, '/first-login', '/settings', '/profile'];
-          // if (!validPaths.some(path => currentPath.startsWith(path))) {
-          //   navigate(correctRoute);
-          // }
+          const validPaths = [correctRoute, '/first-login', '/settings', '/profile'];
+          if (!validPaths.some(path => currentPath.startsWith(path))) {
+            navigate(correctRoute);
+          }
         } catch (error) {
           console.error('Error validating session:', error);
           sessionStorage.removeItem('colcord_user');

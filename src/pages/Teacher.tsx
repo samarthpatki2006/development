@@ -172,15 +172,15 @@ const Teacher = () => {
             return;
           }
 
-          // if (profile.user_type !== 'faculty') {
-          //   toast({
-          //     title: 'Access Denied',
-          //     description: 'This area is for teachers only.',
-          //     variant: 'destructive',
-          //   });
-          //   navigate('/');
-          //   return;
-          // }
+          if (profile.user_type !== 'faculty') {
+            toast({
+              title: 'Access Denied',
+              description: 'This area is for teachers only.',
+              variant: 'destructive',
+            });
+            navigate('/');
+            return;
+          }
 
           setTeacherData({
             user_id: profile.id,

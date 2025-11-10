@@ -19,6 +19,7 @@ import {
   getDepartmentChannels,
   getChannelMessages,
   sendMessage,
+  uploadDepartmentFile,
   togglePinMessage,
   getDepartmentEvents,
   createDepartmentEvent,
@@ -174,16 +175,55 @@ const TeacherDepartment = ({ teacherData }: TeacherDepartmentProps) => {
 
     try {
       setSending(true);
-      console.log('Sending message:', { channelId: selectedChannel.id, userId, message: newMessage.trim() });
+      console.log('Sending message:', { channelId: selectedChannel.id, userId, message: newMessage.trim(), hasFile: !!attachedFile });
       
+      let fileUrl: string | undefined;
+      let finalFileName: string | undefined;
+      let finalFileSize: number | undefined;
+
+      // If there's an attached file, upload it first
+      if (attachedFile) {
+        console.log('Uploading file:', attachedFile.name);
+        const uploadResult = await uploadDepartmentFile(attachedFile, selectedChannel.id, userId);
+        
+        if (!uploadResult) {
+          toast({
+            title: "Error",
+            description: "Failed to upload file",
+            variant: "destructive",
+          });
+          setSending(false);
+          return;
+        }
+
+        fileUrl = uploadResult.url;
+        finalFileName = attachedFile.name;
+        finalFileSize = attachedFile.size;
+        console.log('File uploaded successfully:', uploadResult.url);
+      }
+
+      // Determine message type based on file
+      let messageType = 'text';
+      if (attachedFile) {
+        if (attachedFile.type.startsWith('image/')) {
+          messageType = 'image';
+        } else if (attachedFile.type.startsWith('video/')) {
+          messageType = 'video';
+        } else if (attachedFile.type === 'application/pdf' || attachedFile.type.includes('document') || attachedFile.type.includes('spreadsheet')) {
+          messageType = 'document';
+        } else {
+          messageType = 'file';
+        }
+      }
+
       const msg = await sendMessage(
         selectedChannel.id,
         userId,
-        newMessage.trim(),
-        attachedFile ? "file" : "text",
-        undefined,
-        attachedFile?.name,
-        attachedFile?.size
+        newMessage.trim() || (attachedFile ? `Shared ${attachedFile.name}` : ''),
+        messageType,
+        fileUrl,
+        finalFileName,
+        finalFileSize
       );
 
       console.log('Message sent, response:', msg);
@@ -196,7 +236,7 @@ const TeacherDepartment = ({ teacherData }: TeacherDepartmentProps) => {
         
         toast({
           title: "Success",
-          description: "Message sent successfully",
+          description: attachedFile ? "File uploaded and message sent" : "Message sent successfully",
         });
       } else {
         toast({
@@ -404,10 +444,27 @@ const TeacherDepartment = ({ teacherData }: TeacherDepartmentProps) => {
                         <strong>{msg.sender ? `${msg.sender.first_name} ${msg.sender.last_name}` : "Unknown"}</strong>: {msg.message_text}
                       </p>
 
-                      {msg.file_name && (
-                        <span className="text-xs text-blue-500 mt-1 block">
+                      {/* Display images inline */}
+                      {msg.message_type === 'image' && msg.file_url && (
+                        <img 
+                          src={msg.file_url} 
+                          alt={msg.file_name || 'Shared image'} 
+                          className="mt-2 rounded-lg max-w-full max-h-64 object-cover cursor-pointer"
+                          onClick={() => window.open(msg.file_url, '_blank')}
+                        />
+                      )}
+
+                      {/* Display file attachments as download links */}
+                      {msg.file_name && msg.file_url && msg.message_type !== 'image' && (
+                        <a 
+                          href={msg.file_url} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="text-xs text-blue-500 mt-1 block hover:underline flex items-center gap-1"
+                        >
                           📎 {msg.file_name}
-                        </span>
+                          {msg.file_size && ` (${(msg.file_size / 1024 / 1024).toFixed(2)} MB)`}
+                        </a>
                       )}
                     </div>
                     <span className="text-[10px] text-muted-foreground">

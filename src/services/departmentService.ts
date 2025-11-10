@@ -205,6 +205,49 @@ export async function getChannelMessages(channelId: string): Promise<DepartmentM
   return (data || []) as unknown as DepartmentMessage[];
 }
 
+// Upload file to Supabase Storage
+export async function uploadDepartmentFile(
+  file: File,
+  channelId: string,
+  userId: string
+): Promise<{ url: string; path: string } | null> {
+  try {
+    // Generate unique filename
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${userId}/${channelId}/${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+    
+    console.log('Uploading file to storage:', { fileName, fileSize: file.size, fileType: file.type });
+
+    // Upload file to Supabase Storage
+    const { data, error } = await supabase.storage
+      .from('department-files')
+      .upload(fileName, file, {
+        cacheControl: '3600',
+        upsert: false
+      });
+
+    if (error) {
+      console.error('Error uploading file:', error);
+      return null;
+    }
+
+    console.log('File uploaded successfully:', data);
+
+    // Get public URL
+    const { data: urlData } = supabase.storage
+      .from('department-files')
+      .getPublicUrl(fileName);
+
+    return {
+      url: urlData.publicUrl,
+      path: fileName
+    };
+  } catch (error) {
+    console.error('Error in uploadDepartmentFile:', error);
+    return null;
+  }
+}
+
 // Send a message
 export async function sendMessage(
   channelId: string,

@@ -14,6 +14,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import EventCreationForm from "./EventCreationForm";
+import { useDepartmentPermissions } from "@/hooks/useDepartmentPermissions";
 import {
   getUserDepartments,
   getDepartmentChannels,
@@ -50,6 +51,10 @@ const TeacherDepartment = ({ teacherData }: TeacherDepartmentProps) => {
   const [attachedFile, setAttachedFile] = useState<File | null>(null);
   const [sending, setSending] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  // Get user permissions for the current department
+  const userId = teacherData?.id || teacherData?.user_id;
+  const permissions = useDepartmentPermissions(department?.id, userId);
 
   useEffect(() => {
     const userId = teacherData?.id || teacherData?.user_id;
@@ -276,6 +281,25 @@ const TeacherDepartment = ({ teacherData }: TeacherDepartmentProps) => {
   };
 
   const handleTogglePin = async (messageId: string, isPinned: boolean) => {
+    // Check permissions
+    if (isPinned && !permissions.canUnpinMessages) {
+      toast({
+        title: "Permission Denied",
+        description: "Only HOD or Admin can unpin messages",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!isPinned && !permissions.canPinMessages) {
+      toast({
+        title: "Permission Denied",
+        description: "Only HOD or Admin can pin messages",
+        variant: "destructive",
+      });
+      return;
+    }
+
     const userId = teacherData?.id || teacherData?.user_id;
     if (!userId) return;
 
@@ -286,10 +310,26 @@ const TeacherDepartment = ({ teacherData }: TeacherDepartmentProps) => {
           msg.id === messageId ? { ...msg, is_pinned: !isPinned } : msg
         )
       );
+      
+      toast({
+        title: "Success",
+        description: isPinned ? "Message unpinned" : "Message pinned",
+      });
     }
   };
 
   const handleCreateEvent = async (eventData: any) => {
+    // Check permissions
+    if (!permissions.canCreateEvents) {
+      toast({
+        title: "Permission Denied",
+        description: "Only HOD or Admin can create events",
+        variant: "destructive",
+      });
+      setIsModalOpen(false);
+      return;
+    }
+
     if (!department) return;
 
     const userId = teacherData?.id || teacherData?.user_id;
@@ -397,9 +437,23 @@ const TeacherDepartment = ({ teacherData }: TeacherDepartmentProps) => {
         <Card className="flex flex-col h-full">
           <CardHeader>
             <CardTitle className="flex flex-col">
-              <span className="text-lg font-semibold">
-                {department.department_name} - {selectedChannel?.channel_name || "Communication"}
-              </span>
+              <div className="flex items-center justify-between">
+                <span className="text-lg font-semibold">
+                  {department.department_name} - {selectedChannel?.channel_name || "Communication"}
+                </span>
+                {/* Role Badge */}
+                {permissions.role && (
+                  <span className={`text-xs px-3 py-1 rounded-full font-medium ${
+                    permissions.isHOD 
+                      ? 'bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300' 
+                      : permissions.isAdmin 
+                      ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300'
+                      : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'
+                  }`}>
+                    {permissions.isHOD ? '👑 HOD' : permissions.isAdmin ? '⚡ Admin' : '👤 Member'}
+                  </span>
+                )}
+              </div>
               <span className="text-sm text-muted-foreground">
                 Real-time message feed showing department-wide conversations.
               </span>
@@ -422,14 +476,17 @@ const TeacherDepartment = ({ teacherData }: TeacherDepartmentProps) => {
                           </span>
                         )}
                       </span>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleTogglePin(m.id, m.is_pinned)}
-                        title="Unpin Message"
-                      >
-                        <Pin className="w-4 h-4 text-blue-500" />
-                      </Button>
+                      {/* Only HOD/Admin can unpin messages */}
+                      {permissions.canUnpinMessages && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleTogglePin(m.id, m.is_pinned)}
+                          title="Unpin Message"
+                        >
+                          <Pin className="w-4 h-4 text-blue-500" />
+                        </Button>
+                      )}
                     </div>
                   ))}
               </div>
@@ -471,13 +528,16 @@ const TeacherDepartment = ({ teacherData }: TeacherDepartmentProps) => {
                       {new Date(msg.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                     </span>
 
-                    <button
-                      onClick={() => handleTogglePin(msg.id, msg.is_pinned)}
-                      className="opacity-0 group-hover:opacity-100 transition ml-2 text-muted-foreground hover:text-blue-500"
-                      title={msg.is_pinned ? "Unpin message" : "Pin message"}
-                    >
-                      <Pin className={`w-4 h-4 ${msg.is_pinned ? "text-blue-500" : ""}`} />
-                    </button>
+                    {/* Only show pin button to HOD/Admin */}
+                    {(permissions.canPinMessages || permissions.canUnpinMessages) && (
+                      <button
+                        onClick={() => handleTogglePin(msg.id, msg.is_pinned)}
+                        className="opacity-0 group-hover:opacity-100 transition ml-2 text-muted-foreground hover:text-blue-500"
+                        title={msg.is_pinned ? "Unpin message" : "Pin message"}
+                      >
+                        <Pin className={`w-4 h-4 ${msg.is_pinned ? "text-blue-500" : ""}`} />
+                      </button>
+                    )}
                   </div>
                 </div>
               ))}
@@ -519,7 +579,17 @@ const TeacherDepartment = ({ teacherData }: TeacherDepartmentProps) => {
             <CardTitle className="flex items-center gap-2">
               <CalendarDays className="h-5 w-5" /> Mini Calendar
             </CardTitle>
-            <Button variant="ghost" className="bg-white text-black hover:bg-transparent hover:text-white px-2 py-2 text-md h-8" onClick={() => setIsModalOpen(true)}>+</Button>
+            {/* Only HOD/Admin can create events */}
+            {permissions.canCreateEvents && (
+              <Button 
+                variant="ghost" 
+                className="bg-white text-black hover:bg-transparent hover:text-white px-2 py-2 text-md h-8" 
+                onClick={() => setIsModalOpen(true)}
+                title="Create Event"
+              >
+                +
+              </Button>
+            )}
           </CardHeader>
           <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
             <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">

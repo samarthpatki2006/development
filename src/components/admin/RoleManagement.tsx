@@ -236,16 +236,16 @@ const RoleManagement = ({ userProfile, adminRoles }: RoleManagementProps) => {
         }
       }
 
-      // Check if user already has this tag
+      // Check if user already has this tag (active or inactive)
       const { data: existing, error: checkError } = await supabase
         .from('user_tag_assignments')
-        .select('id')
+        .select('id, is_active')
         .eq('user_id', selectedUser)
         .eq('tag_id', selectedTag)
-        .eq('is_active', true)
-        .single();
+        .maybeSingle();
 
-      if (existing) {
+      // If tag exists and is active, show error
+      if (existing && existing.is_active) {
         toast({
           title: "Tag Already Assigned",
           description: "This user already has this tag assigned.",
@@ -254,6 +254,79 @@ const RoleManagement = ({ userProfile, adminRoles }: RoleManagementProps) => {
         return;
       }
 
+      // If tag exists but is inactive, reactivate it instead of inserting
+      if (existing && !existing.is_active) {
+        const { error: updateError } = await supabase
+          .from('user_tag_assignments')
+          .update({ 
+            is_active: true,
+            assigned_by: userProfile.id,
+            assigned_at: new Date().toISOString(),
+            expires_at: expiryDate ? new Date(expiryDate).toISOString() : null
+          })
+          .eq('id', existing.id);
+
+        if (updateError) {
+          console.error('Error reactivating tag:', updateError);
+          toast({
+            title: "Error",
+            description: "Failed to reassign tag. " + updateError.message,
+            variant: "destructive",
+          });
+          return;
+        }
+
+        // If reactivating HOD tag, update department_members role
+        if (selectedTagData?.tag_name?.toLowerCase() === 'hod' || 
+            selectedTagData?.tag_category?.toLowerCase() === 'hod') {
+          
+          console.log('HOD tag reactivated, syncing to department_members...');
+          
+          const { error: deptError } = await supabase
+            .from('department_members')
+            .update({ 
+              role: 'hod'
+            })
+            .eq('faculty_id', selectedUser)
+            .eq('is_active', true);
+
+          if (deptError) {
+            console.error('Error updating department role:', deptError);
+          } else {
+            const { data: deptMembers } = await supabase
+              .from('department_members')
+              .select('department_id')
+              .eq('faculty_id', selectedUser)
+              .eq('is_active', true);
+
+            if (deptMembers) {
+              for (const member of deptMembers) {
+                await supabase
+                  .from('departments')
+                  .update({ 
+                    hod_id: selectedUser,
+                    updated_at: new Date().toISOString()
+                  })
+                  .eq('id', member.department_id);
+              }
+            }
+          }
+        }
+
+        toast({
+          title: "Success",
+          description: `Tag reassigned to ${selectedUserData?.first_name} ${selectedUserData?.last_name} successfully.`,
+        });
+
+        setIsAssignDialogOpen(false);
+        setSelectedUser('');
+        setSelectedTag('');
+        setExpiryDate('');
+        loadTagAssignments();
+        return;
+      }
+
+      // If no existing record, insert new one
       const assignmentData: any = {
         user_id: selectedUser,
         tag_id: selectedTag,
@@ -277,6 +350,52 @@ const RoleManagement = ({ userProfile, adminRoles }: RoleManagementProps) => {
           variant: "destructive",
         });
       } else {
+        // If assigning HOD tag, update department_members role
+        if (selectedTagData?.tag_name?.toLowerCase() === 'hod' || 
+            selectedTagData?.tag_category?.toLowerCase() === 'hod') {
+          
+          console.log('HOD tag detected, syncing to department_members...');
+          
+          // Update all department memberships for this user to HOD role
+          const { error: deptError } = await supabase
+            .from('department_members')
+            .update({ 
+              role: 'hod'
+            })
+            .eq('faculty_id', selectedUser)
+            .eq('is_active', true);
+
+          if (deptError) {
+            console.error('Error updating department role:', deptError);
+            toast({
+              title: "Warning",
+              description: "Tag assigned but failed to update department role. Please update manually.",
+              variant: "destructive",
+            });
+          } else {
+            // Also update departments.hod_id for each department
+            const { data: deptMembers } = await supabase
+              .from('department_members')
+              .select('department_id')
+              .eq('faculty_id', selectedUser)
+              .eq('is_active', true);
+
+            if (deptMembers) {
+              for (const member of deptMembers) {
+                await supabase
+                  .from('departments')
+                  .update({ 
+                    hod_id: selectedUser,
+                    updated_at: new Date().toISOString()
+                  })
+                  .eq('id', member.department_id);
+              }
+            }
+            
+            console.log('Department roles synced successfully');
+          }
+        }
+        
         // Log the assignment in audit
         await supabase.from('tag_assignment_audit').insert([{
           user_id: selectedUser,
@@ -313,6 +432,13 @@ const RoleManagement = ({ userProfile, adminRoles }: RoleManagementProps) => {
 
   const revokeTag = async (assignmentId: string, userId: string, tagId: string) => {
     try {
+      // First get the tag info to check if it's HOD
+      const { data: tagData } = await supabase
+        .from('user_tags')
+        .select('tag_name, tag_category')
+        .eq('id', tagId)
+        .single();
+
       const { error } = await supabase
         .from('user_tag_assignments')
         .update({ is_active: false })
@@ -326,6 +452,47 @@ const RoleManagement = ({ userProfile, adminRoles }: RoleManagementProps) => {
           variant: "destructive",
         });
       } else {
+        // If revoking HOD tag, demote user to member in department_members
+        if (tagData && (tagData.tag_name?.toLowerCase() === 'hod' || 
+            tagData.tag_category?.toLowerCase() === 'hod')) {
+          
+          console.log('HOD tag revoked, demoting in department_members...');
+          
+          // Demote from HOD to member
+          const { error: deptError } = await supabase
+            .from('department_members')
+            .update({ 
+              role: 'member'
+            })
+            .eq('faculty_id', userId)
+            .eq('role', 'hod')
+            .eq('is_active', true);
+
+          if (deptError) {
+            console.error('Error updating department role:', deptError);
+          }
+          
+          // Clear hod_id from departments
+          const { data: deptMembers } = await supabase
+            .from('department_members')
+            .select('department_id')
+            .eq('faculty_id', userId)
+            .eq('is_active', true);
+
+          if (deptMembers) {
+            for (const member of deptMembers) {
+              await supabase
+                .from('departments')
+                .update({ 
+                  hod_id: null,
+                  updated_at: new Date().toISOString()
+                })
+                .eq('id', member.department_id)
+                .eq('hod_id', userId);
+            }
+          }
+        }
+        
         // Log the revocation in audit
         await supabase.from('tag_assignment_audit').insert([{
           user_id: userId,

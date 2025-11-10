@@ -318,6 +318,11 @@ export async function createDepartmentEvent(
     created_by: string;
   }
 ): Promise<DepartmentEvent | null> {
+  console.log('createDepartmentEvent called with:', {
+    departmentId,
+    eventData
+  });
+
   const { data, error } = await supabase
     .from('department_events')
     .insert({
@@ -338,6 +343,7 @@ export async function createDepartmentEvent(
     return null;
   }
 
+  console.log('Event created successfully:', data);
   return data as DepartmentEvent;
 }
 

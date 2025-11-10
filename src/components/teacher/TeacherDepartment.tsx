@@ -255,17 +255,30 @@ const TeacherDepartment = ({ teacherData }: TeacherDepartmentProps) => {
     const userId = teacherData?.id || teacherData?.user_id;
     if (!userId) return;
 
+    console.log('Creating event with data:', eventData);
+
     try {
+      // Combine date and time into datetime strings
+      const startDateTime = eventData.date && eventData.startTime
+        ? new Date(`${eventData.date.toDateString()} ${eventData.startTime}`).toISOString()
+        : eventData.date ? new Date(eventData.date).toISOString() : new Date().toISOString();
+
+      const endDateTime = eventData.date && eventData.endTime
+        ? new Date(`${eventData.date.toDateString()} ${eventData.endTime}`).toISOString()
+        : eventData.date ? new Date(eventData.date).toISOString() : new Date().toISOString();
+
       const newEvent = await createDepartmentEvent(department.id, {
         event_title: eventData.title,
         event_description: eventData.description,
-        event_type: eventData.type,
-        start_datetime: eventData.startDate,
-        end_datetime: eventData.endDate,
-        location: eventData.location,
-        is_all_day: eventData.isAllDay || false,
+        event_type: eventData.type ? eventData.type.toLowerCase() : 'other',
+        start_datetime: startDateTime,
+        end_datetime: endDateTime,
+        location: eventData.location || null,
+        is_all_day: !eventData.startTime && !eventData.endTime, // If no times specified, make it all-day
         created_by: userId,
       });
+
+      console.log('Event created:', newEvent);
 
       if (newEvent) {
         setEvents((prev) => [...prev, newEvent]);
@@ -273,6 +286,12 @@ const TeacherDepartment = ({ teacherData }: TeacherDepartmentProps) => {
         toast({
           title: "Success",
           description: "Event created successfully",
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to create event - no response from server",
+          variant: "destructive",
         });
       }
     } catch (error) {

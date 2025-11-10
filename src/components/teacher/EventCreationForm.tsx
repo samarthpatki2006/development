@@ -105,12 +105,14 @@ const EventCreationForm: React.FC<EventCreationFormProps> = ({
             <SelectValue placeholder="Select type" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="Meeting">Meeting</SelectItem>
-            <SelectItem value="Deadline">Deadline</SelectItem>
-            <SelectItem value="Holiday">Holiday</SelectItem>
-            <SelectItem value="Workshop">Workshop</SelectItem>
-            <SelectItem value="Exam">Exam</SelectItem>
-            <SelectItem value="Other">Other</SelectItem>
+            <SelectItem value="meeting">Meeting</SelectItem>
+            <SelectItem value="deadline">Deadline</SelectItem>
+            <SelectItem value="holiday">Holiday</SelectItem>
+            <SelectItem value="workshop">Workshop</SelectItem>
+            <SelectItem value="seminar">Seminar</SelectItem>
+            <SelectItem value="exam">Exam</SelectItem>
+            <SelectItem value="conference">Conference</SelectItem>
+            <SelectItem value="other">Other</SelectItem>
           </SelectContent>
         </Select>
       </div>

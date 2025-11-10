@@ -419,10 +419,6 @@ const TeacherDepartment = ({ teacherData }: TeacherDepartmentProps) => {
                 <Paperclip className="w-4 h-4" />
               </Button>
 
-              <Button variant="ghost" size="icon">
-                <ImageIcon className="w-4 h-4" />
-              </Button>
-
               <Input
                 placeholder={
                   attachedFile ? `Attached: ${attachedFile.name}` : "Type a message..."

@@ -48,6 +48,7 @@ import Chatbot from '@/components/student/Chatbot';
 import MarketplaceApp from '@/components/student/Marketplace';
 import Anouncements from '@/components/student/Anouncements';
 import ClubActivityCenter from '@/components/student/ClubActivityCenter';
+import StudentProfile from '@/pages/student_profile.tsx';
 
 // NEW: Added TypeScript type for a single notification
 type Notification = {
@@ -62,7 +63,7 @@ type Notification = {
 };
 
 // NEW: Added TypeScript type for student data
-type StudentData = {
+export type StudentData = {
   user_id: string;
   user_type: string;
   first_name: string;
@@ -84,6 +85,7 @@ const Student = () => {
   const [hasClubAccess, setHasClubAccess] = useState(false);
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  
 
   const notificationRef = useRef<HTMLDivElement>(null);
   const userMenuRef = useRef<HTMLDivElement>(null);
@@ -383,9 +385,18 @@ const Student = () => {
 
   const isFullWidthView = () => {
     // Pages that handle their own padding and spacing internally
-    const fullWidthPages = ['dashboard', 'courses'];
+    const fullWidthPages = ['dashboard', 'courses', 'profile'];
     return fullWidthPages.includes(activeView);
   };
+
+  // NEW: Handler for the profile icon click
+  // REPLACE your old function with this:
+   // REPLACE your old function with this new version:
+   const handleProfileIconClick = () => {
+    console.log('Profile icon clicked! Setting view to profile...');
+    setShowUserMenu(false); // This closes the small dropdown
+    setActiveView('profile'); // This sets the main content to the profile page
+   };
 
   const renderContent = () => {
     switch (activeView) {
@@ -420,6 +431,8 @@ const Student = () => {
         return <HostelFacility studentData={studentData} />;
       case 'support':
         return <SupportHelp studentData={studentData} />;
+      case 'profile':
+        return <StudentProfile studentData={studentData} onNavigate={setActiveView} />;
       default:
         return <StudentDashboard studentData={studentData} onNavigate={setActiveView}/>;
     }
@@ -565,9 +578,15 @@ const Student = () => {
                   <div className="fixed right-3 sm:right-4 top-20 w-60 sm:w-64 bg-background/95 backdrop-blur-xl border border-white/20 rounded-xl shadow-2xl z-[9999]">
                     <div className="p-4 border-b border-white/10">
                       <div className="flex items-center space-x-3">
-                        <div className="h-10 sm:h-12 w-10 sm:w-12 bg-role-student/20 rounded-full flex items-center justify-center">
+
+                        <button
+                          type="button"
+                          onClick={handleProfileIconClick}
+                          className="h-10 sm:h-12 w-10 sm:w-12 bg-role-student/20 rounded-full flex items-center justify-center transition-all duration-200 ease-in-out hover:bg-role-student/30 active:scale-95 focus:outline-none focus:ring-2 focus:ring-role-student focus:ring-offset-2 focus:ring-offset-background"
+                        >
                           <UserCircle className="h-6 sm:h-8 w-6 sm:w-8 text-role-student" />
-                        </div>
+                        </button>
+                        
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium text-foreground truncate">
                             {studentData.first_name} {studentData.last_name}
@@ -653,6 +672,10 @@ const Student = () => {
           onClick={() => setSidebarCollapsed(true)}
         />
       )}
+      
+      
+      
+      
     </div>
   );
 };

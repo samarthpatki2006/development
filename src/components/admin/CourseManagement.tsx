@@ -25,6 +25,7 @@ interface Course {
   max_students: number;
   is_active: boolean;
   created_at: string;
+  department_id: string;
   instructor?: {
     first_name: string;
     last_name: string;
@@ -62,6 +63,7 @@ const CourseManagement = ({ userProfile }: { userProfile: UserProfile }) => {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [instructors, setInstructors] = useState<any[]>([]);
+  const [departments, setDepartments] = useState<any[]>([]);
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
   const [courseToDelete, setCourseToDelete] = useState<Course | null>(null);
   const [enrolledStudents, setEnrolledStudents] = useState<EnrolledStudent[]>([]);
@@ -75,7 +77,8 @@ const CourseManagement = ({ userProfile }: { userProfile: UserProfile }) => {
     semester: '',
     academic_year: '2024-25',
     instructor_id: '',
-    max_students: 50
+    max_students: 50,
+    department_id: ''
   });
 
   const [editForm, setEditForm] = useState({
@@ -87,12 +90,14 @@ const CourseManagement = ({ userProfile }: { userProfile: UserProfile }) => {
     academic_year: '2024-25',
     instructor_id: '',
     max_students: 50,
-    is_active: true
+    is_active: true,
+    department_id: ''
   });
 
   useEffect(() => {
     loadCourses();
     loadInstructors();
+    loadDepartments();
   }, [userProfile]);
 
   const loadCourses = async () => {
@@ -166,6 +171,37 @@ const CourseManagement = ({ userProfile }: { userProfile: UserProfile }) => {
     }
   };
 
+  const loadDepartments = async () => {
+    try {
+      if (!userProfile?.college_id) return;
+
+      const { data, error } = await supabase
+        .from('departments')
+        .select('id, department_code, department_name')
+        .eq('college_id', userProfile.college_id)
+        .eq('is_active', true)
+        .order('department_name', { ascending: true });
+
+      if (error) {
+        console.error('Error loading departments:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load departments.",
+          variant: "destructive",
+        });
+      } else {
+        setDepartments(data || []);
+      }
+    } catch (error) {
+      console.error('Error loading departments:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load departments.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const loadEnrolledStudents = async (courseId: string) => {
     setIsLoadingStudents(true);
     try {
@@ -206,10 +242,10 @@ const CourseManagement = ({ userProfile }: { userProfile: UserProfile }) => {
   };
 
   const handleAddCourse = async () => {
-    if (!courseForm.course_code || !courseForm.course_name) {
+    if (!courseForm.course_code || !courseForm.course_name || !courseForm.department_id) {
       toast({
         title: "Validation Error",
-        description: "Please fill in course code and name.",
+        description: "Please fill in course code, name, and select a department.",
         variant: "destructive",
       });
       return;
@@ -247,7 +283,8 @@ const CourseManagement = ({ userProfile }: { userProfile: UserProfile }) => {
           semester: '',
           academic_year: '2024-25',
           instructor_id: '',
-          max_students: 50
+          max_students: 50,
+          department_id: ''
         });
 
         toast({
@@ -278,16 +315,17 @@ const CourseManagement = ({ userProfile }: { userProfile: UserProfile }) => {
       academic_year: course.academic_year,
       instructor_id: course.instructor_id || '',
       max_students: course.max_students,
-      is_active: course.is_active
+      is_active: course.is_active,
+      department_id: course.department_id || ''
     });
     setIsEditDialogOpen(true);
   };
 
   const handleUpdateCourse = async () => {
-    if (!selectedCourse || !editForm.course_code || !editForm.course_name) {
+    if (!selectedCourse || !editForm.course_code || !editForm.course_name || !editForm.department_id) {
       toast({
         title: "Validation Error",
-        description: "Please fill in course code and name.",
+        description: "Please fill in course code, name, and select a department.",
         variant: "destructive",
       });
       return;
@@ -510,6 +548,21 @@ const CourseManagement = ({ userProfile }: { userProfile: UserProfile }) => {
                     </Select>
                   </div>
                   <div>
+                    <Label htmlFor="department">Department *</Label>
+                    <Select value={courseForm.department_id} onValueChange={(value) => setCourseForm({...courseForm, department_id: value})}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select department" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {departments.map((dept) => (
+                          <SelectItem key={dept.id} value={dept.id}>
+                            {dept.department_code} - {dept.department_name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="col-span-1 md:col-span-2">
                     <Label htmlFor="instructor">Faculty Instructor</Label>
                     <Select value={courseForm.instructor_id} onValueChange={(value) => setCourseForm({...courseForm, instructor_id: value})}>
                       <SelectTrigger>
@@ -729,6 +782,21 @@ const CourseManagement = ({ userProfile }: { userProfile: UserProfile }) => {
               </Select>
             </div>
             <div>
+              <Label htmlFor="edit_department">Department *</Label>
+              <Select value={editForm.department_id} onValueChange={(value) => setEditForm({...editForm, department_id: value})}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select department" />
+                </SelectTrigger>
+                <SelectContent>
+                  {departments.map((dept) => (
+                    <SelectItem key={dept.id} value={dept.id}>
+                      {dept.department_code} - {dept.department_name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="col-span-1 md:col-span-2">
               <Label htmlFor="edit_instructor">Faculty Instructor</Label>
               <Select value={editForm.instructor_id} onValueChange={(value) => setEditForm({...editForm, instructor_id: value})}>
                 <SelectTrigger>

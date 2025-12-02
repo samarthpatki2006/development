@@ -38,6 +38,7 @@ import AuditLogs from '../components/admin/AuditLogs';
 import SystemSettings from '../components/admin/SystemSettings';
 import StudentEnrollmentManagement from '@/components/teacher/StudentEnrollmentManagement';
 import TimetableManagement from '@/components/admin/TimetableManagement';
+import DepartmentManagement from '@/components/admin/DepartmentManagement';
 
 interface TagFeature {
   feature_key: string;
@@ -52,6 +53,7 @@ const TAG_FEATURE_MAP: Record<string, TagFeature[]> = {
   super_admin: [
     { feature_key: 'dashboard', feature_name: 'Dashboard', feature_route: '/admin/dashboard', icon: 'Activity', display_order: 0 },
     { feature_key: 'users', feature_name: 'User Management', feature_route: '/admin/users', icon: 'Users', display_order: 1 },
+    { feature_key: 'department', feature_name: 'Department Management', feature_route: '/admin/department', icon: 'Building', display_order: 1 },
     { feature_key: 'courses', feature_name: 'Course Management', feature_route: '/admin/courses', icon: 'BookOpen', display_order: 1.5 },
     { feature_key: 'enrollment', feature_name: 'Enrollment Management', feature_route: '/admin/enrollment', icon: 'Users', display_order: 2 },
     { feature_key: 'timetable', feature_name: 'Timetable Management', feature_route: '/admin/timetable', icon: 'Time', display_order: 2.5 },
@@ -72,6 +74,7 @@ const TAG_FEATURE_MAP: Record<string, TagFeature[]> = {
   ],
   academic_admin: [
     { feature_key: 'dashboard', feature_name: 'Dashboard', feature_route: '/admin/dashboard', icon: 'Activity', display_order: 0 },
+    { feature_key: 'department', feature_name: 'Department Management', feature_route: '/admin/department', icon: 'Building', display_order: 1 },
     { feature_key: 'courses', feature_name: 'Course Management', feature_route: '/admin/courses', icon: 'BookOpen', display_order: 1.5 },
     { feature_key: 'enrollment', feature_name: 'Enrollment Management', feature_route: '/admin/enrollment', icon: 'Users', display_order: 2 },
     { feature_key: 'timetable', feature_name: 'Timetable Management', feature_route: '/admin/timetable', icon: 'Time', display_order: 2.5 }
@@ -472,6 +475,8 @@ const Admin = () => {
         return <AdminDashboard sessionData={sessionData} onNavigate={handleNavigationChange} />;
       case 'users':
         return <EnhancedUserManagement userProfile={userProfile} adminRoles={adminRoles} />;
+      case 'department':
+        return <DepartmentManagement userProfile={userProfile} />;
       case 'courses':
         return <CourseManagement userProfile={userProfile} />;
       case 'enrollment':

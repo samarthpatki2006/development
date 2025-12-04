@@ -45,6 +45,7 @@ const Parent = () => {
   const navigate = useNavigate();
   const [isMobile, setIsMobile] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const hasCheckedUserRef = useRef(false);
 
   const notificationRef = useRef(null);
   const userMenuRef = useRef(null);
@@ -95,19 +96,19 @@ const Parent = () => {
 
   // Check for mobile view
   useEffect(() => {
-      const checkMobile = () => {
-        const mobile = window.innerWidth < 768;
-        setIsMobile(mobile);
-        // Close mobile menu when switching to desktop
-        if (!mobile) {
-          setMobileMenuOpen(false);
-        }
-      };
-  
-      checkMobile();
-      window.addEventListener('resize', checkMobile);
-      return () => window.removeEventListener('resize', checkMobile);
-    }, []);
+    const checkMobile = () => {
+      const mobile = window.innerWidth < 768;
+      setIsMobile(mobile);
+      // Close mobile menu when switching to desktop
+      if (!mobile) {
+        setMobileMenuOpen(false);
+      }
+    };
+
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   // Handle clicks outside dropdowns
   useEffect(() => {
@@ -123,10 +124,6 @@ const Parent = () => {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
-
-
-
-
 
   const handleSidebarToggle = () => {
     if (isMobile) {
@@ -161,9 +158,16 @@ const Parent = () => {
   };
 
   useEffect(() => {
+    // Prevent multiple checks
+    if (hasCheckedUserRef.current) {
+      return;
+    }
+    hasCheckedUserRef.current = true;
+
     const checkUser = async () => {
       try {
-        const userData = localStorage.getItem('colcord_user');
+        // Use sessionStorage consistently
+        const userData = sessionStorage.getItem('colcord_user');
         if (!userData) {
           navigate('/');
           return;
@@ -190,10 +194,11 @@ const Parent = () => {
     };
 
     checkUser();
-  }, [navigate]);
+  }, []); // Empty dependency array - only run once
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
+    sessionStorage.removeItem('colcord_user');
     localStorage.removeItem('colcord_user');
     toast({
       title: 'Logged Out',
@@ -278,7 +283,7 @@ const Parent = () => {
           <div className="flex justify-between items-center h-16">
             {/* Left Section */}
             <div className="flex items-center space-x-3 sm:space-x-6">
-              {/* UPDATED: Sidebar Toggle */}
+              {/* Sidebar Toggle */}
               <Button
                 variant="ghost"
                 size="icon"
@@ -288,7 +293,6 @@ const Parent = () => {
                 <span className="sr-only">Toggle sidebar</span>
                 <Menu className="h-7 w-7" />
               </Button>
-
 
               {/* Logo + Portal Name */}
               <div className="flex items-center space-x-2">
@@ -302,7 +306,6 @@ const Parent = () => {
                 </div>
               </div>
             </div>
-
 
             <div className="flex items-center space-x-2 sm:space-x-3">
               {/* Notifications Dropdown */}
@@ -391,7 +394,6 @@ const Parent = () => {
                 )}
               </div>
 
-
               {/* User Menu Dropdown */}
               <div className="relative" ref={userMenuRef}>
                 <Button
@@ -432,8 +434,6 @@ const Parent = () => {
                         </div>
                       </div>
                     </div>
-
-
 
                     <div className="p-2 space-y-2 sm:space-y-0 ">
                       <Button
@@ -483,8 +483,6 @@ const Parent = () => {
                         <MessageSquare className="h-4 w-4 mr-3" />
                         Communication
                       </Button>
-
-
 
                       <div className="h-px bg-white/10 my-2"></div>
 

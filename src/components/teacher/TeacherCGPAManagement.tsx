@@ -204,20 +204,16 @@ const TeacherCGPAManagement = ({ teacherData }) => {
         updated_at: new Date().toISOString()
       };
 
-      if (existingGrade) {
-        const { error } = await supabase
-          .from("course_grades")
-          .update(courseGradeData)
-          .eq("id", existingGrade.id);
+      // Use upsert with the unique constraint
+      const { error } = await supabase
+        .from("course_grades")
+        .upsert(courseGradeData, {
+          onConflict: 'student_id,course_id,academic_year,semester',
+          ignoreDuplicates: false
+        })
+        .select();
 
-        if (error) throw error;
-      } else {
-        const { error } = await supabase
-          .from("course_grades")
-          .insert(courseGradeData);
-
-        if (error) throw error;
-      }
+      if (error) throw error;
 
       toast({
         title: "Success",

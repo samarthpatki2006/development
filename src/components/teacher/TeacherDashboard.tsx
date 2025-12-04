@@ -69,7 +69,7 @@ const RECENT_ACTIVITIES = [
 // Quick actions configuration with navigation targets
 const QUICK_ACTIONS = [
   {
-    title: 'Grade Assignments',
+    title: 'Grade Stduents',
     description: 'Review and grade pending submissions',
     icon: Award,
     color: 'bg-blue-50 text-blue-600 hover:bg-blue-100',

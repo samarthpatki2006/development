@@ -48,6 +48,7 @@ import { supabase } from '@/integrations/supabase/client';
 import GradeManager from '@/components/teacher/GradeManager';
 import TeacherExtra from '@/components/teacher/TeacherExtra';
 import ClubAdvisor from '@/components/teacher/ClubAdvisor';
+import TeacherCGPAManagement from '@/components/teacher/TeacherCGPAManagement';
 
 const Teacher = () => {
   const [activeView, setActiveView] = useState('dashboard');
@@ -295,6 +296,7 @@ const Teacher = () => {
     // { id: 'enhanced-attendance', label: 'Enhanced Attendance Tracker', icon: ClipboardList },
     { id: 'courses', label: 'Course & Quiz', icon: BookOpen },
     { id: 'gradebook', label: 'Grading', icon: ClipboardList },
+    { id: 'cgpa', label: 'CGPA Calculator', icon: GraduationCap },
     { id: 'extra-classes', label: 'Extra Classes', icon: PlusCircleIcon },
     { id: 'events', label: 'Events', icon: Calendar },
     // { id: 'club', label: 'Clubs', icon: Users },
@@ -322,6 +324,8 @@ const Teacher = () => {
         return <TeacherCourses teacherData={teacherData} />;
       case 'gradebook':
         return <GradeManager />;
+      case 'cgpa':
+        return <TeacherCGPAManagement teacherData={teacherData} />;
       case 'extra-classes':
         return <TeacherExtra teacherData={teacherData} />;
       case 'events':

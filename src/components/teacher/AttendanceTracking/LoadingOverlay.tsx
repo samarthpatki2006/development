@@ -29,10 +29,6 @@ const LoadingOverlay: React.FC<LoadingOverlayProps> = ({ loadingState, className
 
   const getMessage = () => {
     if (loadingState.message) return loadingState.message;
-<<<<<<< HEAD
-=======
-
->>>>>>> samarth-pr
     switch (loadingState.operation) {
       case 'fetching':
         return 'Loading students...';

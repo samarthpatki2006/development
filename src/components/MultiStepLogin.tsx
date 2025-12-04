@@ -460,7 +460,9 @@ const MultiStepLogin = () => {
     const routes = {
       'admin': '/admin',
       'teacher': '/teacher',
-      'student': '/student'
+      'student': '/student',
+      'parent': '/parent',
+      'alumni': '/alumni'
     };
 
     navigate(routes[role]);

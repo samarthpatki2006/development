@@ -47,7 +47,6 @@ const ParentDashboard = ({ user, onNavigate }: ParentDashboardProps) => {
           variant: 'destructive',
         });
         setChildren([]);
-        setLoading(false);
         return;
       }
 
@@ -223,12 +222,6 @@ const ParentDashboard = ({ user, onNavigate }: ParentDashboardProps) => {
     }
   };
 
-  const handleStatCardClick = (navigateTo: string) => {
-    if (onNavigate) {
-      onNavigate(navigateTo);
-    }
-  };
-
   const handleChildClick = (childId: string) => {
     setSelectedChild(childId);
     if (onNavigate) {
@@ -255,7 +248,7 @@ const ParentDashboard = ({ user, onNavigate }: ParentDashboardProps) => {
   return (
     <div className="space-y-6 animate-fade-in-up px-3 sm:px-4 md:px-6 overflow-x-hidden w-full">
       {/* Welcome Section */}
-      <div className="bg-card border border-white/10 rounded-lg p-4 sm:p-5 md:p-6">
+      <div className="bg-black border border-white/10 rounded-lg p-4 sm:p-5 md:p-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div className="space-y-2">
             <div className="flex flex-col sm:flex-row sm:items-center gap-2">
@@ -272,13 +265,13 @@ const ParentDashboard = ({ user, onNavigate }: ParentDashboardProps) => {
       </div>
 
       {/* Children Overview */}
-      <Card>
+      <Card className='bg-black'>
         <CardHeader>
           <CardTitle>Your Children</CardTitle>
           <CardDescription>
             {children.length > 0
               ? 'Students linked to your account - click to view details'
-              : 'No students linked to your account'}
+              : ''}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -338,7 +331,7 @@ const ParentDashboard = ({ user, onNavigate }: ParentDashboardProps) => {
           <CardContent className="h-[calc(100%-100px)] overflow-y-auto overflow-x-hidden scrollbar-thin space-y-3 sm:space-y-4 p-4 sm:p-6">
             {recentActivities.map((activity, index) => (
               <PermissionWrapper key={index} permission={activity.permission}>
-                <div className="flex flex-row items-start justify-start space-x-2 p-3 rounded-lg bg-white/5 border border-white/5 hover:bg-white/10 hover:border-white/10 transition-all duration-300 hover:shadow-md hover:shadow-gray-500/5 will-change-transform">
+                <div className="flex flex-row items-start justify-start space-x-2 p-3 rounded-lg bg-white/5 border border-white/5 hover:bg-white/10 hover:border-white/10 transition-all duration-300 hover:shadow-md hover:shadow-gray-500/10 will-change-transform">
                   <div className="flex-shrink-0 mt-2 sm:mt-2.5">
                     <div className="w-2 h-2 bg-gray-400 rounded-full animate-pulse shadow-lg shadow-gray-400/50"></div>
                   </div>
@@ -365,7 +358,7 @@ const ParentDashboard = ({ user, onNavigate }: ParentDashboardProps) => {
               return (
                 <PermissionWrapper key={index} permission={action.permission}>
                   <div
-                    className="flex flex-row items-start justify-start space-x-4 p-4 rounded-lg bg-white/5 border border-white/5 hover:bg-white/10 hover:border-white/10 transition-all duration-300 hover:shadow-md hover:shadow-gray-500/5 will-change-transform cursor-pointer"
+                    className="flex flex-row items-start justify-start space-x-4 p-4 rounded-lg bg-white/5 border border-white/5 hover:bg-white/10 hover:border-white/10 transition-all duration-300 hover:shadow-md hover:shadow-gray-500/10 will-change-transform cursor-pointer"
                     onClick={() => handleQuickActionClick(action.navigateTo)}
                   >
                     <div className={`flex-shrink-0 p-2 ${action.color} transition-colors flex items-start self-start mt-1 mr-2 rounded-lg`}>
@@ -386,7 +379,7 @@ const ParentDashboard = ({ user, onNavigate }: ParentDashboardProps) => {
       {/* Fee Payment Alert */}
       {pendingFees.length > 0 && (
         <PermissionWrapper permission="view_child_fees">
-          <Card>
+          <Card className='bg-black'>
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-yellow-700 dark:text-yellow-400 text-base sm:text-lg">
                 <AlertCircle className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0 text-yellow-600 dark:text-yellow-500" />
